@@ -6,11 +6,12 @@ import os
 import typer
 
 from enum import Enum
+from multiprocessing import Pool, TimeoutError
 from pathlib import Path
 from rsciio.image import file_writer as image_file_writer
 from rsciio.tiff import file_reader as tiff_file_reader
 from tsio import __app_name__
-from typing import Optional
+from typing import Dict, Optional, Tuple
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -74,6 +75,16 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
+def write_page(config: Tuple[int, Dict, Path, FileFormats]) -> Path:
+    index, page, destination, output_format = config
+    logger.debug(f"index={index}")
+    logger.debug(f"destination={destination}")
+    logger.debug(f"output_format={output_format}")
+    output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
+    image_file_writer(output_file, page)
+    return output_file
+
+
 @app.command(help="Handle Input/Output (IO) of TIFF files.")
 def tiff(
     output_format: FileFormats = typer.Argument(help="The output file format."),
@@ -94,12 +105,11 @@ def tiff(
     if len(pages) > 1:
         destination = destination.joinpath(input_file_stem)
         os.makedirs(destination, exist_ok=True)
-    for index, page in enumerate(pages):
-        logger.debug(f"index={index}")
-        output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
-        logger.info(f"Writing '{output_file}'...")
-        image_file_writer(output_file, page)
-        logger.info(f"Writing '{output_file}'...DONE")
+    pages_list = [(index, page, destination, output_format) for index, page in enumerate(pages)]
+    with Pool() as pool:
+        results = pool.imap(write_page, pages_list, chunksize=1)
+        for result in results:
+            logger.info(result)
 
 
 @app.callback()
