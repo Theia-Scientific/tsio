@@ -93,6 +93,7 @@ def tiff(
     output: Optional[Path] = typer.Option(None, help="Destination for output file(s).")
 ):
     logger.debug(f"input_path={input_path}")
+    logger.debug(f"num_cpus={num_cpus}")
     logger.debug(f"output={output}")
     logger.debug(f"output_format={output_format}")
     if output is None:
