@@ -91,7 +91,8 @@ def tiff(
     output_format: FileFormats = typer.Argument(help="The output file format."),
     files: List[Path] = typer.Argument(help="The original TIFF source files."),
     num_cpus: Optional[int] = typer.Option(None, "-n", "--num-cpus", help="The number of CPU cores to use for parallel execution."),
-    output: Optional[Path] = typer.Option(None, "-o", "--output", help="Destination for output file(s).")
+    output: Optional[Path] = typer.Option(None, "-o", "--output", help="Destination for output file(s)."),
+    silent: bool = typer.Option(False, "-S", "--silent", help="Disables the progress bars.")
 ):
     logger.debug(f"files={files}")
     logger.debug(f"num_cpus={num_cpus}")
@@ -111,7 +112,7 @@ def tiff(
             os.makedirs(destination, exist_ok=True)
         pages_list = [(index, page, destination, output_format) for index, page in enumerate(pages)]
         with Pool(num_cpus) as pool:
-            list(tqdm(pool.imap(write_page, pages_list), total=len(pages), desc=src.name))
+            list(tqdm(pool.imap(write_page, pages_list), total=len(pages), desc=src.name, disable=silent))
 
 
 @app.callback()
