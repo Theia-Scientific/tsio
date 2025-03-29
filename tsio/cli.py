@@ -89,7 +89,7 @@ def tiff(
         destination = output.resolve()
     input_file_stem = input_path.stem
     logger.debug(f"input_file_stem={input_file_stem}")
-    pages = tiff_file_reader(input_path, multipage_to_list=True)
+    pages = tiff_file_reader(input_path, multipage_as_list=True)
     logger.debug(f"len(pages)={len(pages)}")
     if len(pages) > 1:
         destination = destination.joinpath(input_file_stem)
