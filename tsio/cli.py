@@ -2,6 +2,7 @@
 
 import importlib.metadata
 import logging
+import os
 import typer
 
 from enum import Enum
@@ -88,14 +89,17 @@ def tiff(
         destination = output.resolve()
     input_file_stem = input_path.stem
     logger.debug(f"input_file_stem={input_file_stem}")
-
     pages = tiff_file_reader(input_path, multipage_to_list=True)
+    logger.debug(f"len(pages)={len(pages)}")
     if len(pages) > 1:
-        pass
-    for page in pages:
-        image_file_writer("output.png", page)
-
-
+        destination = destination.joinpath(input_file_stem)
+        os.makedirs(destination, exist_ok=True)
+    for index, page in enumerate(pages):
+        logger.debug(f"index={index}")
+        output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
+        logger.info(f"Writing '{output_file}'...")
+        image_file_writer(output_file, page)
+        logger.info(f"Writing '{output_file}'...DONE")
 
 
 @app.callback()
