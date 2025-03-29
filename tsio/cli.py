@@ -14,6 +14,9 @@ TIFF_MIME_TYPE: str = "image/tiff"
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
+tiff_app = typer.Typer()
+
+app.add_typer(tiff_app, name="tiff", help="Handle Input/Output (IO) of TIFF files.")
 
 def map_verbosity(enabled: bool) -> str:
     if enabled:
@@ -29,21 +32,24 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
+@tiff_app.command()
+def tiff():
+    pass
 
 
-@app.command()
+@app.callback()
 def main(
     verbose: bool = typer.Option(
         False,
         "--verbose",
         "-v",
-        help="Print debugging statements to STDOUT.",
+        help="Print debugging statements.",
         envvar=f"{PREFIX}_VERBOSE",
     ),
     version: Optional[bool] = typer.Option(
         None,
         "--version",
-        help="Prints the version to STDOUT",
+        help="Prints the version.",
         callback=version_callback,
         is_eager=True,
     ),
