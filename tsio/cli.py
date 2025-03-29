@@ -111,7 +111,7 @@ def tiff(
             os.makedirs(destination, exist_ok=True)
         pages_list = [(index, page, destination, output_format) for index, page in enumerate(pages)]
         with Pool(num_cpus) as pool:
-            list(tqdm(pool.imap(write_page, pages_list), total=len(pages)))
+            list(tqdm(pool.imap(write_page, pages_list), total=len(pages), desc=src.name))
 
 
 @app.callback()
