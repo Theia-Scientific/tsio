@@ -12,7 +12,7 @@ from rsciio.image import file_writer as image_file_writer
 from rsciio.tiff import file_reader as tiff_file_reader
 from tqdm import tqdm
 from tsio import __app_name__
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -89,28 +89,29 @@ def write_page(config: Tuple[int, Dict, Path, FileFormats]) -> Path:
 @app.command(help="Handle Input/Output (IO) of TIFF files.")
 def tiff(
     output_format: FileFormats = typer.Argument(help="The output file format."),
-    input_path: Path = typer.Argument(help="The input file."),
-    num_cpus: Optional[int] = typer.Option(None, help="The number of CPU cores to use for parallel execution."),
-    output: Optional[Path] = typer.Option(None, help="Destination for output file(s).")
+    files: List[Path] = typer.Argument(help="The original TIFF source files."),
+    num_cpus: Optional[int] = typer.Option(None, "-n", "--num-cpus", help="The number of CPU cores to use for parallel execution."),
+    output: Optional[Path] = typer.Option(None, "-o", "--output", help="Destination for output file(s).")
 ):
-    logger.debug(f"input_path={input_path}")
+    logger.debug(f"files={files}")
     logger.debug(f"num_cpus={num_cpus}")
     logger.debug(f"output={output}")
     logger.debug(f"output_format={output_format}")
-    if output is None:
-        destination = input_path.resolve().parent
-    else:
-        destination = output.resolve()
-    input_file_stem = input_path.stem
-    logger.debug(f"input_file_stem={input_file_stem}")
-    pages = tiff_file_reader(input_path, multipage_as_list=True)
-    logger.debug(f"len(pages)={len(pages)}")
-    if len(pages) > 1:
-        destination = destination.joinpath(input_file_stem)
-        os.makedirs(destination, exist_ok=True)
-    pages_list = [(index, page, destination, output_format) for index, page in enumerate(pages)]
-    with Pool(num_cpus) as pool:
-        list(tqdm(pool.imap(write_page, pages_list), total=len(pages)))
+    for src in files:
+        if output is None:
+            destination = src.resolve().parent
+        else:
+            destination = output.resolve()
+        src_file_stem = src.stem
+        logger.debug(f"src_file_stem={src_file_stem}")
+        pages = tiff_file_reader(src, multipage_as_list=True)
+        logger.debug(f"len(pages)={len(pages)}")
+        if len(pages) > 1:
+            destination = destination.joinpath(src_file_stem)
+            os.makedirs(destination, exist_ok=True)
+        pages_list = [(index, page, destination, output_format) for index, page in enumerate(pages)]
+        with Pool(num_cpus) as pool:
+            list(tqdm(pool.imap(write_page, pages_list), total=len(pages)))
 
 
 @app.callback()
