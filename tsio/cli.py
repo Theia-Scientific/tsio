@@ -89,6 +89,7 @@ def write_page(config: Tuple[int, Dict, Path, FileFormats]) -> Path:
 def tiff(
     output_format: FileFormats = typer.Argument(help="The output file format."),
     input_path: Path = typer.Argument(help="The input file."),
+    num_cpus: Optional[int] = typer.Option(None, help="The number of CPU cores to use for parallel execution."),
     output: Optional[Path] = typer.Option(None, help="Destination for output file(s).")
 ):
     logger.debug(f"input_path={input_path}")
@@ -106,8 +107,8 @@ def tiff(
         destination = destination.joinpath(input_file_stem)
         os.makedirs(destination, exist_ok=True)
     pages_list = [(index, page, destination, output_format) for index, page in enumerate(pages)]
-    with Pool() as pool:
-        results = pool.imap(write_page, pages_list, chunksize=1)
+    with Pool(num_cpus) as pool:
+        results = pool.imap(write_page, pages_list)
         for result in results:
             logger.info(result)
 
