@@ -14,10 +14,6 @@ TIFF_MIME_TYPE: str = "image/tiff"
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
-tiff_app = typer.Typer()
-
-app.add_typer(tiff_app, name="tiff", help="Handle Input/Output (IO) of TIFF files.")
-
 def map_verbosity(enabled: bool) -> str:
     if enabled:
         return "DEBUG"
@@ -32,7 +28,7 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
-@tiff_app.command()
+@app.command(help="Handle Input/Output (IO) of TIFF files.")
 def tiff():
     pass
 
