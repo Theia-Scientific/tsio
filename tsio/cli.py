@@ -6,10 +6,11 @@ import os
 import typer
 
 from enum import Enum
-from multiprocessing import Pool, TimeoutError
+from multiprocessing import Pool
 from pathlib import Path
 from rsciio.image import file_writer as image_file_writer
 from rsciio.tiff import file_reader as tiff_file_reader
+from tqdm import tqdm
 from tsio import __app_name__
 from typing import Dict, Optional, Tuple
 
@@ -109,9 +110,7 @@ def tiff(
         os.makedirs(destination, exist_ok=True)
     pages_list = [(index, page, destination, output_format) for index, page in enumerate(pages)]
     with Pool(num_cpus) as pool:
-        results = pool.imap(write_page, pages_list)
-        for result in results:
-            logger.info(result)
+        list(tqdm(pool.imap(write_page, pages_list), total=len(pages)))
 
 
 @app.callback()
