@@ -16,7 +16,7 @@ from rsciio.image import file_writer as image_file_writer
 from rsciio.tiff import file_reader as tiff_file_reader
 from tqdm import tqdm
 from tsio import __app_name__
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
 PREFIX: str = f"{__app_name__.upper()}"
@@ -126,13 +126,11 @@ def write_page(config: Tuple[int, Dict, Path, OutputFileFormats, Optional[str]])
     image_file_writer(output_file, page)
     return output_file
 
-
-def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, Optional[int], bool]):
-    src, output, output_format, num_cpus, silent = config
+      
+def write(reader: Callable, writer: Callable, src: Path, output: Optional[Path], output_format: OutputFileFormats, silent: bool):
     LOGGER.debug(f"{src=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
-    LOGGER.debug(f"{num_cpus=}")
     LOGGER.debug(f"{silent=}")
     if output is None:
         destination = src.resolve().parent
@@ -141,19 +139,39 @@ def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, Optional[int
     src_file_stem = src.stem
     LOGGER.debug(f"{src_file_stem=}")
     try:
-        datasets = dm_file_reader(src)
-        LOGGER.debug(f"len(datasets)={len(datasets)}")
-        if len(datasets) > 1:
+        pages = reader(src)
+        LOGGER.debug(f"len(datasets)={len(pages)}")
+        if len(pages) > 1:
             destination = destination.joinpath(src_file_stem)
             os.makedirs(destination, exist_ok=True)
             src_file_stem = None
-        datasets_list = [(index, dataset, destination, output_format, src_file_stem) for index, dataset in enumerate(datasets)]
-        for dataset in list(tqdm(datasets_list, total=len(datasets), desc=src.name, disable=silent)):
-            write_dataset(dataset)
+        datasets_list = [(index, dataset, destination, output_format, src_file_stem) for index, dataset in enumerate(pages)]
+        for page in list(tqdm(datasets_list, total=len(pages), desc=src.name, disable=silent)):
+            writer(page)
     except NotImplementedError as error:
-        LOGGER.warning(f"Skipped '{src}' bceause: '{str(error)}'")
+        LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
     except Exception as error:
         LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
+
+
+def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, Optional[int], bool]):
+    src, output, output_format, num_cpus, silent = config
+    LOGGER.debug(f"{src=}")
+    LOGGER.debug(f"{output=}")
+    LOGGER.debug(f"{output_format=}")
+    LOGGER.debug(f"{num_cpus=}")
+    LOGGER.debug(f"{silent=}")
+    write(dm_file_reader, write_dataset, src, output, output_format, silent)
+
+    
+def write_tiff(config: Tuple[Path, Optional[Path], OutputFileFormats, Optional[int], bool]):
+    src, output, output_format, num_cpus, silent = config
+    LOGGER.debug(f"{src=}")
+    LOGGER.debug(f"{output=}")
+    LOGGER.debug(f"{output_format=}")
+    LOGGER.debug(f"{num_cpus=}")
+    LOGGER.debug(f"{silent=}")
+    write(tiff_file_reader, write_page, src, output, output_format, silent)
 
 
 @app.command(help="Handle Input/Output (IO) of DigitalMicrograph (DM) files.")
@@ -181,33 +199,25 @@ def dm(
 @app.command(help="Handle Input/Output (IO) of TIFF files.")
 def tiff(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
-    files: List[Path] = typer.Argument(help="The original TIFF source files."),
+    paths: List[Path] = typer.Argument(help="The original TIFF source files."),
     num_cpus: Optional[int] = typer.Option(None, "-n", "--num-cpus", help="The number of CPU cores to use for parallel execution."),
     output: Optional[Path] = typer.Option(None, "-o", "--output", help="Destination for output file(s)."),
     silent: bool = typer.Option(False, "-S", "--silent", help="Disables the progress bars.")
 ):
-    LOGGER.debug(f"files={files}")
-    LOGGER.debug(f"num_cpus={num_cpus}")
-    LOGGER.debug(f"output={output}")
-    LOGGER.debug(f"output_format={output_format}")
-    for src in files:
-        if output is None:
-            destination = src.resolve().parent
+    LOGGER.debug(f"{paths=}")
+    LOGGER.debug(f"{num_cpus=}")
+    LOGGER.debug(f"{output=}")
+    LOGGER.debug(f"{output_format=}")
+    sources = []
+    for path in paths:
+        if path.is_dir():
+            sources.extend([(path.joinpath(p), output, output_format, num_cpus, silent) for p in os.listdir(path) if path.joinpath(p).is_file()])
         else:
-            destination = output.resolve()
-        src_file_stem = src.stem
-        LOGGER.debug(f"src_file_stem={src_file_stem}")
-        pages = tiff_file_reader(src, multipage_as_list=True)
-        LOGGER.debug(f"len(pages)={len(pages)}")
-        if len(pages) > 1:
-            destination = destination.joinpath(src_file_stem)
-            os.makedirs(destination, exist_ok=True)
-            src_file_stem = None
-        pages_list = [(index, page, destination, output_format, src_file_stem) for index, page in enumerate(pages)]
-        with Pool(num_cpus) as pool:
-            list(tqdm(pool.imap(write_page, pages_list), total=len(pages), desc=src.name, disable=silent))
+            sources.append((path, output, output_format, num_cpus, silent))
+    with Pool(num_cpus) as pool:
+        list(pool.imap(write_tiff, sources))
 
-
+        
 @app.callback()
 def main(
     verbose: bool = typer.Option(
