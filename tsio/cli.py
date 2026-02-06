@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 
+import cv2
 import importlib.metadata
 import logging
+import mimetypes
+import numpy as np
 import os
 import typer
 
 from enum import Enum
 from multiprocessing import Pool
 from pathlib import Path
+from rsciio.digitalmicrograph import file_reader as dm_file_reader
 from rsciio.image import file_writer as image_file_writer
 from rsciio.tiff import file_reader as tiff_file_reader
 from tqdm import tqdm
@@ -18,6 +22,7 @@ LOGGER: logging.Logger = logging.getLogger(__name__)
 
 PREFIX: str = f"{__app_name__.upper()}"
 
+BIT_DEPTH_DTYPE: str = "uint8"
 DM4_FILE_EXT: str = ".dm4"
 DM3_FILE_EXT: str = ".dm3"
 DM3_MIME_TYPE: str = "application/vnd.gatan.dm3"
@@ -29,6 +34,9 @@ PNG_MIME_TYPE: str = "image/png"
 TIFF_FILE_EXT: str = ".tif"
 TIFF_MIME_TYPE: str = "image/tiff"
 
+mimetypes.add_type(DM3_MIME_TYPE, DM3_FILE_EXT)
+mimetypes.add_type(DM4_MIME_TYPE, DM4_FILE_EXT)
+
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
 class UnsupportedFileFormat(Exception):
@@ -36,7 +44,7 @@ class UnsupportedFileFormat(Exception):
         self.value = value
 
 
-class FileFormats(Enum):
+class OutputFileFormats(Enum):
     JPEG = "jpeg"
     PNG = "png"
     TIFF = "tiff"
@@ -44,9 +52,9 @@ class FileFormats(Enum):
     @property
     def mime_type(self) -> str:
         MIME_TYPES = {
-            FileFormats.JPEG: JPEG_MIME_TYPE,
-            FileFormats.PNG: PNG_MIME_TYPE,
-            FileFormats.TIFF: TIFF_MIME_TYPE,
+            OutputFileFormats.JPEG: JPEG_MIME_TYPE,
+            OutputFileFormats.PNG: PNG_MIME_TYPE,
+            OutputFileFormats.TIFF: TIFF_MIME_TYPE,
         }
         mime_type = MIME_TYPES.get(self)
         if mime_type is None:
@@ -56,9 +64,9 @@ class FileFormats(Enum):
     @property
     def file_ext(self) -> str:
         FILE_EXTS = {
-            FileFormats.JPEG: JPEG_FILE_EXT,
-            FileFormats.PNG: PNG_FILE_EXT,
-            FileFormats.TIFF: TIFF_FILE_EXT,
+            OutputFileFormats.JPEG: JPEG_FILE_EXT,
+            OutputFileFormats.PNG: PNG_FILE_EXT,
+            OutputFileFormats.TIFF: TIFF_FILE_EXT,
         }
         file_ext = FILE_EXTS.get(self)
         if file_ext is None:
@@ -79,8 +87,25 @@ def version_callback(value: bool):
         print(f"{__app_name__} {version}")
         raise typer.Exit()
 
+    
+def write_dataset(config: Tuple[int, Dict, Path, OutputFileFormats]) -> Path:
+    index, dataset, destination, output_format = config
+    LOGGER.debug(f"index={index}")
+    LOGGER.debug(f"destination={destination}")
+    LOGGER.debug(f"output_format={output_format}")
+    output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
+    src = dataset["data"]
+    normalized_image = ((src - np.min(src)) / (np.max(src) - np.min(src))).astype(
+        np.float32
+    )
+    img = cv2.cvtColor(
+        np.round(normalized_image * 256).astype(BIT_DEPTH_DTYPE), cv2.COLOR_GRAY2BGR
+    )
+    image_file_writer(output_file, img)
+    return output_file
 
-def write_page(config: Tuple[int, Dict, Path, FileFormats]) -> Path:
+
+def write_page(config: Tuple[int, Dict, Path, OutputFileFormats]) -> Path:
     index, page, destination, output_format = config
     LOGGER.debug(f"index={index}")
     LOGGER.debug(f"destination={destination}")
@@ -89,9 +114,10 @@ def write_page(config: Tuple[int, Dict, Path, FileFormats]) -> Path:
     image_file_writer(output_file, page)
     return output_file
 
+
 @app.command(help="Handle Input/Output (IO) of DM3/4 files.")
 def dm4(
-    output_format: FileFormats = typer.Argument(help="The output file format."),
+    output_format: OutputFileFormats = typer.Argument(help="The output file format."),
     files: List[Path] = typer.Argument(help="The original DM3/4 source files."),
     num_cpus: Optional[int] = typer.Option(None, "-n", "--num-cpus", help="The number of CPU cores to use for parallel execution."),
     output: Optional[Path] = typer.Option(None, "-o", "--output", help="Destination for output file(s)."),
@@ -108,19 +134,19 @@ def dm4(
             destination = output.resolve()
         src_file_stem = src.stem
         LOGGER.debug(f"src_file_stem={src_file_stem}")
-        pages = tiff_file_reader(src, multipage_as_list=True)
-        LOGGER.debug(f"len(pages)={len(pages)}")
-        if len(pages) > 1:
+        datasets = dm_file_reader(src)
+        LOGGER.debug(f"len(pages)={len(datasets)}")
+        if len(datasets) > 1:
             destination = destination.joinpath(src_file_stem)
             os.makedirs(destination, exist_ok=True)
-        pages_list = [(index, page, destination, output_format) for index, page in enumerate(pages)]
+        datasets_list = [(index, dataset, destination, output_format) for index, dataset in enumerate(datasets)]
         with Pool(num_cpus) as pool:
-            list(tqdm(pool.imap(write_page, pages_list), total=len(pages), desc=src.name, disable=silent))
+            list(tqdm(pool.imap(write_dataset, datasets_list), total=len(datasets), desc=src.name, disable=silent))
 
 
 @app.command(help="Handle Input/Output (IO) of TIFF files.")
 def tiff(
-    output_format: FileFormats = typer.Argument(help="The output file format."),
+    output_format: OutputFileFormats = typer.Argument(help="The output file format."),
     files: List[Path] = typer.Argument(help="The original TIFF source files."),
     num_cpus: Optional[int] = typer.Option(None, "-n", "--num-cpus", help="The number of CPU cores to use for parallel execution."),
     output: Optional[Path] = typer.Option(None, "-o", "--output", help="Destination for output file(s)."),
