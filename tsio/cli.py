@@ -18,6 +18,10 @@ LOGGER: logging.Logger = logging.getLogger(__name__)
 
 PREFIX: str = f"{__app_name__.upper()}"
 
+DM4_FILE_EXT: str = ".dm4"
+DM3_FILE_EXT: str = ".dm3"
+DM3_MIME_TYPE: str = "application/vnd.gatan.dm3"
+DM4_MIME_TYPE: str = "application/vnd.gatan.dm4"
 JPEG_FILE_EXT: str = ".jpg"
 JPEG_MIME_TYPE: str = "image/jpeg"
 PNG_FILE_EXT: str = ".png"
@@ -84,6 +88,34 @@ def write_page(config: Tuple[int, Dict, Path, FileFormats]) -> Path:
     output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
     image_file_writer(output_file, page)
     return output_file
+
+@app.command(help="Handle Input/Output (IO) of DM3/4 files.")
+def dm4(
+    output_format: FileFormats = typer.Argument(help="The output file format."),
+    files: List[Path] = typer.Argument(help="The original DM3/4 source files."),
+    num_cpus: Optional[int] = typer.Option(None, "-n", "--num-cpus", help="The number of CPU cores to use for parallel execution."),
+    output: Optional[Path] = typer.Option(None, "-o", "--output", help="Destination for output file(s)."),
+    silent: bool = typer.Option(False, "-S", "--silent", help="Disables the progress bars.")
+):
+    LOGGER.debug(f"files={files}")
+    LOGGER.debug(f"num_cpus={num_cpus}")
+    LOGGER.debug(f"output={output}")
+    LOGGER.debug(f"output_format={output_format}")
+    for src in files:
+        if output is None:
+            destination = src.resolve().parent
+        else:
+            destination = output.resolve()
+        src_file_stem = src.stem
+        LOGGER.debug(f"src_file_stem={src_file_stem}")
+        pages = tiff_file_reader(src, multipage_as_list=True)
+        LOGGER.debug(f"len(pages)={len(pages)}")
+        if len(pages) > 1:
+            destination = destination.joinpath(src_file_stem)
+            os.makedirs(destination, exist_ok=True)
+        pages_list = [(index, page, destination, output_format) for index, page in enumerate(pages)]
+        with Pool(num_cpus) as pool:
+            list(tqdm(pool.imap(write_page, pages_list), total=len(pages), desc=src.name, disable=silent))
 
 
 @app.command(help="Handle Input/Output (IO) of TIFF files.")
