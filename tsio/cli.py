@@ -9,7 +9,7 @@ import os
 import typer
 
 from enum import Enum
-from multiprocessing import Pool
+from multiprocess import Pool
 from pathlib import Path
 from rsciio.digitalmicrograph import file_reader as dm_file_reader
 from rsciio.image import file_writer as image_file_writer
@@ -19,7 +19,6 @@ from tsio import __app_name__
 from typing import Dict, List, Optional, Tuple
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
-
 PREFIX: str = f"{__app_name__.upper()}"
 
 BIT_DEPTH_DTYPE: str = "uint8"
@@ -36,6 +35,8 @@ TIFF_MIME_TYPE: str = "image/tiff"
 
 mimetypes.add_type(DM3_MIME_TYPE, DM3_FILE_EXT)
 mimetypes.add_type(DM4_MIME_TYPE, DM4_FILE_EXT)
+
+logging.getLogger("PIL.Image").setLevel(logging.WARNING)
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
@@ -94,6 +95,7 @@ def write_dataset(config: Tuple[int, Dict, Path, OutputFileFormats]) -> Path:
     LOGGER.debug(f"{destination=}")
     LOGGER.debug(f"{output_format=}")
     output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
+    LOGGER.debug(f"{output_file=}")
     src = dataset["data"]
     normalized_image = ((src - np.min(src)) / (np.max(src) - np.min(src))).astype(
         np.float32
@@ -101,7 +103,8 @@ def write_dataset(config: Tuple[int, Dict, Path, OutputFileFormats]) -> Path:
     img = cv2.cvtColor(
         np.round(normalized_image * 256).astype(BIT_DEPTH_DTYPE), cv2.COLOR_GRAY2BGR
     )
-    image_file_writer(output_file, img)
+    dataset["data"] = img
+    image_file_writer(output_file, dataset)
     return output_file
 
 
@@ -111,6 +114,7 @@ def write_page(config: Tuple[int, Dict, Path, OutputFileFormats]) -> Path:
     LOGGER.debug(f"{destination=}")
     LOGGER.debug(f"{output_format=}")
     output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
+    LOGGER.debug(f"{output_file=}")
     image_file_writer(output_file, page)
     return output_file
 
