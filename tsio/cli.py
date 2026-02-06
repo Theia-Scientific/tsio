@@ -9,7 +9,7 @@ import os
 import typer
 
 from enum import Enum
-from multiprocess import Pool
+from multiprocess.pool import Pool
 from pathlib import Path
 from rsciio.digitalmicrograph import file_reader as dm_file_reader
 from rsciio.image import file_writer as image_file_writer
