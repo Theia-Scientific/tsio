@@ -89,49 +89,19 @@ def version_callback(value: bool):
         raise typer.Exit()
 
     
-def write_dataset(config: Tuple[int, Dict, Path, OutputFileFormats, Optional[str]]) -> Path:
-    index, dataset, destination, output_format, src_file_stem = config
-    LOGGER.debug(f"{index=}")
-    LOGGER.debug(f"{destination=}")
-    LOGGER.debug(f"{output_format=}")
-    LOGGER.debug(f"{src_file_stem=}")
-    if src_file_stem is None:
-        output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
-    else:
-        output_file = destination.joinpath(src_file_stem).with_suffix(output_format.file_ext)
-    LOGGER.debug(f"{output_file=}")
-    src = dataset["data"]
-    normalized_image = ((src - np.min(src)) / (np.max(src) - np.min(src))).astype(
-        np.float32
-    )
-    img = cv2.cvtColor(
-        np.round(normalized_image * 256).astype(BIT_DEPTH_DTYPE), cv2.COLOR_GRAY2BGR
-    )
-    dataset["data"] = img
-    image_file_writer(output_file, dataset)
-    return output_file
-
-
-def write_page(config: Tuple[int, Dict, Path, OutputFileFormats, Optional[str]]) -> Path:
-    index, page, destination, output_format, src_file_stem = config
-    LOGGER.debug(f"{index=}")
-    LOGGER.debug(f"{destination=}")
-    LOGGER.debug(f"{output_format=}")
-    LOGGER.debug(f"{src_file_stem=}")
-    if src_file_stem is None:
-        output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
-    else:
-        output_file = destination.joinpath(src_file_stem).with_suffix(output_format.file_ext)
-    LOGGER.debug(f"{output_file=}")
-    image_file_writer(output_file, page)
-    return output_file
-
-      
-def write(reader: Callable, writer: Callable, src: Path, output: Optional[Path], output_format: OutputFileFormats, silent: bool):
+def write(
+    reader: Callable,
+    src: Path,
+    output: Optional[Path],
+    output_format: OutputFileFormats,
+    silent: bool,
+    normalize: bool = False
+):
     LOGGER.debug(f"{src=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
+    LOGGER.debug(f"{normalize=}")
     if output is None:
         destination = src.resolve().parent
     else:
@@ -145,33 +115,51 @@ def write(reader: Callable, writer: Callable, src: Path, output: Optional[Path],
             destination = destination.joinpath(src_file_stem)
             os.makedirs(destination, exist_ok=True)
             src_file_stem = None
-        datasets_list = [(index, dataset, destination, output_format, src_file_stem) for index, dataset in enumerate(pages)]
-        for page in list(tqdm(datasets_list, total=len(pages), desc=src.name, disable=silent)):
-            writer(page)
+        for index, dataset in enumerate(tqdm(pages, total=len(pages), desc=src.name, disable=silent)):
+            if src_file_stem is None:
+                output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
+            else:
+                output_file = destination.joinpath(src_file_stem).with_suffix(output_format.file_ext)
+                src = dataset["data"]
+            if normalize:
+                img = dataset["data"]
+                normalized_image = ((img - np.min(img)) / (np.max(img) - np.min(img))).astype(
+                    np.float32
+                )
+                bgr_image = cv2.cvtColor(
+                    np.round(normalized_image * 256).astype(BIT_DEPTH_DTYPE), cv2.COLOR_GRAY2BGR
+                )
+                dataset["data"] = bgr_image
+            image_file_writer(output_file, dataset)
     except NotImplementedError as error:
         LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
     except Exception as error:
         LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
 
 
-def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, Optional[int], bool]):
-    src, output, output_format, num_cpus, silent = config
-    LOGGER.debug(f"{src=}")
-    LOGGER.debug(f"{output=}")
-    LOGGER.debug(f"{output_format=}")
-    LOGGER.debug(f"{num_cpus=}")
-    LOGGER.debug(f"{silent=}")
-    write(dm_file_reader, write_dataset, src, output, output_format, silent)
+def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
+    src, output, output_format, silent = config
+    write(dm_file_reader, src, output, output_format, silent, True)
 
     
-def write_tiff(config: Tuple[Path, Optional[Path], OutputFileFormats, Optional[int], bool]):
-    src, output, output_format, num_cpus, silent = config
-    LOGGER.debug(f"{src=}")
-    LOGGER.debug(f"{output=}")
-    LOGGER.debug(f"{output_format=}")
-    LOGGER.debug(f"{num_cpus=}")
-    LOGGER.debug(f"{silent=}")
-    write(tiff_file_reader, write_page, src, output, output_format, silent)
+def write_tiff(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
+    src, output, output_format, silent = config
+    write(tiff_file_reader, src, output, output_format, silent)
+
+
+def expand_sources(
+    paths: List[Path],
+    output: Optional[Path],
+    output_format: OutputFileFormats,
+    silent: bool
+) -> List[Path]:
+    sources = []
+    for path in paths:
+        if path.is_dir():
+            sources.extend([(path.joinpath(p), output, output_format, silent) for p in os.listdir(path) if path.joinpath(p).is_file()])
+        else:
+            sources.append((path, output, output_format, silent))
+    return sources
 
 
 @app.command(help="Handle Input/Output (IO) of DigitalMicrograph (DM) files.")
@@ -186,14 +174,9 @@ def dm(
     LOGGER.debug(f"{num_cpus=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
-    sources = []
-    for path in paths:
-        if path.is_dir():
-            sources.extend([(path.joinpath(p), output, output_format, num_cpus, silent) for p in os.listdir(path) if path.joinpath(p).is_file()])
-        else:
-            sources.append((path, output, output_format, num_cpus, silent))
+    LOGGER.debug(f"{silent=}")
     with Pool(num_cpus) as pool:
-        list(pool.imap(write_dm, sources))
+        list(pool.imap(write_dm, expand_sources(paths, output, output_format, silent)))
 
 
 @app.command(help="Handle Input/Output (IO) of TIFF files.")
@@ -208,14 +191,9 @@ def tiff(
     LOGGER.debug(f"{num_cpus=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
-    sources = []
-    for path in paths:
-        if path.is_dir():
-            sources.extend([(path.joinpath(p), output, output_format, num_cpus, silent) for p in os.listdir(path) if path.joinpath(p).is_file()])
-        else:
-            sources.append((path, output, output_format, num_cpus, silent))
+    LOGGER.debug(f"{silent=}")
     with Pool(num_cpus) as pool:
-        list(pool.imap(write_tiff, sources))
+        list(pool.imap(write_tiff, expand_sources(paths, output, output_format, silent)))
 
         
 @app.callback()
