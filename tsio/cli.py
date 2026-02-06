@@ -118,7 +118,7 @@ def write_page(config: Tuple[int, Dict, Path, OutputFileFormats]) -> Path:
 @app.command(help="Handle Input/Output (IO) of DigitalMicrograph (DM) files.")
 def dm(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
-    files: List[Path] = typer.Argument(help="The original DM3/4 source files."),
+    files: List[Path] = typer.Argument(help="The original DM source files."),
     num_cpus: Optional[int] = typer.Option(None, "-n", "--num-cpus", help="The number of CPU cores to use for parallel execution."),
     output: Optional[Path] = typer.Option(None, "-o", "--output", help="Destination for output file(s)."),
     silent: bool = typer.Option(False, "-S", "--silent", help="Disables the progress bars.")
