@@ -90,9 +90,9 @@ def version_callback(value: bool):
     
 def write_dataset(config: Tuple[int, Dict, Path, OutputFileFormats]) -> Path:
     index, dataset, destination, output_format = config
-    LOGGER.debug(f"index={index}")
-    LOGGER.debug(f"destination={destination}")
-    LOGGER.debug(f"output_format={output_format}")
+    LOGGER.debug(f"{index=}")
+    LOGGER.debug(f"{destination=}")
+    LOGGER.debug(f"{output_format=}")
     output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
     src = dataset["data"]
     normalized_image = ((src - np.min(src)) / (np.max(src) - np.min(src))).astype(
@@ -107,9 +107,9 @@ def write_dataset(config: Tuple[int, Dict, Path, OutputFileFormats]) -> Path:
 
 def write_page(config: Tuple[int, Dict, Path, OutputFileFormats]) -> Path:
     index, page, destination, output_format = config
-    LOGGER.debug(f"index={index}")
-    LOGGER.debug(f"destination={destination}")
-    LOGGER.debug(f"output_format={output_format}")
+    LOGGER.debug(f"{index=}")
+    LOGGER.debug(f"{destination=}")
+    LOGGER.debug(f"{output_format=}")
     output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
     image_file_writer(output_file, page)
     return output_file
@@ -123,19 +123,19 @@ def dm4(
     output: Optional[Path] = typer.Option(None, "-o", "--output", help="Destination for output file(s)."),
     silent: bool = typer.Option(False, "-S", "--silent", help="Disables the progress bars.")
 ):
-    LOGGER.debug(f"files={files}")
-    LOGGER.debug(f"num_cpus={num_cpus}")
-    LOGGER.debug(f"output={output}")
-    LOGGER.debug(f"output_format={output_format}")
+    LOGGER.debug(f"{files=}")
+    LOGGER.debug(f"{num_cpus=}")
+    LOGGER.debug(f"{output=}")
+    LOGGER.debug(f"{output_format=}")
     for src in files:
         if output is None:
             destination = src.resolve().parent
         else:
             destination = output.resolve()
         src_file_stem = src.stem
-        LOGGER.debug(f"src_file_stem={src_file_stem}")
+        LOGGER.debug(f"{src_file_stem=}")
         datasets = dm_file_reader(src)
-        LOGGER.debug(f"len(pages)={len(datasets)}")
+        LOGGER.debug(f"len(datasets)={len(datasets)}")
         if len(datasets) > 1:
             destination = destination.joinpath(src_file_stem)
             os.makedirs(destination, exist_ok=True)
