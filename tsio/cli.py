@@ -127,25 +127,20 @@ def write_page(config: Tuple[int, Dict, Path, OutputFileFormats, Optional[str]])
     return output_file
 
 
-@app.command(help="Handle Input/Output (IO) of DigitalMicrograph (DM) files.")
-def dm(
-    output_format: OutputFileFormats = typer.Argument(help="The output file format."),
-    files: List[Path] = typer.Argument(help="The original DM source files."),
-    num_cpus: Optional[int] = typer.Option(None, "-n", "--num-cpus", help="The number of CPU cores to use for parallel execution."),
-    output: Optional[Path] = typer.Option(None, "-o", "--output", help="Destination for output file(s)."),
-    silent: bool = typer.Option(False, "-S", "--silent", help="Disables the progress bars.")
-):
-    LOGGER.debug(f"{files=}")
-    LOGGER.debug(f"{num_cpus=}")
+def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, Optional[int], bool]):
+    src, output, output_format, num_cpus, silent = config
+    LOGGER.debug(f"{src=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
-    for src in files:
-        if output is None:
-            destination = src.resolve().parent
-        else:
-            destination = output.resolve()
-        src_file_stem = src.stem
-        LOGGER.debug(f"{src_file_stem=}")
+    LOGGER.debug(f"{num_cpus=}")
+    LOGGER.debug(f"{silent=}")
+    if output is None:
+        destination = src.resolve().parent
+    else:
+        destination = output.resolve()
+    src_file_stem = src.stem
+    LOGGER.debug(f"{src_file_stem=}")
+    try:
         datasets = dm_file_reader(src)
         LOGGER.debug(f"len(datasets)={len(datasets)}")
         if len(datasets) > 1:
@@ -153,8 +148,34 @@ def dm(
             os.makedirs(destination, exist_ok=True)
             src_file_stem = None
         datasets_list = [(index, dataset, destination, output_format, src_file_stem) for index, dataset in enumerate(datasets)]
-        with Pool(num_cpus) as pool:
-            list(tqdm(pool.imap(write_dataset, datasets_list), total=len(datasets), desc=src.name, disable=silent))
+        for dataset in list(tqdm(datasets_list, total=len(datasets), desc=src.name, disable=silent)):
+            write_dataset(dataset)
+    except NotImplementedError as error:
+        LOGGER.warning(f"Skipped '{src}' bceause: '{str(error)}'")
+    except Exception as error:
+        LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
+
+
+@app.command(help="Handle Input/Output (IO) of DigitalMicrograph (DM) files.")
+def dm(
+    output_format: OutputFileFormats = typer.Argument(help="The output file format."),
+    paths: List[Path] = typer.Argument(help="The original DM source files."),
+    num_cpus: Optional[int] = typer.Option(None, "-n", "--num-cpus", help="The number of CPU cores to use for parallel execution."),
+    output: Optional[Path] = typer.Option(None, "-o", "--output", help="Destination for output file(s)."),
+    silent: bool = typer.Option(False, "-S", "--silent", help="Disables the progress bars.")
+):
+    LOGGER.debug(f"{paths=}")
+    LOGGER.debug(f"{num_cpus=}")
+    LOGGER.debug(f"{output=}")
+    LOGGER.debug(f"{output_format=}")
+    sources = []
+    for path in paths:
+        if path.is_dir():
+            sources.extend([(path.joinpath(p), output, output_format, num_cpus, silent) for p in os.listdir(path) if path.joinpath(p).is_file()])
+        else:
+            sources.append((path, output, output_format, num_cpus, silent))
+    with Pool(num_cpus) as pool:
+        list(pool.imap(write_dm, sources))
 
 
 @app.command(help="Handle Input/Output (IO) of TIFF files.")
