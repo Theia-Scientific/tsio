@@ -94,6 +94,7 @@ def write_dataset(config: Tuple[int, Dict, Path, OutputFileFormats, Optional[str
     LOGGER.debug(f"{index=}")
     LOGGER.debug(f"{destination=}")
     LOGGER.debug(f"{output_format=}")
+    LOGGER.debug(f"{src_file_stem=}")
     if src_file_stem is None:
         output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
     else:
@@ -111,12 +112,16 @@ def write_dataset(config: Tuple[int, Dict, Path, OutputFileFormats, Optional[str
     return output_file
 
 
-def write_page(config: Tuple[int, Dict, Path, OutputFileFormats]) -> Path:
-    index, page, destination, output_format = config
+def write_page(config: Tuple[int, Dict, Path, OutputFileFormats, Optional[str]]) -> Path:
+    index, page, destination, output_format, src_file_stem = config
     LOGGER.debug(f"{index=}")
     LOGGER.debug(f"{destination=}")
     LOGGER.debug(f"{output_format=}")
-    output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
+    LOGGER.debug(f"{src_file_stem=}")
+    if src_file_stem is None:
+        output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
+    else:
+        output_file = destination.joinpath(src_file_stem).with_suffix(output_format.file_ext)
     LOGGER.debug(f"{output_file=}")
     image_file_writer(output_file, page)
     return output_file
@@ -176,7 +181,8 @@ def tiff(
         if len(pages) > 1:
             destination = destination.joinpath(src_file_stem)
             os.makedirs(destination, exist_ok=True)
-        pages_list = [(index, page, destination, output_format) for index, page in enumerate(pages)]
+            src_file_stem = None
+        pages_list = [(index, page, destination, output_format, src_file_stem) for index, page in enumerate(pages)]
         with Pool(num_cpus) as pool:
             list(tqdm(pool.imap(write_page, pages_list), total=len(pages), desc=src.name, disable=silent))
 
