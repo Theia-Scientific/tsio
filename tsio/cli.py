@@ -14,7 +14,7 @@ from tqdm import tqdm
 from tsio import __app_name__
 from typing import Dict, List, Optional, Tuple
 
-logger: logging.Logger = logging.getLogger(__name__)
+LOGGER: logging.Logger = logging.getLogger(__name__)
 
 PREFIX: str = f"{__app_name__.upper()}"
 
@@ -78,9 +78,9 @@ def version_callback(value: bool):
 
 def write_page(config: Tuple[int, Dict, Path, FileFormats]) -> Path:
     index, page, destination, output_format = config
-    logger.debug(f"index={index}")
-    logger.debug(f"destination={destination}")
-    logger.debug(f"output_format={output_format}")
+    LOGGER.debug(f"index={index}")
+    LOGGER.debug(f"destination={destination}")
+    LOGGER.debug(f"output_format={output_format}")
     output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
     image_file_writer(output_file, page)
     return output_file
@@ -94,19 +94,19 @@ def tiff(
     output: Optional[Path] = typer.Option(None, "-o", "--output", help="Destination for output file(s)."),
     silent: bool = typer.Option(False, "-S", "--silent", help="Disables the progress bars.")
 ):
-    logger.debug(f"files={files}")
-    logger.debug(f"num_cpus={num_cpus}")
-    logger.debug(f"output={output}")
-    logger.debug(f"output_format={output_format}")
+    LOGGER.debug(f"files={files}")
+    LOGGER.debug(f"num_cpus={num_cpus}")
+    LOGGER.debug(f"output={output}")
+    LOGGER.debug(f"output_format={output_format}")
     for src in files:
         if output is None:
             destination = src.resolve().parent
         else:
             destination = output.resolve()
         src_file_stem = src.stem
-        logger.debug(f"src_file_stem={src_file_stem}")
+        LOGGER.debug(f"src_file_stem={src_file_stem}")
         pages = tiff_file_reader(src, multipage_as_list=True)
-        logger.debug(f"len(pages)={len(pages)}")
+        LOGGER.debug(f"len(pages)={len(pages)}")
         if len(pages) > 1:
             destination = destination.joinpath(src_file_stem)
             os.makedirs(destination, exist_ok=True)
@@ -133,7 +133,7 @@ def main(
     ),
 ):
     logging.basicConfig(level=map_verbosity(verbose))
-    logger.debug(f"version={version}")
+    LOGGER.debug(f"version={version}")
 
 
 if __name__ == "__main__":
