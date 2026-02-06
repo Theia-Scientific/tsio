@@ -115,8 +115,8 @@ def write_page(config: Tuple[int, Dict, Path, OutputFileFormats]) -> Path:
     return output_file
 
 
-@app.command(help="Handle Input/Output (IO) of DM3/4 files.")
-def dm4(
+@app.command(help="Handle Input/Output (IO) of DigitalMicrograph (DM) files.")
+def dm(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
     files: List[Path] = typer.Argument(help="The original DM3/4 source files."),
     num_cpus: Optional[int] = typer.Option(None, "-n", "--num-cpus", help="The number of CPU cores to use for parallel execution."),
