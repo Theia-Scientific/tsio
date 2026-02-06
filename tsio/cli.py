@@ -89,12 +89,15 @@ def version_callback(value: bool):
         raise typer.Exit()
 
     
-def write_dataset(config: Tuple[int, Dict, Path, OutputFileFormats]) -> Path:
-    index, dataset, destination, output_format = config
+def write_dataset(config: Tuple[int, Dict, Path, OutputFileFormats, Optional[str]]) -> Path:
+    index, dataset, destination, output_format, src_file_stem = config
     LOGGER.debug(f"{index=}")
     LOGGER.debug(f"{destination=}")
     LOGGER.debug(f"{output_format=}")
-    output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
+    if src_file_stem is None:
+        output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
+    else:
+        output_file = destination.joinpath(src_file_stem).with_suffix(output_format.file_ext)
     LOGGER.debug(f"{output_file=}")
     src = dataset["data"]
     normalized_image = ((src - np.min(src)) / (np.max(src) - np.min(src))).astype(
@@ -143,7 +146,8 @@ def dm(
         if len(datasets) > 1:
             destination = destination.joinpath(src_file_stem)
             os.makedirs(destination, exist_ok=True)
-        datasets_list = [(index, dataset, destination, output_format) for index, dataset in enumerate(datasets)]
+            src_file_stem = None
+        datasets_list = [(index, dataset, destination, output_format, src_file_stem) for index, dataset in enumerate(datasets)]
         with Pool(num_cpus) as pool:
             list(tqdm(pool.imap(write_dataset, datasets_list), total=len(datasets), desc=src.name, disable=silent))
 
