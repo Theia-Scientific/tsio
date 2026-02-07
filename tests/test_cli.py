@@ -36,7 +36,7 @@ def random_16bit_multipage_image() -> np.ndarray:
 
 
 @pytest.fixture
-def blank_single_page_tiff(blank_16bit_image, tmp_path) -> Path:
+def blank_16bit_single_page_tiff(blank_16bit_image, tmp_path) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {
         "data": blank_16bit_image,
@@ -83,15 +83,15 @@ def test_map_verbosity_true():
     assert actual == "DEBUG"
 
 
-def test_write(blank_single_page_tiff):
-    src = blank_single_page_tiff
+def test_write(blank_16bit_single_page_tiff):
+    src = blank_16bit_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     write(tiff_file_reader, src, None, OutputFileFormats.JPEG, True, False)
     assert dst.exists()
 
 
-def test_write_with_output(blank_single_page_tiff, tmp_path):
-    src = blank_single_page_tiff
+def test_write_with_output(blank_16bit_single_page_tiff, tmp_path):
+    src = blank_16bit_single_page_tiff
     dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
     write(tiff_file_reader, src, tmp_path, OutputFileFormats.JPEG, True, False)
     assert dst.exists()
