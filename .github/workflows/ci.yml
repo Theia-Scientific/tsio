@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v4
@@ -33,10 +33,4 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Test with pytest
         run: |
-          pytest --color=yes --cov=tsio --cov-branch --cov-report=term --cov-report=xml
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
-        if: matrix.python-version == 3.12
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          pytest --color=yes --cov=tsio --cov-report=term

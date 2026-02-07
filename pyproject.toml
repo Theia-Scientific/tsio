@@ -9,7 +9,10 @@ readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [ "Programming Language :: Python :: 3", "Operating System :: OS Independent" ]
 dependencies = [
+    "multiprocess",
     "numpy",
+    "opencv-contrib-python-headless",
+    "opencv-python-headless",
     "pydantic",
     "pydantic-settings",
     "rosettasciio[all]",

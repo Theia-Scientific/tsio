@@ -1,7 +1,6 @@
 # tsio: A command line utility for working with various inputs and outputs related to microscopy
 
 [![CI](https://github.com/Theia-Scientific/tsio/actions/workflows/ci.yml/badge.svg)](https://github.com/Theia-Scientific/tsio/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/Theia-Scientific/tsio/graph/badge.svg?token=warTkiP9QY)](https://codecov.io/gh/Theia-Scientific/tsio)
 
 ## Usage
 
@@ -31,6 +30,12 @@ $ ls
 multi-page.tif
 $ ls /path/to/directory
 0.png 1.png 2.png 3.png 4.png
+```
+
+```sh
+$ tsio dm jpeg ./00001.dm4
+$ ls
+00001.dm4  00001.jpg
 ```
 
 ## License
