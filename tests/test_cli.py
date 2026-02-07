@@ -114,7 +114,7 @@ def test_map_verbosity_true():
     assert actual == "DEBUG"
 
 
-def test_write_tiff(blank_16bit_single_page_tiff):
+def test_write_with_single_tiff(blank_16bit_single_page_tiff):
     src = blank_16bit_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     write(
@@ -128,7 +128,7 @@ def test_write_tiff(blank_16bit_single_page_tiff):
     assert dst.exists()
 
 
-def test_write_with_output_tiff(blank_16bit_single_page_tiff, tmp_path):
+def test_write_with_single_tiff_output(blank_16bit_single_page_tiff, tmp_path):
     src = blank_16bit_single_page_tiff
     dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
     write(
@@ -142,7 +142,7 @@ def test_write_with_output_tiff(blank_16bit_single_page_tiff, tmp_path):
     assert dst.exists()
 
 
-def test_write_with_multiple_pages_tiff(
+def test_write_with_multipages_tiff(
     random_multipage_tiff, random_16bit_multipage_image
 ):
     pages_count, *_ = random_16bit_multipage_image.shape
@@ -164,7 +164,7 @@ def test_write_with_multiple_pages_tiff(
     )
 
 
-def test_write_dm3(dm3, tmp_path):
+def test_write_with_dm3(dm3, tmp_path):
     src = dm3
     dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
     write(
@@ -178,7 +178,7 @@ def test_write_dm3(dm3, tmp_path):
     assert dst.exists()
 
 
-def test_write_dm4(dm4, tmp_path):
+def test_write_with_dm4(dm4, tmp_path):
     src = dm4
     dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
     write(
@@ -217,6 +217,13 @@ def test_write_dm_fails_with_exception(tmp_path):
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_dm((src, None, OutputFileFormats.JPEG, True))
     assert not dst.exists()
+
+
+def test_write_tiff(blank_16bit_single_page_tiff):
+    src = blank_16bit_single_page_tiff
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_tiff((src, None, OutputFileFormats.JPEG, True))
+    assert dst.exists()
 
 
 def test_app_help():
