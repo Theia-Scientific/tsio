@@ -102,7 +102,7 @@ def test_write_with_multiple_pages(random_multipage_tiff, random_16bit_multipage
     src = random_multipage_tiff
     src_stem = src.stem
     dst = src.parent.joinpath(src_stem)
-    write(tiff_file_reader, src, None, OutputFileFormats.PNG, True, False)
+    write(tiff_file_reader, src, None, OutputFileFormats.JPEG, True, False)
     assert dst.exists()
     assert (
         len([name for name in os.listdir(dst) if dst.joinpath(name).is_file()])

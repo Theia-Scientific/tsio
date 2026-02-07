@@ -135,7 +135,7 @@ def write(
                 img = ((img - np.min(img)) / (np.max(img) - np.min(img))).astype(
                     np.float32
                 )
-            if str(img.type) not in output_format.supported_bit_depths:
+            if img.dtype.name not in output_format.supported_bit_depths:
                 img = cv2.cvtColor(
                     np.round(img * 256).astype(BIT_DEPTH_DTYPE),
                     cv2.COLOR_GRAY2BGR,
