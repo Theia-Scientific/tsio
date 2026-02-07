@@ -16,7 +16,7 @@ from rsciio.image import file_writer as image_file_writer
 from rsciio.tiff import file_reader as tiff_file_reader
 from tqdm import tqdm
 from tsio import __app_name__
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
 PREFIX: str = f"{__app_name__.upper()}"
@@ -40,10 +40,6 @@ logging.getLogger("PIL.Image").setLevel(logging.WARNING)
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
-class UnsupportedFileFormat(Exception):
-    def __init__(self, value: str):
-        self.value = value
-
 
 class OutputFileFormats(Enum):
     JPEG = "jpeg"
@@ -57,10 +53,7 @@ class OutputFileFormats(Enum):
             OutputFileFormats.PNG: PNG_MIME_TYPE,
             OutputFileFormats.TIFF: TIFF_MIME_TYPE,
         }
-        mime_type = MIME_TYPES.get(self)
-        if mime_type is None:
-            raise UnsupportedFileFormat(self.value)
-        return mime_type
+        return MIME_TYPES[self]
 
     @property
     def file_ext(self) -> str:
@@ -69,10 +62,7 @@ class OutputFileFormats(Enum):
             OutputFileFormats.PNG: PNG_FILE_EXT,
             OutputFileFormats.TIFF: TIFF_FILE_EXT,
         }
-        file_ext = FILE_EXTS.get(self)
-        if file_ext is None:
-            raise UnsupportedFileFormat(self.value)
-        return file_ext
+        return FILE_EXTS[self]
 
 
 def map_verbosity(enabled: bool) -> str:
@@ -88,14 +78,14 @@ def version_callback(value: bool):
         print(f"{__app_name__} {version}")
         raise typer.Exit()
 
-    
+
 def write(
     reader: Callable,
     src: Path,
     output: Optional[Path],
     output_format: OutputFileFormats,
     silent: bool,
-    normalize: bool = False
+    normalize: bool = False,
 ):
     LOGGER.debug(f"{src=}")
     LOGGER.debug(f"{output=}")
@@ -115,19 +105,26 @@ def write(
             destination = destination.joinpath(src_file_stem)
             os.makedirs(destination, exist_ok=True)
             src_file_stem = None
-        for index, dataset in enumerate(tqdm(pages, total=len(pages), desc=src.name, disable=silent)):
+        for index, dataset in enumerate(
+            tqdm(pages, total=len(pages), desc=src.name, disable=silent)
+        ):
             if src_file_stem is None:
-                output_file = destination.joinpath(str(index)).with_suffix(output_format.file_ext)
+                output_file = destination.joinpath(str(index)).with_suffix(
+                    output_format.file_ext
+                )
             else:
-                output_file = destination.joinpath(src_file_stem).with_suffix(output_format.file_ext)
+                output_file = destination.joinpath(src_file_stem).with_suffix(
+                    output_format.file_ext
+                )
                 src = dataset["data"]
             if normalize:
                 img = dataset["data"]
-                normalized_image = ((img - np.min(img)) / (np.max(img) - np.min(img))).astype(
-                    np.float32
-                )
+                normalized_image = (
+                    (img - np.min(img)) / (np.max(img) - np.min(img))
+                ).astype(np.float32)
                 bgr_image = cv2.cvtColor(
-                    np.round(normalized_image * 256).astype(BIT_DEPTH_DTYPE), cv2.COLOR_GRAY2BGR
+                    np.round(normalized_image * 256).astype(BIT_DEPTH_DTYPE),
+                    cv2.COLOR_GRAY2BGR,
                 )
                 dataset["data"] = bgr_image
             image_file_writer(output_file, dataset)
@@ -141,7 +138,7 @@ def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     src, output, output_format, silent = config
     write(dm_file_reader, src, output, output_format, silent, True)
 
-    
+
 def write_tiff(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     src, output, output_format, silent = config
     write(tiff_file_reader, src, output, output_format, silent)
@@ -151,12 +148,18 @@ def expand_sources(
     paths: List[Path],
     output: Optional[Path],
     output_format: OutputFileFormats,
-    silent: bool
+    silent: bool,
 ) -> List[Path]:
     sources = []
     for path in paths:
         if path.is_dir():
-            sources.extend([(path.joinpath(p), output, output_format, silent) for p in os.listdir(path) if path.joinpath(p).is_file()])
+            sources.extend(
+                [
+                    (path.joinpath(p), output, output_format, silent)
+                    for p in os.listdir(path)
+                    if path.joinpath(p).is_file()
+                ]
+            )
         else:
             sources.append((path, output, output_format, silent))
     return sources
@@ -166,9 +169,18 @@ def expand_sources(
 def dm(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
     paths: List[Path] = typer.Argument(help="The original DM source files."),
-    num_cpus: Optional[int] = typer.Option(None, "-n", "--num-cpus", help="The number of CPU cores to use for parallel execution."),
-    output: Optional[Path] = typer.Option(None, "-o", "--output", help="Destination for output file(s)."),
-    silent: bool = typer.Option(False, "-S", "--silent", help="Disables the progress bars.")
+    num_cpus: Optional[int] = typer.Option(
+        None,
+        "-n",
+        "--num-cpus",
+        help="The number of CPU cores to use for parallel execution.",
+    ),
+    output: Optional[Path] = typer.Option(
+        None, "-o", "--output", help="Destination for output file(s)."
+    ),
+    silent: bool = typer.Option(
+        False, "-S", "--silent", help="Disables the progress bars."
+    ),
 ):
     LOGGER.debug(f"{paths=}")
     LOGGER.debug(f"{num_cpus=}")
@@ -183,9 +195,18 @@ def dm(
 def tiff(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
     paths: List[Path] = typer.Argument(help="The original TIFF source files."),
-    num_cpus: Optional[int] = typer.Option(None, "-n", "--num-cpus", help="The number of CPU cores to use for parallel execution."),
-    output: Optional[Path] = typer.Option(None, "-o", "--output", help="Destination for output file(s)."),
-    silent: bool = typer.Option(False, "-S", "--silent", help="Disables the progress bars.")
+    num_cpus: Optional[int] = typer.Option(
+        None,
+        "-n",
+        "--num-cpus",
+        help="The number of CPU cores to use for parallel execution.",
+    ),
+    output: Optional[Path] = typer.Option(
+        None, "-o", "--output", help="Destination for output file(s)."
+    ),
+    silent: bool = typer.Option(
+        False, "-S", "--silent", help="Disables the progress bars."
+    ),
 ):
     LOGGER.debug(f"{paths=}")
     LOGGER.debug(f"{num_cpus=}")
@@ -193,9 +214,11 @@ def tiff(
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
     with Pool(num_cpus) as pool:
-        list(pool.imap(write_tiff, expand_sources(paths, output, output_format, silent)))
+        list(
+            pool.imap(write_tiff, expand_sources(paths, output, output_format, silent))
+        )
 
-        
+
 @app.callback()
 def main(
     verbose: bool = typer.Option(
