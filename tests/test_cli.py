@@ -87,12 +87,11 @@ def test_write(blank_16bit_single_page_tiff):
     src = blank_16bit_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     write(
-        tiff_file_reader,
+        tiff_file_reader(src, multipage_as_list=True),
         src,
         None,
         OutputFileFormats.JPEG,
         True,
-        multipage_as_list=True,
         normalize=False,
     )
     assert dst.exists()
@@ -102,12 +101,11 @@ def test_write_with_output(blank_16bit_single_page_tiff, tmp_path):
     src = blank_16bit_single_page_tiff
     dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
     write(
-        tiff_file_reader,
+        tiff_file_reader(src, multipage_as_list=True),
         src,
         tmp_path,
         OutputFileFormats.JPEG,
         True,
-        multipage_as_list=True,
         normalize=False,
     )
     assert dst.exists()
@@ -119,12 +117,11 @@ def test_write_with_multiple_pages(random_multipage_tiff, random_16bit_multipage
     src_stem = src.stem
     dst = src.parent.joinpath(src_stem)
     write(
-        tiff_file_reader,
+        tiff_file_reader(src, multipage_as_list=True),
         src,
         None,
         OutputFileFormats.JPEG,
         True,
-        multipage_as_list=True,
         normalize=False,
     )
     assert dst.exists()

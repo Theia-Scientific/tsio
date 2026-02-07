@@ -16,7 +16,7 @@ from rsciio.image import file_writer as image_file_writer
 from rsciio.tiff import file_reader as tiff_file_reader
 from tqdm import tqdm
 from tsio import __app_name__
-from typing import Callable, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
 PREFIX: str = f"{__app_name__.upper()}"
@@ -89,29 +89,23 @@ def version_callback(value: bool):
 
 
 def write(
-    reader: Callable,
+    pages: List[Dict],
     src: Path,
     output: Optional[Path],
     output_format: OutputFileFormats,
     silent: bool,
-    multipage_as_list: bool = False,
     normalize: bool = False,
 ):
     LOGGER.debug(f"{src=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
-    LOGGER.debug(f"{multipage_as_list=}")
     LOGGER.debug(f"{normalize=}")
     if output is None:
         destination = src.resolve().parent
     else:
         destination = output.resolve()
     try:
-        if multipage_as_list:
-            pages = reader(src, multipage_as_list=True)
-        else:
-            pages = reader(src)
         pages_count = len(pages)
         LOGGER.debug(f"{pages_count}=")
         src_file_stem = src.stem
@@ -156,12 +150,11 @@ def write(
 def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     src, output, output_format, silent = config
     write(
-        dm_file_reader,
+        dm_file_reader(src),
         src,
         output,
         output_format,
         silent,
-        multipage_as_list=False,
         normalize=True,
     )
 
@@ -169,12 +162,11 @@ def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
 def write_tiff(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     src, output, output_format, silent = config
     write(
-        tiff_file_reader,
+        tiff_file_reader(src, multipage_as_list=True),
         src,
         output,
         output_format,
         silent,
-        multipage_as_list=True,
         normalize=False,
     )
 
