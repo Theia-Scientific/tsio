@@ -94,19 +94,24 @@ def write(
     output: Optional[Path],
     output_format: OutputFileFormats,
     silent: bool,
+    multipage_as_list: bool = False,
     normalize: bool = False,
 ):
     LOGGER.debug(f"{src=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
+    LOGGER.debug(f"{multipage_as_list=}")
     LOGGER.debug(f"{normalize=}")
     if output is None:
         destination = src.resolve().parent
     else:
         destination = output.resolve()
     try:
-        pages = reader(src, multipage_as_list=True)
+        if multipage_as_list:
+            pages = reader(src, multipage_as_list=True)
+        else:
+            pages = reader(src)
         pages_count = len(pages)
         LOGGER.debug(f"{pages_count}=")
         src_file_stem = src.stem
@@ -151,7 +156,15 @@ def write(
 
 def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     src, output, output_format, silent = config
-    write(dm_file_reader, src, output, output_format, silent, True)
+    write(
+        dm_file_reader,
+        src,
+        output,
+        output_format,
+        silent,
+        multipage_as_list=False,
+        normalize=True,
+    )
 
 
 def write_tiff(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
@@ -162,6 +175,7 @@ def write_tiff(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
         output,
         output_format,
         silent,
+        multipage_as_list=True,
         normalize=False,
     )
 
