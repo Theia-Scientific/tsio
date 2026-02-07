@@ -21,6 +21,8 @@ from tsio.cli import (
     TIFF_FILE_EXT,
     TIFF_MIME_TYPE,
     write,
+    write_dm,
+    write_tiff,
 )
 from typer.testing import CliRunner
 
@@ -176,6 +178,13 @@ def test_write_dm4(dm4):
         True,
         normalize=True,
     )
+    assert dst.exists()
+
+
+def test_write_dm(dm4):
+    src = dm4
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_dm((src, None, OutputFileFormats.JPEG, True))
     assert dst.exists()
 
 
