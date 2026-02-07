@@ -26,8 +26,8 @@ runner = CliRunner()
 
 
 @pytest.fixture
-def blank_image() -> np.ndarray:
-    return np.zeros((4096, 4096, 3), dtype=np.uint8)
+def blank_16bit_image() -> np.ndarray:
+    return np.zeros((1, 256, 256), dtype=np.uint16)
 
 
 @pytest.fixture
@@ -36,10 +36,10 @@ def random_16bit_multipage_image() -> np.ndarray:
 
 
 @pytest.fixture
-def blank_single_page_tiff(blank_image, tmp_path) -> Path:
+def blank_single_page_tiff(blank_16bit_image, tmp_path) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {
-        "data": blank_image,
+        "data": blank_16bit_image,
     }
     tiff_file_writer(str(tif_file), signal)
     return tif_file

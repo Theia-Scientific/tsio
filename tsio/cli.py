@@ -119,7 +119,7 @@ def write(
         for page_index, page in enumerate(
             tqdm(pages, total=pages_count, desc=src.name, disable=silent)
         ):
-            print(f"{page_index=}")
+            LOGGER.debug(f"{page_index=}")
             if src_file_stem is None:
                 output_file = destination.joinpath(str(page_index)).with_suffix(
                     output_format.file_ext
@@ -128,7 +128,6 @@ def write(
                 output_file = destination.joinpath(src_file_stem).with_suffix(
                     output_format.file_ext
                 )
-            print(f"{output_file=}")
             LOGGER.debug(f"{output_file=}")
             img = page["data"]
             if normalize:
