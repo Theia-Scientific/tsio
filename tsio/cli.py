@@ -11,7 +11,7 @@ import typer
 from enum import Enum
 from multiprocess.pool import Pool
 from pathlib import Path
-from rsciio.digitalmicrograph import file_reader as dm_file_reader
+from rsciio import digitalmicrograph
 from rsciio.image import file_writer as image_file_writer
 from rsciio.tiff import file_reader as tiff_file_reader
 from tqdm import tqdm
@@ -142,7 +142,7 @@ def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     src, output, output_format, silent = config
     try:
         write(
-            dm_file_reader(src),
+            digitalmicrograph.file_reader(src),
             src,
             output,
             output_format,

@@ -25,6 +25,7 @@ from tsio.cli import (
     write_tiff,
 )
 from typer.testing import CliRunner
+from typing import Dict, List
 
 runner = CliRunner()
 
@@ -186,6 +187,26 @@ def test_write_dm(dm4):
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_dm((src, None, OutputFileFormats.JPEG, True))
     assert dst.exists()
+
+
+def test_write_dm_fails_with_not_implemented(mocker, tmp_path):
+    src = tmp_path.joinpath("test.dm4")
+    dst = src.with_suffix(JPEG_FILE_EXT)
+
+    def mock_file_reader(*args):
+        _ = args
+        raise NotImplementedError("Not supported version")
+
+    mocker.patch("rsciio.digitalmicrograph.file_reader", mock_file_reader)
+    write_dm((src, None, OutputFileFormats.JPEG, True))
+    assert not dst.exists()
+
+
+def test_write_dm_fails_with_exception(tmp_path):
+    src = tmp_path.joinpath("test.dm4")
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_dm((src, None, OutputFileFormats.JPEG, True))
+    assert not dst.exists()
 
 
 def test_app_help():
