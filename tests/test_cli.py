@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
+import gdown
 import importlib.metadata
 import numpy as np
 import os
 import pytest
 
 from pathlib import Path
+from rsciio.digitalmicrograph import file_reader as dm_file_reader
 from rsciio.tiff import file_reader as tiff_file_reader, file_writer as tiff_file_writer
 from tsio import __app_name__
 from tsio.cli import (
@@ -55,6 +57,22 @@ def random_multipage_tiff(random_16bit_multipage_image, tmp_path) -> Path:
     return tif_file
 
 
+@pytest.fixture(scope="session")
+def dm3(tmp_path_factory) -> Path:
+    url = "https://drive.google.com/uc?id=1BDNBta7cSMUtmb4r5e5gvqgBBhRW6xRq"
+    dst = tmp_path_factory.mktemp("data").joinpath("test.dm3")
+    gdown.download(url, str(dst), quiet=True)
+    return dst
+
+
+@pytest.fixture(scope="session")
+def dm4(tmp_path_factory) -> Path:
+    url = "https://drive.google.com/uc?id=1Pkbfnl5-7zVSB1h7JfwLbKy6yOxxMvR-"
+    dst = tmp_path_factory.mktemp("data").joinpath("test.dm4")
+    gdown.download(url, str(dst), quiet=True)
+    return dst
+
+
 def test_output_file_formats_mime_type():
     assert OutputFileFormats.JPEG.mime_type == JPEG_MIME_TYPE
     assert OutputFileFormats.PNG.mime_type == PNG_MIME_TYPE
@@ -83,7 +101,7 @@ def test_map_verbosity_true():
     assert actual == "DEBUG"
 
 
-def test_write(blank_16bit_single_page_tiff):
+def test_write_tiff(blank_16bit_single_page_tiff):
     src = blank_16bit_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     write(
@@ -97,7 +115,7 @@ def test_write(blank_16bit_single_page_tiff):
     assert dst.exists()
 
 
-def test_write_with_output(blank_16bit_single_page_tiff, tmp_path):
+def test_write_with_output_tiff(blank_16bit_single_page_tiff, tmp_path):
     src = blank_16bit_single_page_tiff
     dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
     write(
@@ -111,7 +129,9 @@ def test_write_with_output(blank_16bit_single_page_tiff, tmp_path):
     assert dst.exists()
 
 
-def test_write_with_multiple_pages(random_multipage_tiff, random_16bit_multipage_image):
+def test_write_with_multiple_pages_tiff(
+    random_multipage_tiff, random_16bit_multipage_image
+):
     pages_count, *_ = random_16bit_multipage_image.shape
     src = random_multipage_tiff
     src_stem = src.stem
@@ -129,6 +149,34 @@ def test_write_with_multiple_pages(random_multipage_tiff, random_16bit_multipage
         len([name for name in os.listdir(dst) if dst.joinpath(name).is_file()])
         == pages_count
     )
+
+
+def test_write_dm3(dm3):
+    src = dm3
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write(
+        dm_file_reader(src),
+        src,
+        None,
+        OutputFileFormats.JPEG,
+        True,
+        normalize=True,
+    )
+    assert dst.exists()
+
+
+def test_write_dm4(dm4):
+    src = dm4
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write(
+        dm_file_reader(src),
+        src,
+        None,
+        OutputFileFormats.JPEG,
+        True,
+        normalize=True,
+    )
+    assert dst.exists()
 
 
 def test_app_help():
