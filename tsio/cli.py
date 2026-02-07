@@ -64,6 +64,15 @@ class OutputFileFormats(Enum):
         }
         return FILE_EXTS[self]
 
+    @property
+    def supported_bit_depths(self) -> List[str]:
+        BIT_DEPTHS = {
+            OutputFileFormats.JPEG: ["uint8"],
+            OutputFileFormats.PNG: ["uint8", "uint16"],
+            OutputFileFormats.TIFF: ["uint8", "uint16"],
+        }
+        return BIT_DEPTHS[self]
+
 
 def map_verbosity(enabled: bool) -> str:
     if enabled:
@@ -96,39 +105,46 @@ def write(
         destination = src.resolve().parent
     else:
         destination = output.resolve()
-    src_file_stem = src.stem
-    LOGGER.debug(f"{src_file_stem=}")
     try:
-        pages = reader(src)
-        LOGGER.debug(f"len(datasets)={len(pages)}")
-        if len(pages) > 1:
+        pages = reader(src, multipage_as_list=True)
+        pages_count = len(pages)
+        LOGGER.debug(f"{pages_count}=")
+        src_file_stem = src.stem
+        LOGGER.debug(f"{src_file_stem=}")
+        if pages_count > 1:
             destination = destination.joinpath(src_file_stem)
             os.makedirs(destination, exist_ok=True)
             src_file_stem = None
-        for index, dataset in enumerate(
-            tqdm(pages, total=len(pages), desc=src.name, disable=silent)
+        LOGGER.debug(f"{src_file_stem=}")
+        for page_index, page in enumerate(
+            tqdm(pages, total=pages_count, desc=src.name, disable=silent)
         ):
+            print(f"{page_index=}")
             if src_file_stem is None:
-                output_file = destination.joinpath(str(index)).with_suffix(
+                output_file = destination.joinpath(str(page_index)).with_suffix(
                     output_format.file_ext
                 )
             else:
                 output_file = destination.joinpath(src_file_stem).with_suffix(
                     output_format.file_ext
                 )
-                src = dataset["data"]
+            print(f"{output_file=}")
+            LOGGER.debug(f"{output_file=}")
+            img = page["data"]
             if normalize:
-                img = dataset["data"]
-                normalized_image = (
-                    (img - np.min(img)) / (np.max(img) - np.min(img))
-                ).astype(np.float32)
-                bgr_image = cv2.cvtColor(
-                    np.round(normalized_image * 256).astype(BIT_DEPTH_DTYPE),
+                img = ((img - np.min(img)) / (np.max(img) - np.min(img))).astype(
+                    np.float32
+                )
+            if str(img.type) not in output_format.supported_bit_depths:
+                img = cv2.cvtColor(
+                    np.round(img * 256).astype(BIT_DEPTH_DTYPE),
                     cv2.COLOR_GRAY2BGR,
                 )
-                dataset["data"] = bgr_image
-            image_file_writer(output_file, dataset)
+            page["data"] = img
+            image_file_writer(output_file, page)
     except NotImplementedError as error:
+        LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
+    except ValueError as error:
         LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
     except Exception as error:
         LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
@@ -141,7 +157,14 @@ def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
 
 def write_tiff(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     src, output, output_format, silent = config
-    write(tiff_file_reader, src, output, output_format, silent)
+    write(
+        tiff_file_reader,
+        src,
+        output,
+        output_format,
+        silent,
+        normalize=False,
+    )
 
 
 def expand_sources(
