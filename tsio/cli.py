@@ -172,7 +172,7 @@ def expand_sources(
     output: Optional[Path],
     output_format: OutputFileFormats,
     silent: bool,
-) -> List[Path]:
+) -> List[Tuple[Path, Optional[Path], OutputFileFormats, bool]]:
     sources = []
     for path in paths:
         if path.is_dir():

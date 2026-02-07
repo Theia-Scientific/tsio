@@ -240,6 +240,28 @@ def test_expand_sources(tmp_path):
     assert actual[2] == (paths[2], None, OutputFileFormats.JPEG, True)
 
 
+def test_expand_sources_with_directories(tmp_path):
+    dir1 = tmp_path.joinpath("dst1")
+    os.makedirs(dir1, exist_ok=True)
+    file1 = dir1.joinpath("1.tif")
+    file2 = dir1.joinpath("2.dm3")
+    file3 = dir1.joinpath("3.dm4")
+    open(file1, "a").close()
+    open(file2, "a").close()
+    open(file3, "a").close()
+    file4 = tmp_path.joinpath("dst2.dm3")
+    file5 = tmp_path.joinpath("dst3.dm4")
+    paths = [dir1, file4, file5]
+    expected = [file1, file2, file3, file4, file5]
+    actual = expand_sources(paths, None, OutputFileFormats.JPEG, True)
+    assert len(actual) == 5
+    assert actual[0][0] in expected
+    assert actual[1][0] in expected
+    assert actual[2][0] in expected
+    assert actual[3][0] in expected
+    assert actual[4][0] in expected
+
+
 def test_app_help():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
