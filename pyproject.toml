@@ -49,7 +49,7 @@ dev = [
     "isort",
     "pytest",
     "pytest-cov",
-    "pytest-env",
+    "pytest-mock"
     "twine"
 ]
 
