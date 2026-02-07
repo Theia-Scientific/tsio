@@ -280,11 +280,22 @@ def test_app_dm(dm4, tmp_path):
     assert dst.exists()
 
 
-def test_app_all_dm(dm3, dm4, tmp_path):
+def test_app_all_dm_as_files(dm3, dm4, tmp_path):
     dst_dm3 = tmp_path.joinpath(dm3.name).with_suffix(JPEG_FILE_EXT)
     dst_dm4 = tmp_path.joinpath(dm4.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(
         app, ["dm", "-o", str(tmp_path), "-S", "jpeg", str(dm3), str(dm4)]
+    )
+    assert result.exit_code == 0
+    assert dst_dm3.exists()
+    assert dst_dm4.exists()
+
+
+def test_app_all_dm_as_directory(dm3, dm4, tmp_assets, tmp_path):
+    dst_dm3 = tmp_path.joinpath(dm3.name).with_suffix(JPEG_FILE_EXT)
+    dst_dm4 = tmp_path.joinpath(dm4.name).with_suffix(JPEG_FILE_EXT)
+    result = runner.invoke(
+        app, ["dm", "-o", str(tmp_path), "-S", "jpeg", str(tmp_assets)]
     )
     assert result.exit_code == 0
     assert dst_dm3.exists()
