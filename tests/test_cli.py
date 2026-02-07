@@ -12,6 +12,7 @@ from rsciio.tiff import file_reader as tiff_file_reader, file_writer as tiff_fil
 from tsio import __app_name__
 from tsio.cli import (
     app,
+    expand_sources,
     map_verbosity,
     JPEG_FILE_EXT,
     JPEG_MIME_TYPE,
@@ -224,6 +225,19 @@ def test_write_tiff(blank_16bit_single_page_tiff):
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_tiff((src, None, OutputFileFormats.JPEG, True))
     assert dst.exists()
+
+
+def test_expand_sources(tmp_path):
+    paths = [
+        tmp_path.joinpath("dst1.tif"),
+        tmp_path.joinpath("dst2.dm3"),
+        tmp_path.joinpath("dst3.dm4"),
+    ]
+    actual = expand_sources(paths, None, OutputFileFormats.JPEG, True)
+    assert len(actual) == 3
+    assert actual[0] == (paths[0], None, OutputFileFormats.JPEG, True)
+    assert actual[1] == (paths[1], None, OutputFileFormats.JPEG, True)
+    assert actual[2] == (paths[2], None, OutputFileFormats.JPEG, True)
 
 
 def test_app_help():
