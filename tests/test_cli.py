@@ -26,7 +26,6 @@ from tsio.cli import (
     write_tiff,
 )
 from typer.testing import CliRunner
-from typing import Dict, List
 
 runner = CliRunner()
 
@@ -274,6 +273,14 @@ def test_app_version():
     assert f"{__app_name__} {version}" in result.stdout
 
 
-def test_dm(dm4, tmp_path):
+def test_app_dm(dm4, tmp_path):
     result = runner.invoke(app, ["dm", "-o", str(tmp_path), "-S", "jpeg", str(dm4)])
+    assert result.exit_code == 0
+
+
+def test_app_tiff(blank_16bit_single_page_tiff, tmp_path):
+    result = runner.invoke(
+        app,
+        ["tiff", "-o", str(tmp_path), "-S", "jpeg", str(blank_16bit_single_page_tiff)],
+    )
     assert result.exit_code == 0
