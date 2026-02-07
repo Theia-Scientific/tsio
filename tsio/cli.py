@@ -119,13 +119,12 @@ def write(
         if pages_count > 1:
             destination = destination.joinpath(src_file_stem)
             os.makedirs(destination, exist_ok=True)
-            src_file_stem = None
         LOGGER.debug(f"{src_file_stem=}")
         for page_index, page in enumerate(
             tqdm(pages, total=pages_count, desc=src.name, disable=silent)
         ):
             LOGGER.debug(f"{page_index=}")
-            if src_file_stem is None:
+            if pages_count > 1:
                 output_file = destination.joinpath(str(page_index)).with_suffix(
                     output_format.file_ext
                 )
