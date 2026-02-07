@@ -272,3 +272,8 @@ def test_app_version():
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
     assert f"{__app_name__} {version}" in result.stdout
+
+
+def test_dm(dm4, tmp_path):
+    result = runner.invoke(app, ["dm", "-o", str(tmp_path), "-S", "jpeg", str(dm4)])
+    assert result.exit_code == 0
