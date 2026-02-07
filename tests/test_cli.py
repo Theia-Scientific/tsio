@@ -61,18 +61,28 @@ def random_multipage_tiff(random_16bit_multipage_image, tmp_path) -> Path:
 
 
 @pytest.fixture(scope="session")
-def dm3(tmp_path_factory) -> Path:
-    url = "https://drive.google.com/uc?id=1BDNBta7cSMUtmb4r5e5gvqgBBhRW6xRq"
-    dst = tmp_path_factory.mktemp("data").joinpath("test.dm3")
-    gdown.download(url, str(dst), quiet=True)
+def tmp_assets() -> Path:
+    cwd = Path(os.getcwd())
+    assets = cwd.joinpath(".tmp", "tests", "assets")
+    os.makedirs(assets, exist_ok=True)
+    return assets
+
+
+@pytest.fixture(scope="session")
+def dm3(tmp_assets) -> Path:
+    dst = tmp_assets.joinpath("2.dm3")
+    if not dst.exists():
+        url = "https://drive.google.com/uc?id=1BDNBta7cSMUtmb4r5e5gvqgBBhRW6xRq"
+        gdown.download(url, str(dst), quiet=True)
     return dst
 
 
 @pytest.fixture(scope="session")
-def dm4(tmp_path_factory) -> Path:
-    url = "https://drive.google.com/uc?id=1Pkbfnl5-7zVSB1h7JfwLbKy6yOxxMvR-"
-    dst = tmp_path_factory.mktemp("data").joinpath("test.dm4")
-    gdown.download(url, str(dst), quiet=True)
+def dm4(tmp_assets) -> Path:
+    dst = tmp_assets.joinpath("1.dm4")
+    if not dst.exists():
+        url = "https://drive.google.com/uc?id=1Pkbfnl5-7zVSB1h7JfwLbKy6yOxxMvR-"
+        gdown.download(url, str(dst), quiet=True)
     return dst
 
 
@@ -154,13 +164,13 @@ def test_write_with_multiple_pages_tiff(
     )
 
 
-def test_write_dm3(dm3):
+def test_write_dm3(dm3, tmp_path):
     src = dm3
-    dst = src.with_suffix(JPEG_FILE_EXT)
+    dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
     write(
         dm_file_reader(src),
         src,
-        None,
+        tmp_path,
         OutputFileFormats.JPEG,
         True,
         normalize=True,
@@ -168,13 +178,13 @@ def test_write_dm3(dm3):
     assert dst.exists()
 
 
-def test_write_dm4(dm4):
+def test_write_dm4(dm4, tmp_path):
     src = dm4
-    dst = src.with_suffix(JPEG_FILE_EXT)
+    dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
     write(
         dm_file_reader(src),
         src,
-        None,
+        tmp_path,
         OutputFileFormats.JPEG,
         True,
         normalize=True,
