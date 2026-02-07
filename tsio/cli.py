@@ -105,58 +105,54 @@ def write(
         destination = src.resolve().parent
     else:
         destination = output.resolve()
-    try:
-        pages_count = len(pages)
-        LOGGER.debug(f"{pages_count}=")
-        src_file_stem = src.stem
-        LOGGER.debug(f"{src_file_stem=}")
+    pages_count = len(pages)
+    LOGGER.debug(f"{pages_count}=")
+    src_file_stem = src.stem
+    LOGGER.debug(f"{src_file_stem=}")
+    if pages_count > 1:
+        destination = destination.joinpath(src_file_stem)
+        os.makedirs(destination, exist_ok=True)
+    LOGGER.debug(f"{src_file_stem=}")
+    for page_index, page in enumerate(
+        tqdm(pages, total=pages_count, desc=src.name, disable=silent)
+    ):
+        LOGGER.debug(f"{page_index=}")
         if pages_count > 1:
-            destination = destination.joinpath(src_file_stem)
-            os.makedirs(destination, exist_ok=True)
-        LOGGER.debug(f"{src_file_stem=}")
-        for page_index, page in enumerate(
-            tqdm(pages, total=pages_count, desc=src.name, disable=silent)
-        ):
-            LOGGER.debug(f"{page_index=}")
-            if pages_count > 1:
-                output_file = destination.joinpath(str(page_index)).with_suffix(
-                    output_format.file_ext
-                )
-            else:
-                output_file = destination.joinpath(src_file_stem).with_suffix(
-                    output_format.file_ext
-                )
-            LOGGER.debug(f"{output_file=}")
-            img = page["data"]
-            if normalize:
-                img = ((img - np.min(img)) / (np.max(img) - np.min(img))).astype(
-                    np.float32
-                )
-            if img.dtype.name not in output_format.supported_bit_depths:
-                img = cv2.cvtColor(
-                    np.round(img * 256).astype(BIT_DEPTH_DTYPE),
-                    cv2.COLOR_GRAY2BGR,
-                )
-            page["data"] = img
-            image_file_writer(output_file, page)
-    except NotImplementedError as error:
-        LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
-    except ValueError as error:
-        LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
-    except Exception as error:
-        LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
+            output_file = destination.joinpath(str(page_index)).with_suffix(
+                output_format.file_ext
+            )
+        else:
+            output_file = destination.joinpath(src_file_stem).with_suffix(
+                output_format.file_ext
+            )
+        LOGGER.debug(f"{output_file=}")
+        img = page["data"]
+        if normalize:
+            img = ((img - np.min(img)) / (np.max(img) - np.min(img))).astype(np.float32)
+        if img.dtype.name not in output_format.supported_bit_depths:
+            img = cv2.cvtColor(
+                np.round(img * 256).astype(BIT_DEPTH_DTYPE),
+                cv2.COLOR_GRAY2BGR,
+            )
+        page["data"] = img
+        image_file_writer(output_file, page)
 
 
 def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     src, output, output_format, silent = config
-    write(
-        dm_file_reader(src),
-        src,
-        output,
-        output_format,
-        silent,
-        normalize=True,
-    )
+    try:
+        write(
+            dm_file_reader(src),
+            src,
+            output,
+            output_format,
+            silent,
+            normalize=True,
+        )
+    except NotImplementedError as error:
+        LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
+    except Exception as error:
+        LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
 
 
 def write_tiff(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
