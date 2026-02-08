@@ -111,7 +111,7 @@ def write(
     LOGGER.debug(f"{src_file_stem=}")
     if pages_count > 1:
         destination = destination.joinpath(src_file_stem)
-        os.makedirs(destination, exist_ok=True)
+    os.makedirs(destination, exist_ok=True)
     LOGGER.debug(f"{src_file_stem=}")
     for page_index, page in enumerate(
         tqdm(pages, total=pages_count, desc=src.name, disable=silent)
