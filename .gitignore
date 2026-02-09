@@ -3,10 +3,7 @@
 *.log
 *.err
 tmp/
-*data/
-*train/
-runs/
-quick-start/
+.tmp/
 .ipynb_checkpoints/
 
 *.py[cod]
