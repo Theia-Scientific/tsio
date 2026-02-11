@@ -60,15 +60,16 @@ def random_multipage_tiff(random_16bit_multipage_image, tmp_path) -> Path:
     return tif_file
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def tmp_assets() -> Path:
     cwd = Path(os.getcwd())
     assets = cwd.joinpath(".tmp", "tests", "assets")
-    os.makedirs(assets, exist_ok=True)
+    if not assets.exists():
+        os.makedirs(assets, exist_ok=True)
     return assets
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def dm3(tmp_assets) -> Path:
     dst = tmp_assets.joinpath("2.dm3")
     if not dst.exists():
@@ -77,7 +78,7 @@ def dm3(tmp_assets) -> Path:
     return dst
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def dm4(tmp_assets) -> Path:
     dst = tmp_assets.joinpath("1.dm4")
     if not dst.exists():

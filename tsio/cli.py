@@ -6,6 +6,7 @@ import logging
 import mimetypes
 import numpy as np
 import os
+import platform
 import typer
 
 from enum import Enum
@@ -16,7 +17,7 @@ from rsciio.image import file_writer as image_file_writer
 from rsciio.tiff import file_reader as tiff_file_reader
 from tqdm import tqdm
 from tsio import __app_name__
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
 PREFIX: str = f"{__app_name__.upper()}"
@@ -129,9 +130,11 @@ def write(
         img = page["data"]
         if normalize:
             img = ((img - np.min(img)) / (np.max(img) - np.min(img))).astype(np.float32)
+        LOGGER.debug(f"{img.dtype.name=}")
         if img.dtype.name not in output_format.supported_bit_depths:
+            img_8bit = np.round(img * 256).astype(BIT_DEPTH_DTYPE)
             img = cv2.cvtColor(
-                np.round(img * 256).astype(BIT_DEPTH_DTYPE),
+                img_8bit,
                 cv2.COLOR_GRAY2BGR,
             )
         page["data"] = img
@@ -188,6 +191,19 @@ def expand_sources(
     return sources
 
 
+def run(
+    write_func: Callable,
+    sources: List[Tuple[Path, Optional[Path], OutputFileFormats, bool]],
+    num_cpus: Optional[int] = None,
+):
+    if platform.system().lower() == "darwin":
+        for src in sources:
+            write_func(src)
+    else:
+        with Pool(num_cpus) as pool:
+            list(pool.imap(write_func, sources))
+
+
 @app.command(help="Handle Input/Output (IO) of DigitalMicrograph (DM) files.")
 def dm(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
@@ -210,8 +226,7 @@ def dm(
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
-    with Pool(num_cpus) as pool:
-        list(pool.imap(write_dm, expand_sources(paths, output, output_format, silent)))
+    run(write_dm, expand_sources(paths, output, output_format, silent), num_cpus)
 
 
 @app.command(help="Handle Input/Output (IO) of TIFF files.")
@@ -236,10 +251,7 @@ def tiff(
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
-    with Pool(num_cpus) as pool:
-        list(
-            pool.imap(write_tiff, expand_sources(paths, output, output_format, silent))
-        )
+    run(write_tiff, expand_sources(paths, output, output_format, silent), num_cpus)
 
 
 @app.callback()
