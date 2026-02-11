@@ -27,7 +27,6 @@ from tsio.cli import (
     write_tiff,
 )
 from typer.testing import CliRunner
-from typing import Callable
 
 runner = CliRunner()
 
