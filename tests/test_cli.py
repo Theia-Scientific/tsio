@@ -275,22 +275,22 @@ def test_expand_sources_with_directories(tmp_path):
     assert actual[4][0] in expected
 
 
-def test_run_with_darwin(mocker, mock_write):
+def test_run_with_darwin(dm4, mocker, mock_write):
     def mock_platform_system() -> str:
         return "Darwin"
 
     mocker.patch("platform.system", mock_platform_system)
 
-    run(mock_write(), [])
+    run(mock_write(), [(dm4, None, OutputFileFormats.JPEG, True)])
 
 
-def test_run_with_linux(mocker, mock_write):
+def test_run_with_linux(dm4, mocker, mock_write):
     def mock_platform_system() -> str:
         return "Linux"
 
     mocker.patch("platform.system", mock_platform_system)
 
-    run(mock_write(), [])
+    run(mock_write(), [(dm4, None, OutputFileFormats.JPEG, True)])
 
 
 def test_app_help():
