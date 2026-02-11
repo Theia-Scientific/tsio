@@ -19,6 +19,7 @@ from tsio.cli import (
     OutputFileFormats,
     PNG_FILE_EXT,
     PNG_MIME_TYPE,
+    run,
     TIFF_FILE_EXT,
     TIFF_MIME_TYPE,
     write,
@@ -26,6 +27,7 @@ from tsio.cli import (
     write_tiff,
 )
 from typer.testing import CliRunner
+from typing import Callable
 
 runner = CliRunner()
 
@@ -85,6 +87,17 @@ def dm4(tmp_assets) -> Path:
         url = "https://drive.google.com/uc?id=1Pkbfnl5-7zVSB1h7JfwLbKy6yOxxMvR-"
         gdown.download(url, str(dst), quiet=True)
     return dst
+
+
+@pytest.fixture
+def mock_write() -> Callable:
+    def mock_write(*args, **kwargs):
+        _ = args
+        _ = kwargs
+
+        return None
+
+    return mock_write
 
 
 def test_output_file_formats_mime_type():
@@ -260,6 +273,24 @@ def test_expand_sources_with_directories(tmp_path):
     assert actual[2][0] in expected
     assert actual[3][0] in expected
     assert actual[4][0] in expected
+
+
+def test_run_with_darwin(mocker, mock_write):
+    def mock_platform_system() -> str:
+        return "Darwin"
+
+    mocker.patch("platform.system", mock_platform_system)
+
+    run(mock_write(), [])
+
+
+def test_run_with_linux(mocker, mock_write):
+    def mock_platform_system() -> str:
+        return "Linux"
+
+    mocker.patch("platform.system", mock_platform_system)
+
+    run(mock_write(), [])
 
 
 def test_app_help():
