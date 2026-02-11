@@ -89,17 +89,6 @@ def dm4(tmp_assets) -> Path:
     return dst
 
 
-@pytest.fixture
-def mock_write() -> Callable:
-    def mock_write(*args, **kwargs):
-        _ = args
-        _ = kwargs
-
-        return None
-
-    return mock_write
-
-
 def test_output_file_formats_mime_type():
     assert OutputFileFormats.JPEG.mime_type == JPEG_MIME_TYPE
     assert OutputFileFormats.PNG.mime_type == PNG_MIME_TYPE
@@ -275,22 +264,34 @@ def test_expand_sources_with_directories(tmp_path):
     assert actual[4][0] in expected
 
 
-def test_run_with_darwin(dm4, mocker, mock_write):
+def test_run_with_darwin(dm4, mocker):
     def mock_platform_system() -> str:
         return "Darwin"
 
     mocker.patch("platform.system", mock_platform_system)
 
-    run(mock_write(), [(dm4, None, OutputFileFormats.JPEG, True)])
+    def mock_write(*args, **kwargs):
+        _ = args
+        _ = kwargs
+
+        return None
+
+    run(mock_write, [(dm4, None, OutputFileFormats.JPEG, True)])
 
 
-def test_run_with_linux(dm4, mocker, mock_write):
+def test_run_with_linux(dm4, mocker):
     def mock_platform_system() -> str:
         return "Linux"
 
     mocker.patch("platform.system", mock_platform_system)
 
-    run(mock_write(), [(dm4, None, OutputFileFormats.JPEG, True)])
+    def mock_write(*args, **kwargs):
+        _ = args
+        _ = kwargs
+
+        return None
+
+    run(mock_write, [(dm4, None, OutputFileFormats.JPEG, True)])
 
 
 def test_app_help():
