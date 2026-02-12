@@ -19,6 +19,7 @@ from tsio.cli import (
     OutputFileFormats,
     PNG_FILE_EXT,
     PNG_MIME_TYPE,
+    run,
     TIFF_FILE_EXT,
     TIFF_MIME_TYPE,
     write,
@@ -60,15 +61,16 @@ def random_multipage_tiff(random_16bit_multipage_image, tmp_path) -> Path:
     return tif_file
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def tmp_assets() -> Path:
     cwd = Path(os.getcwd())
     assets = cwd.joinpath(".tmp", "tests", "assets")
-    os.makedirs(assets, exist_ok=True)
+    if not assets.exists():
+        os.makedirs(assets, exist_ok=True)
     return assets
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def dm3(tmp_assets) -> Path:
     dst = tmp_assets.joinpath("2.dm3")
     if not dst.exists():
@@ -77,7 +79,7 @@ def dm3(tmp_assets) -> Path:
     return dst
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def dm4(tmp_assets) -> Path:
     dst = tmp_assets.joinpath("1.dm4")
     if not dst.exists():
@@ -259,6 +261,36 @@ def test_expand_sources_with_directories(tmp_path):
     assert actual[2][0] in expected
     assert actual[3][0] in expected
     assert actual[4][0] in expected
+
+
+def test_run_with_darwin(dm4, mocker):
+    def mock_platform_system() -> str:
+        return "Darwin"
+
+    mocker.patch("platform.system", mock_platform_system)
+
+    def mock_write(*args, **kwargs):
+        _ = args
+        _ = kwargs
+
+        return None
+
+    run(mock_write, [(dm4, None, OutputFileFormats.JPEG, True)])
+
+
+def test_run_with_linux(dm4, mocker):
+    def mock_platform_system() -> str:
+        return "Linux"
+
+    mocker.patch("platform.system", mock_platform_system)
+
+    def mock_write(*args, **kwargs):
+        _ = args
+        _ = kwargs
+
+        return None
+
+    run(mock_write, [(dm4, None, OutputFileFormats.JPEG, True)])
 
 
 def test_app_help():
