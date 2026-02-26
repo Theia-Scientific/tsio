@@ -13,7 +13,10 @@ from enum import Enum
 from multiprocess.pool import Pool
 from pathlib import Path
 from rsciio import digitalmicrograph
-from rsciio.image import file_writer as image_file_writer
+from rsciio.image import (
+    file_reader as image_file_reader,
+    file_writer as image_file_writer,
+)
 from rsciio.tiff import file_reader as tiff_file_reader
 from tqdm import tqdm
 from tsio import __app_name__
@@ -138,6 +141,9 @@ def write(
                 cv2.COLOR_GRAY2BGR,
             )
         page["data"] = img
+        for axis in page["axes"]:
+            if "navigate" not in axis:
+                axis["navigate"] = None
         image_file_writer(output_file, page)
 
 
@@ -156,6 +162,18 @@ def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
         LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
     except Exception as error:
         LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
+
+
+def write_png(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
+    src, output, output_format, silent = config
+    write(
+        image_file_reader(src),
+        src,
+        output,
+        output_format,
+        silent,
+        normalize=False,
+    )
 
 
 def write_tiff(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
@@ -227,6 +245,31 @@ def dm(
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
     run(write_dm, expand_sources(paths, output, output_format, silent), num_cpus)
+
+
+@app.command(help="Handle Input/Output (IO) of PNG files.")
+def png(
+    output_format: OutputFileFormats = typer.Argument(help="The output file format."),
+    paths: List[Path] = typer.Argument(help="The original TIFF source files."),
+    num_cpus: Optional[int] = typer.Option(
+        None,
+        "-n",
+        "--num-cpus",
+        help="The number of CPU cores to use for parallel execution.",
+    ),
+    output: Optional[Path] = typer.Option(
+        None, "-o", "--output", help="Destination for output file(s)."
+    ),
+    silent: bool = typer.Option(
+        False, "-S", "--silent", help="Disables the progress bars."
+    ),
+):
+    LOGGER.debug(f"{paths=}")
+    LOGGER.debug(f"{num_cpus=}")
+    LOGGER.debug(f"{output=}")
+    LOGGER.debug(f"{output_format=}")
+    LOGGER.debug(f"{silent=}")
+    run(write_png, expand_sources(paths, output, output_format, silent), num_cpus)
 
 
 @app.command(help="Handle Input/Output (IO) of TIFF files.")
