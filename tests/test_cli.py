@@ -8,6 +8,7 @@ import pytest
 
 from pathlib import Path
 from rsciio.digitalmicrograph import file_reader as dm_file_reader
+from rsciio.image import file_writer as image_file_writer
 from rsciio.tiff import file_reader as tiff_file_reader, file_writer as tiff_file_writer
 from tsio import __app_name__
 from tsio.cli import (
@@ -24,11 +25,25 @@ from tsio.cli import (
     TIFF_MIME_TYPE,
     write,
     write_dm,
+    write_png,
     write_tiff,
 )
 from typer.testing import CliRunner
 
 runner = CliRunner()
+
+
+@pytest.fixture
+def blank_8bit_image() -> np.ndarray:
+    return np.zeros((1, 256, 256), dtype=np.uint8)
+
+
+@pytest.fixture
+def blank_8bit_png(blank_8bit_image, tmp_path) -> Path:
+    png_file = tmp_path.joinpath("image.png")
+    signal = {"data": blank_8bit_image, "axes": {}}
+    image_file_writer(str(png_file), signal)
+    return png_file
 
 
 @pytest.fixture
@@ -219,6 +234,13 @@ def test_write_dm_fails_with_exception(tmp_path):
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_dm((src, None, OutputFileFormats.JPEG, True))
     assert not dst.exists()
+
+
+def test_write_png(blank_8bit_png):
+    src = blank_8bit_png
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_png((src, None, OutputFileFormats.JPEG, True))
+    assert dst.exists()
 
 
 def test_write_tiff(blank_16bit_single_page_tiff):
