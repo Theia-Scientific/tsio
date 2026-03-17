@@ -24,6 +24,7 @@ from tsio.cli import (
     TIFF_FILE_EXT,
     TIFF_MIME_TYPE,
     write,
+    write_dcm,
     write_dm,
     write_png,
     write_tiff,
@@ -206,6 +207,13 @@ def test_write_with_dm4(dm4, tmp_path):
         True,
         normalize=True,
     )
+    assert dst.exists()
+
+
+def test_write_dcm(dcm):
+    src = dcm
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_dcm((src, None, OutputFileFormats.JPEG, True))
     assert dst.exists()
 
 
