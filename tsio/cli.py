@@ -247,10 +247,10 @@ def run(
             list(pool.imap(write_func, sources))
 
 
-@app.command()
+@app.command(help="Handle Input/Output (IO) of DICOM (DCM) files.")
 def dcm(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
-    paths: List[Path] = typer.Argument(help="The original DM source files."),
+    paths: List[Path] = typer.Argument(help="The original DCM source files."),
     num_cpus: Optional[int] = typer.Option(
         None,
         "-n",
