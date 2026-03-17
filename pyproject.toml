@@ -66,3 +66,8 @@ Tracker = "https://github.com/Theia-Scientific/tsio/issues"
 [tool.coverage.report]
 exclude_lines = [ "if __name__ == .__main__.:" ]
 omit = [ "__main__.py" ]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
