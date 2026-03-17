@@ -27,6 +27,8 @@ LOGGER: logging.Logger = logging.getLogger(__name__)
 PREFIX: str = f"{__app_name__.upper()}"
 
 BIT_DEPTH_DTYPE: str = "uint8"
+DCM_FILE_EXT: str = ".dcm"
+DCM_MIME_TYPE: str = "application/dicom"
 DM4_FILE_EXT: str = ".dm4"
 DM3_FILE_EXT: str = ".dm3"
 DM3_MIME_TYPE: str = "application/vnd.gatan.dm3"
@@ -38,6 +40,7 @@ PNG_MIME_TYPE: str = "image/png"
 TIFF_FILE_EXT: str = ".tif"
 TIFF_MIME_TYPE: str = "image/tiff"
 
+mimetypes.add_type(DCM_MIME_TYPE, DCM_FILE_EXT)
 mimetypes.add_type(DM3_MIME_TYPE, DM3_FILE_EXT)
 mimetypes.add_type(DM4_MIME_TYPE, DM4_FILE_EXT)
 
