@@ -30,6 +30,8 @@ dependencies = [
     "opencv-python-headless",
     "pydantic",
     "pydantic-settings",
+    "pydicom",
+    "python-gdcm",
     "rosettasciio[all]",
     "tdqm",
     "typer",
