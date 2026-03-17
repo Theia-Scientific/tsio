@@ -168,7 +168,7 @@ def write_dcm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
         output,
         output_format,
         silent,
-        normalize=False,
+        normalize=True,
     )
 
 
