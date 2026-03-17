@@ -153,28 +153,23 @@ def write(
 
 def write_dcm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     src, output, output_format, silent = config
-    try:
-        write(
-            [
-                {
-                    "data": img,
-                    "axes": [],
-                    "index_in_array": None,
-                    "metadata": {},
-                    "original_metadata": {},
-                }
-                for img in iter_pixels(dcmread(src))
-            ],
-            src,
-            output,
-            output_format,
-            silent,
-            normalize=False,
-        )
-    except NotImplementedError as error:
-        LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
-    except Exception as error:
-        LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
+    write(
+        [
+            {
+                "data": img,
+                "axes": [],
+                "index_in_array": None,
+                "metadata": {},
+                "original_metadata": {},
+            }
+            for img in iter_pixels(dcmread(src))
+        ],
+        src,
+        output,
+        output_format,
+        silent,
+        normalize=False,
+    )
 
 
 def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
