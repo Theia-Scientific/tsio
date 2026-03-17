@@ -12,6 +12,7 @@ import typer
 from enum import Enum
 from multiprocess.pool import Pool
 from pathlib import Path
+from pydicom import dcmread, iter_pixels
 from rsciio import digitalmicrograph
 from rsciio.image import (
     file_reader as image_file_reader,
@@ -151,7 +152,16 @@ def write_dcm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     src, output, output_format, silent = config
     try:
         write(
-            dicom_reader(src),
+            [
+                {
+                    "data": img,
+                    "axes": [],
+                    "index_in_array": None,
+                    "metadata": {},
+                    "original_metadata": {},
+                }
+                for img in iter_pixels(dcmread(src))
+            ],
             src,
             output,
             output_format,
