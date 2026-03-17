@@ -147,6 +147,23 @@ def write(
         image_file_writer(output_file, page)
 
 
+def write_dcm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
+    src, output, output_format, silent = config
+    try:
+        write(
+            dicom_reader(src),
+            src,
+            output,
+            output_format,
+            silent,
+            normalize=True,
+        )
+    except NotImplementedError as error:
+        LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
+    except Exception as error:
+        LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
+
+
 def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     src, output, output_format, silent = config
     try:
@@ -220,6 +237,31 @@ def run(
     else:
         with Pool(num_cpus) as pool:
             list(pool.imap(write_func, sources))
+
+
+@app.command()
+def dcm(
+    output_format: OutputFileFormats = typer.Argument(help="The output file format."),
+    paths: List[Path] = typer.Argument(help="The original DM source files."),
+    num_cpus: Optional[int] = typer.Option(
+        None,
+        "-n",
+        "--num-cpus",
+        help="The number of CPU cores to use for parallel execution.",
+    ),
+    output: Optional[Path] = typer.Option(
+        None, "-o", "--output", help="Destination for output file(s)."
+    ),
+    silent: bool = typer.Option(
+        False, "-S", "--silent", help="Disables the progress bars."
+    ),
+):
+    LOGGER.debug(f"{paths=}")
+    LOGGER.debug(f"{num_cpus=}")
+    LOGGER.debug(f"{output=}")
+    LOGGER.debug(f"{output_format=}")
+    LOGGER.debug(f"{silent=}")
+    run(write_dcm, expand_sources(paths, output, output_format, silent), num_cpus)
 
 
 @app.command(help="Handle Input/Output (IO) of DigitalMicrograph (DM) files.")
