@@ -12,6 +12,7 @@ import typer
 from enum import Enum
 from multiprocess.pool import Pool
 from pathlib import Path
+from pydicom import dcmread, iter_pixels
 from rsciio import digitalmicrograph
 from rsciio.image import (
     file_reader as image_file_reader,
@@ -26,6 +27,8 @@ LOGGER: logging.Logger = logging.getLogger(__name__)
 PREFIX: str = f"{__app_name__.upper()}"
 
 BIT_DEPTH_DTYPE: str = "uint8"
+DCM_FILE_EXT: str = ".dcm"
+DCM_MIME_TYPE: str = "application/dicom"
 DM4_FILE_EXT: str = ".dm4"
 DM3_FILE_EXT: str = ".dm3"
 DM3_MIME_TYPE: str = "application/vnd.gatan.dm3"
@@ -37,6 +40,7 @@ PNG_MIME_TYPE: str = "image/png"
 TIFF_FILE_EXT: str = ".tif"
 TIFF_MIME_TYPE: str = "image/tiff"
 
+mimetypes.add_type(DCM_MIME_TYPE, DCM_FILE_EXT)
 mimetypes.add_type(DM3_MIME_TYPE, DM3_FILE_EXT)
 mimetypes.add_type(DM4_MIME_TYPE, DM4_FILE_EXT)
 
@@ -132,7 +136,16 @@ def write(
         LOGGER.debug(f"{output_file=}")
         img = page["data"]
         if normalize:
-            img = ((img - np.min(img)) / (np.max(img) - np.min(img))).astype(np.float32)
+            max_pixel_intensity = np.max(img)
+            LOGGER.debug(f"{max_pixel_intensity=}")
+            min_pixel_intensity = np.min(img)
+            LOGGER.debug(f"{min_pixel_intensity=}")
+            normalization_factor = abs(max_pixel_intensity - min_pixel_intensity)
+            LOGGER.debug(f"{normalization_factor=}")
+            if normalization_factor > 0:
+                img = ((img - min_pixel_intensity) / normalization_factor).astype(
+                    np.float32
+                )
         LOGGER.debug(f"{img.dtype.name=}")
         if img.dtype.name not in output_format.supported_bit_depths:
             img_8bit = np.round(img * 256).astype(BIT_DEPTH_DTYPE)
@@ -145,6 +158,27 @@ def write(
             if "navigate" not in axis:
                 axis["navigate"] = None
         image_file_writer(output_file, page)
+
+
+def write_dcm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
+    src, output, output_format, silent = config
+    write(
+        [
+            {
+                "data": img,
+                "axes": [],
+                "index_in_array": None,
+                "metadata": {},
+                "original_metadata": {},
+            }
+            for img in iter_pixels(dcmread(src))
+        ],
+        src,
+        output,
+        output_format,
+        silent,
+        normalize=True,
+    )
 
 
 def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
@@ -220,6 +254,31 @@ def run(
     else:
         with Pool(num_cpus) as pool:
             list(pool.imap(write_func, sources))
+
+
+@app.command(help="Handle Input/Output (IO) of DICOM (DCM) files.")
+def dcm(
+    output_format: OutputFileFormats = typer.Argument(help="The output file format."),
+    paths: List[Path] = typer.Argument(help="The original DCM source files."),
+    num_cpus: Optional[int] = typer.Option(
+        None,
+        "-n",
+        "--num-cpus",
+        help="The number of CPU cores to use for parallel execution.",
+    ),
+    output: Optional[Path] = typer.Option(
+        None, "-o", "--output", help="Destination for output file(s)."
+    ),
+    silent: bool = typer.Option(
+        False, "-S", "--silent", help="Disables the progress bars."
+    ),
+):
+    LOGGER.debug(f"{paths=}")
+    LOGGER.debug(f"{num_cpus=}")
+    LOGGER.debug(f"{output=}")
+    LOGGER.debug(f"{output_format=}")
+    LOGGER.debug(f"{silent=}")
+    run(write_dcm, expand_sources(paths, output, output_format, silent), num_cpus)
 
 
 @app.command(help="Handle Input/Output (IO) of DigitalMicrograph (DM) files.")

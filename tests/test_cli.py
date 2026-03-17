@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import datetime
 import gdown
 import importlib.metadata
 import numpy as np
@@ -7,6 +8,8 @@ import os
 import pytest
 
 from pathlib import Path
+from pydicom import Dataset, FileMetaDataset
+from pydicom.uid import UID, ExplicitVRLittleEndian
 from rsciio.digitalmicrograph import file_reader as dm_file_reader
 from rsciio.image import file_writer as image_file_writer
 from rsciio.tiff import file_reader as tiff_file_reader, file_writer as tiff_file_writer
@@ -24,6 +27,7 @@ from tsio.cli import (
     TIFF_FILE_EXT,
     TIFF_MIME_TYPE,
     write,
+    write_dcm,
     write_dm,
     write_png,
     write_tiff,
@@ -83,6 +87,36 @@ def tmp_assets() -> Path:
     if not assets.exists():
         os.makedirs(assets, exist_ok=True)
     return assets
+
+
+@pytest.fixture
+def dcm(tmp_path, blank_8bit_image) -> Path:
+    _, height, width = blank_8bit_image.shape
+    grey_img = blank_8bit_image[0, :, :]
+    dcm_file = tmp_path.joinpath("test.dcm")
+    ds = Dataset()
+    ds.Rows = height
+    ds.Columns = width
+    ds.PhotometricInterpretation = "MONOCHROME1"
+    ds.SamplesPerPixel = 1
+    ds.BitsStored = 8
+    ds.BitsAllocated = 8
+    ds.HighBit = 7
+    ds.PixelRepresentation = 0
+    ds.PixelData = grey_img.tobytes()
+    ds.PatientName = "Test^Firstname"
+    ds.PatientID = "123456"
+    dt = datetime.datetime.now()
+    ds.ContentDate = dt.strftime("%Y%m%d")
+    ds.ContentTime = dt.strftime("%H%M%S.%f")
+    file_meta = FileMetaDataset()
+    file_meta.MediaStorageSOPClassUID = UID("1.2.840.10008.5.1.4.1.1.2")
+    file_meta.MediaStorageSOPInstanceUID = UID("1.2.3")
+    file_meta.ImplementationClassUID = UID("1.2.3.4")
+    file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
+    ds.file_meta = file_meta
+    ds.save_as(dcm_file, enforce_file_format=True)
+    return dcm_file
 
 
 @pytest.fixture
@@ -209,6 +243,13 @@ def test_write_with_dm4(dm4, tmp_path):
     assert dst.exists()
 
 
+def test_write_dcm(dcm):
+    src = dcm
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_dcm((src, None, OutputFileFormats.JPEG, True))
+    assert dst.exists()
+
+
 def test_write_dm(dm4):
     src = dm4
     dst = src.with_suffix(JPEG_FILE_EXT)
@@ -325,6 +366,13 @@ def test_app_version():
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
     assert f"{__app_name__} {version}" in result.stdout
+
+
+def test_app_dcm(dcm, tmp_path):
+    dst = tmp_path.joinpath(dcm.name).with_suffix(JPEG_FILE_EXT)
+    result = runner.invoke(app, ["dcm", "-o", str(tmp_path), "-S", "jpeg", str(dcm)])
+    assert result.exit_code == 0
+    assert dst.exists()
 
 
 def test_app_dm(dm4, tmp_path):
