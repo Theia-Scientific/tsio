@@ -169,7 +169,7 @@ def write_dcm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
             output,
             output_format,
             silent,
-            normalize=True,
+            normalize=False,
         )
     except NotImplementedError as error:
         LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
