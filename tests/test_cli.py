@@ -368,6 +368,13 @@ def test_app_version():
     assert f"{__app_name__} {version}" in result.stdout
 
 
+def test_app_dcm(dcm, tmp_path):
+    dst = tmp_path.joinpath(dcm.name).with_suffix(JPEG_FILE_EXT)
+    result = runner.invoke(app, ["dcm", "-o", str(tmp_path), "-S", "jpeg", str(dcm)])
+    assert result.exit_code == 0
+    assert dst.exists()
+
+
 def test_app_dm(dm4, tmp_path):
     dst = tmp_path.joinpath(dm4.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(app, ["dm", "-o", str(tmp_path), "-S", "jpeg", str(dm4)])
