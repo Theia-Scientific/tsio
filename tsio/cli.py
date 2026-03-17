@@ -136,7 +136,16 @@ def write(
         LOGGER.debug(f"{output_file=}")
         img = page["data"]
         if normalize:
-            img = ((img - np.min(img)) / (np.max(img) - np.min(img))).astype(np.float32)
+            max_pixel_intensity = np.max(img)
+            LOGGER.debug(f"{max_pixel_intensity=}")
+            min_pixel_intensity = np.min(img)
+            LOGGER.debug(f"{min_pixel_intensity=}")
+            normalization_factor = abs(max_pixel_intensity - min_pixel_intensity)
+            LOGGER.debug(f"{normalization_factor=}")
+            if normalization_factor > 0:
+                img = ((img - min_pixel_intensity) / normalization_factor).astype(
+                    np.float32
+                )
         LOGGER.debug(f"{img.dtype.name=}")
         if img.dtype.name not in output_format.supported_bit_depths:
             img_8bit = np.round(img * 256).astype(BIT_DEPTH_DTYPE)
