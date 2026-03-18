@@ -358,4 +358,3 @@ Copyright (C) 2026 Theia Scientific, LLC. All rights reserved.
 [pipx]: https://github.com/pypa/pipx
 [python]: https://www.python.org/
 [tsio]: https://github.com/Theia-Scientific/tsio
-[ultralytics]: https://github.com/ultralytics/ultralytics
