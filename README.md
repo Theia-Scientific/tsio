@@ -193,7 +193,7 @@ The `tsio` code includes a Python application with a Command Line Interface
 3. Install `tsio` command globally for all users.
 
    ```sh
-   sudo pipx install --global --python python3.11 --piparg=--extra-index-url="https://pypi:<key>@app.envelope.dev/simple/" "tsio[slack]"
+   sudo pipx install --global --python python3.11 --piparg=--extra-index-url="https://pypi:<key>@app.envelope.dev/simple/" "tsio"
    ```
 
 4. Verify `tsio` command is available.
