@@ -33,7 +33,7 @@ supported specialized formats include:
 All of the prerequisites may already be installed and configured by the
 superuser, a.k.a. root, of the computer. The prerequisites only need to be
 installed and configured once per machine. For example, if [tsyolo] is already
-running, then the Prerequisites steps can be ignored.
+running, then the [Prerequisites](#prerequisites) steps can be ignored.
 
 ### Python
 
