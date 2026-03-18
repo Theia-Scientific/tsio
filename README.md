@@ -355,7 +355,6 @@ Copyright (C) 2026 Theia Scientific, LLC. All rights reserved.
 [direnv]: https://direnv.net/
 [dm3/dm4]: https://www.gatan.com/products/tem-analysis/gatan-microscopy-suite-software
 [homebrew]: https://brew.sh/
-[jupyter]: https://jupyter.org/
 [pipx]: https://github.com/pypa/pipx
 [python]: https://www.python.org/
 [tsio]: https://github.com/Theia-Scientific/tsio
