@@ -248,7 +248,7 @@ The `tsio` code includes a Python application with a Command Line Interface
    Slack feature for sending notifications to a Slack channel.
 
    ```sh
-   python3 -m pip install -e ".[jupyter,slack]"
+   python3 -m pip install -e .
    ```
 
 ## Upgrade
