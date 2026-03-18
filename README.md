@@ -300,7 +300,7 @@ The `tsio` code includes a Python application with a Command Line Interface
 4. Upgrade the `tsio` application within the virtual environment.
 
    ```sh
-   python -m pip install --upgrade -e ".[jupyter,slack]"
+   python -m pip install --upgrade -e .
    ```
 
 5. Verify new version.
