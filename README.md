@@ -40,11 +40,11 @@ running, then the [Prerequisites](#prerequisites) steps can be ignored.
 <a name="prerequisites-python"></a>
 
 The [Python] programming language is needed to run the `tsio` Command Line
-Interface (CLI) application and/or use the `tsio` package in other Python
-scripts or [Jupyter] notebooks. Both macOS and Ubuntu Linux have the Python
-programming language installed, but it is generally reserved for the operating
-system (OS) to use and is an older version. It is best practice to install a
-newer version that is separate from the system-provided Python version.
+Interface (CLI) application and/or use in other Python scripts. Both macOS 
+and Ubuntu Linux have the Python programming language installed, but it is
+generally reserved for the operating system (OS) to use and is an older
+version. It is best practice to install a newer version that is separate from
+the system-provided Python version.
 
 #### Ubuntu
 
