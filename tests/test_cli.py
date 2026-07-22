@@ -29,6 +29,7 @@ from tsio.cli import (
     write,
     write_dcm,
     write_dm,
+    write_emd,
     write_png,
     write_tiff,
 )
@@ -131,6 +132,15 @@ def dm3(tmp_assets) -> Path:
 @pytest.fixture
 def dm4(tmp_assets) -> Path:
     dst = tmp_assets.joinpath("1.dm4")
+    if not dst.exists():
+        url = "https://drive.google.com/uc?id=1Pkbfnl5-7zVSB1h7JfwLbKy6yOxxMvR-"
+        gdown.download(url, str(dst), quiet=True)
+    return dst
+
+
+@pytest.fixture
+def emd(tmp_assets) -> Path:
+    dst = tmp_assets.joinpath("1.emd")
     if not dst.exists():
         url = "https://drive.google.com/uc?id=1Pkbfnl5-7zVSB1h7JfwLbKy6yOxxMvR-"
         gdown.download(url, str(dst), quiet=True)
@@ -254,6 +264,13 @@ def test_write_dm(dm4):
     src = dm4
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_dm((src, None, OutputFileFormats.JPEG, True))
+    assert dst.exists()
+
+
+def test_write_emd(emd):
+    src = emd
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_emd((src, None, OutputFileFormats.JPEG, True))
     assert dst.exists()
 
 
