@@ -14,7 +14,7 @@ from multiprocess.pool import Pool
 from pathlib import Path
 from pydicom import dcmread, iter_pixels
 from rsciio import digitalmicrograph
-from rsciio import file_reader as emd_file_reader
+from rsciio.emd import file_reader as emd_file_reader
 from rsciio.image import (
     file_reader as image_file_reader,
     file_writer as image_file_writer,
