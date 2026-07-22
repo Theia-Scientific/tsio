@@ -14,6 +14,7 @@ from multiprocess.pool import Pool
 from pathlib import Path
 from pydicom import dcmread, iter_pixels
 from rsciio import digitalmicrograph
+from rsciio import file_reader as emd_file_reader
 from rsciio.image import (
     file_reader as image_file_reader,
     file_writer as image_file_writer,
@@ -33,6 +34,8 @@ DM4_FILE_EXT: str = ".dm4"
 DM3_FILE_EXT: str = ".dm3"
 DM3_MIME_TYPE: str = "application/vnd.gatan.dm3"
 DM4_MIME_TYPE: str = "application/vnd.gatan.dm4"
+EMD_FILE_EXT: str = ".emd"
+EMD_MIME_TYPE: str = "application/vnd.velox.emd"
 JPEG_FILE_EXT: str = ".jpg"
 JPEG_MIME_TYPE: str = "image/jpeg"
 PNG_FILE_EXT: str = ".png"
@@ -43,6 +46,7 @@ TIFF_MIME_TYPE: str = "image/tiff"
 mimetypes.add_type(DCM_MIME_TYPE, DCM_FILE_EXT)
 mimetypes.add_type(DM3_MIME_TYPE, DM3_FILE_EXT)
 mimetypes.add_type(DM4_MIME_TYPE, DM4_FILE_EXT)
+mimetypes.add_type(EMD_MIME_TYPE, EMD_FILE_EXT)
 
 logging.getLogger("PIL.Image").setLevel(logging.WARNING)
 
@@ -198,6 +202,23 @@ def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
         LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
 
 
+def write_emd(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
+    src, output, output_format, silent = config
+    try:
+        write(
+            emd_file_reader(src),
+            src,
+            output,
+            output_format,
+            silent,
+            normalize=True,
+        )
+    except NotImplementedError as error:
+        LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
+    except Exception as error:
+        LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
+
+
 def write_png(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     src, output, output_format, silent = config
     write(
@@ -306,10 +327,35 @@ def dm(
     run(write_dm, expand_sources(paths, output, output_format, silent), num_cpus)
 
 
+@app.command(help="Handle Input/Output (IO) of Velox (EMD) files.")
+def emd(
+    output_format: OutputFileFormats = typer.Argument(help="The output file format."),
+    paths: List[Path] = typer.Argument(help="The original EMD source files."),
+    num_cpus: Optional[int] = typer.Option(
+        None,
+        "-n",
+        "--num-cpus",
+        help="The number of CPU cores to use for parallel execution.",
+    ),
+    output: Optional[Path] = typer.Option(
+        None, "-o", "--output", help="Destination for output file(s)."
+    ),
+    silent: bool = typer.Option(
+        False, "-S", "--silent", help="Disables the progress bars."
+    ),
+):
+    LOGGER.debug(f"{paths=}")
+    LOGGER.debug(f"{num_cpus=}")
+    LOGGER.debug(f"{output=}")
+    LOGGER.debug(f"{output_format=}")
+    LOGGER.debug(f"{silent=}")
+    run(write_emd, expand_sources(paths, output, output_format, silent), num_cpus)
+
+
 @app.command(help="Handle Input/Output (IO) of PNG files.")
 def png(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
-    paths: List[Path] = typer.Argument(help="The original TIFF source files."),
+    paths: List[Path] = typer.Argument(help="The original PNG source files."),
     num_cpus: Optional[int] = typer.Option(
         None,
         "-n",
