@@ -24,7 +24,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Image Recognition",
 ]
 dependencies = [
-    "dask",
     "multiprocess",
     "numpy",
     "opencv-contrib-python-headless",
