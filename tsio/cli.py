@@ -122,7 +122,7 @@ def write(
     else:
         destination = output.resolve()
     pages_count = len(pages)
-    LOGGER.debug(f"{pages_count}=")
+    LOGGER.debug(f"{pages_count=}")
     src_file_stem = src.stem
     LOGGER.debug(f"{src_file_stem=}")
     if pages_count > 1:
@@ -215,12 +215,12 @@ def write_emd(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     LOGGER.debug(f"{silent=}")
     try:
         write(
-            emd_file_reader(src, select_type="images"),
+            emd_file_reader(src, lazy=True, select_type="images"),
             src,
             output,
             output_format,
             silent,
-            normalize=True,
+            normalize=False,
         )
     except NotImplementedError as error:
         LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
