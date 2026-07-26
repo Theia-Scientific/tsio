@@ -203,7 +203,12 @@ def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
 
 
 def write_emd(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
+    LOGGER.debug(f"{config=}")
     src, output, output_format, silent = config
+    LOGGER.debug(f"{src=}")
+    LOGGER.debug(f"{output=}")
+    LOGGER.debug(f"{output_format=}")
+    LOGGER.debug(f"{silent=}")
     try:
         write(
             emd_file_reader(src),
@@ -419,7 +424,9 @@ def main(
         is_eager=True,
     ),
 ):
-    logging.basicConfig(level=map_verbosity(verbose))
+    log_level = map_verbosity(verbose)
+    logging.basicConfig(level=log_level)
+    logging.getLogger("rsciio").setLevel(log_level)
     LOGGER.debug(f"version={version}")
 
 
