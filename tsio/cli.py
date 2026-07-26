@@ -86,11 +86,15 @@ class OutputFileFormats(Enum):
         return BIT_DEPTHS[self]
 
 
-def map_verbosity(enabled: bool) -> str:
-    if enabled:
-        return "DEBUG"
-    else:
-        return "INFO"
+def map_verbosity(count: int) -> str:
+    log_level = "INFO"
+    if count >= 1:
+        log_level = "DEBUG"
+    if count >= 2:
+        logging.getLogger("rsciio").setLevel(logging.INFO)
+    if count >= 3:
+        logging.getLogger("rsciio").setLevel(logging.DEBUG)
+    return log_level
 
 
 def version_callback(value: bool):
@@ -211,7 +215,7 @@ def write_emd(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     LOGGER.debug(f"{silent=}")
     try:
         write(
-            emd_file_reader(src),
+            emd_file_reader(src, select_type="images"),
             src,
             output,
             output_format,
@@ -409,12 +413,13 @@ def tiff(
 
 @app.callback()
 def main(
-    verbose: bool = typer.Option(
-        False,
+    verbose: int = typer.Option(
+        0,
         "--verbose",
         "-v",
         help="Print debugging statements.",
         envvar=f"{PREFIX}_VERBOSE",
+        count=True,
     ),
     version: Optional[bool] = typer.Option(
         None,
@@ -424,9 +429,7 @@ def main(
         is_eager=True,
     ),
 ):
-    log_level = map_verbosity(verbose)
-    logging.basicConfig(level=log_level)
-    logging.getLogger("rsciio").setLevel(log_level)
+    logging.basicConfig(level=map_verbosity(verbose))
     LOGGER.debug(f"version={version}")
 
 
