@@ -234,7 +234,7 @@ def write_emd(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
             silent,
             normalize=True,
         )
-    except NotImplementedError as error:
+    except IOError as error:
         LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
     except Exception as error:
         LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
