@@ -13,8 +13,7 @@ from enum import Enum
 from multiprocess.pool import Pool
 from pathlib import Path
 from pydicom import dcmread, iter_pixels
-from rsciio import digitalmicrograph
-from rsciio.emd import file_reader as emd_file_reader
+from rsciio import digitalmicrograph, emd
 from rsciio.image import (
     file_reader as image_file_reader,
     file_writer as image_file_writer,
@@ -213,7 +212,7 @@ def write_emd(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
     try:
-        emd_data = emd_file_reader(src, lazy=True, select_type="images")
+        emd_data = emd.file_reader(src, lazy=True, select_type="images")
         data = emd_data[0]["data"].compute()
         LOGGER.debug(f"{data.shape=}")
         if len(data.shape) == 2:
@@ -234,8 +233,6 @@ def write_emd(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
             silent,
             normalize=True,
         )
-    except IOError as error:
-        LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
     except Exception as error:
         LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
 
@@ -348,8 +345,8 @@ def dm(
     run(write_dm, expand_sources(paths, output, output_format, silent), num_cpus)
 
 
-@app.command(help="Handle Input/Output (IO) of Velox (EMD) files.")
-def emd(
+@app.command(help="Handle Input/Output (IO) of Velox (EMD) files.", name="emd")
+def app_emd(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
     paths: List[Path] = typer.Argument(help="The original EMD source files."),
     num_cpus: Optional[int] = typer.Option(
