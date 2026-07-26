@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import cv2
+import dask
 import importlib.metadata
 import logging
 import mimetypes
@@ -213,13 +214,21 @@ def write_emd(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
     try:
+        emd_data = emd_file_reader(src, lazy=True, select_type="images")
+        data = emd_data[0]["data"].compute()
+        pages_count = data.shape[0]
+        LOGGER.debug(f"{pages_count=}")
+        pages = [
+            {"data": data[i, ...], "axes": emd_data[0]["axes"]}
+            for i in range(pages_count)
+        ]
         write(
-            emd_file_reader(src, lazy=True, select_type="images"),
+            pages,
             src,
             output,
             output_format,
             silent,
-            normalize=False,
+            normalize=True,
         )
     except NotImplementedError as error:
         LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
