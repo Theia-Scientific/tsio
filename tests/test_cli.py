@@ -165,13 +165,29 @@ def test_output_file_formats_supported_bit_depths():
     assert OutputFileFormats.TIFF.supported_bit_depths == ["uint8", "uint16"]
 
 
-def test_map_verbosity_false():
-    actual = map_verbosity(False)
+def test_map_verbosity_none():
+    actual = map_verbosity(0)
     assert actual == "INFO"
 
 
-def test_map_verbosity_true():
-    actual = map_verbosity(True)
+def test_map_verbosity_one():
+    actual = map_verbosity(1)
+    assert actual == "DEBUG"
+
+
+def test_map_verbosity_two():
+    import logging
+
+    actual = map_verbosity(2)
+    assert logging.getLogger("rsciio").level == logging.INFO
+    assert actual == "DEBUG"
+
+
+def test_map_verbosity_three():
+    import logging
+
+    actual = map_verbosity(3)
+    assert logging.getLogger("rsciio").level == logging.DEBUG
     assert actual == "DEBUG"
 
 
