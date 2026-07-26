@@ -24,6 +24,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Image Recognition",
 ]
 dependencies = [
+    "h5py",
     "multiprocess",
     "numpy",
     "opencv-contrib-python-headless",
