@@ -437,6 +437,13 @@ def test_app_all_dm_as_directory(dm3, dm4, tmp_assets, tmp_path):
     assert dst_dm4.exists()
 
 
+def test_app_emd(emd, tmp_path):
+    dst = tmp_path.joinpath(emd.name).with_suffix(JPEG_FILE_EXT)
+    result = runner.invoke(app, ["emd", "-o", str(tmp_path), "-S", "jpeg", str(emd)])
+    assert result.exit_code == 0
+    assert dst.exists()
+
+
 def test_app_png(blank_8bit_png, tmp_path):
     dst = tmp_path.joinpath(blank_8bit_png.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(
