@@ -124,7 +124,6 @@ def write(
     pages_count = len(pages)
     LOGGER.debug(f"{pages_count=}")
     src_file_stem = src.stem
-    LOGGER.debug(f"{src_file_stem=}")
     if pages_count > 1:
         destination = destination.joinpath(src_file_stem)
     os.makedirs(destination, exist_ok=True)
