@@ -283,13 +283,6 @@ def test_write_dm(dm4):
     assert dst.exists()
 
 
-def test_write_emd(emd):
-    src = emd
-    dst = src.with_suffix(JPEG_FILE_EXT)
-    write_emd((src, None, OutputFileFormats.JPEG, True))
-    assert dst.exists()
-
-
 def test_write_dm_fails_with_not_implemented(mocker, tmp_path):
     src = tmp_path.joinpath("test.dm4")
     dst = src.with_suffix(JPEG_FILE_EXT)
@@ -307,6 +300,33 @@ def test_write_dm_fails_with_exception(tmp_path):
     src = tmp_path.joinpath("test.dm4")
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_dm((src, None, OutputFileFormats.JPEG, True))
+    assert not dst.exists()
+
+
+def test_write_emd(emd):
+    src = emd
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_emd((src, None, OutputFileFormats.JPEG, True))
+    assert dst.exists()
+
+
+def test_write_emd_fails_with_io_exception(mocker, tmp_path):
+    src = tmp_path.joinpath("test.emd")
+    dst = src.with_suffix(JPEG_FILE_EXT)
+
+    def mock_file_reader(*args):
+        _ = args
+        raise IOError("Not a supported EMD file")
+
+    mocker.patch("rsciio.emd.file_reader", mock_file_reader)
+    write_emd((src, None, OutputFileFormats.JPEG, True))
+    assert not dst.exists()
+
+
+def test_write_emd_fails_with_exception(tmp_path):
+    src = tmp_path.joinpath("test.emd")
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_emd((src, None, OutputFileFormats.JPEG, True))
     assert not dst.exists()
 
 
