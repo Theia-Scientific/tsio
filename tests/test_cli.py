@@ -140,9 +140,9 @@ def dm4(tmp_assets) -> Path:
 
 @pytest.fixture
 def emd(tmp_assets) -> Path:
-    dst = tmp_assets.joinpath("1.emd")
+    dst = tmp_assets.joinpath("3.emd")
     if not dst.exists():
-        url = "https://drive.google.com/uc?id=1Pkbfnl5-7zVSB1h7JfwLbKy6yOxxMvR-"
+        url = "https://drive.google.com/uc?id=1Z-aJUxQdpzd4v5ptOZvIY5Q8EYYSGi7L"
         gdown.download(url, str(dst), quiet=True)
     return dst
 
