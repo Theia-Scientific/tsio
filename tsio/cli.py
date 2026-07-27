@@ -213,7 +213,14 @@ def write_emd(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
     LOGGER.debug(f"{silent=}")
     try:
         emd_data = emd.file_reader(src, lazy=True, select_type="images")
-        data = emd_data[0]["data"].compute()
+        LOGGER.debug(f"{emd_data=}")
+        if len(emd_data) == 0:
+            raise Exception("No image data")
+        if "data" not in emd_data[0]:
+            raise Exception("No data field in EMD file")
+        dask_data = emd_data[0]["data"]
+        LOGGER.debug(f"{dask_data=}")
+        data = dask_data.compute(close_file=True)
         LOGGER.debug(f"{data.shape=}")
         if len(data.shape) == 2:
             pages_count = 1

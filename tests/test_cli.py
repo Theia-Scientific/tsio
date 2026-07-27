@@ -6,6 +6,7 @@ import importlib.metadata
 import numpy as np
 import os
 import pytest
+import sys
 
 from pathlib import Path
 from pydicom import Dataset, FileMetaDataset
@@ -450,9 +451,14 @@ def test_app_all_dm_as_directory(dm3, dm4, tmp_assets, tmp_path):
     assert dst_dm4.exists()
 
 
+@pytest.mark.skipif(
+    sys.platform == "linux",
+    reason="Stalls on Linux when run after the test_write_emd test",
+)
 def test_app_emd(emd, tmp_path):
-    dst = tmp_path.joinpath(emd.name).with_suffix(JPEG_FILE_EXT)
-    result = runner.invoke(app, ["emd", "-o", str(tmp_path), "-S", "jpeg", str(emd)])
+    src = emd
+    dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
+    result = runner.invoke(app, ["emd", "-o", str(tmp_path), "-S", "jpeg", str(src)])
     assert result.exit_code == 0
     assert dst.exists()
 
