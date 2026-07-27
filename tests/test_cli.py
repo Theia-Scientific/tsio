@@ -269,17 +269,17 @@ def test_write_with_dm4(dm4, tmp_path):
     assert dst.exists()
 
 
-def test_write_dcm(dcm):
+def test_write_dcm(dcm, tmp_path):
     src = dcm
-    dst = src.with_suffix(JPEG_FILE_EXT)
-    write_dcm((src, None, OutputFileFormats.JPEG, True))
+    dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
+    write_dcm((src, dst, OutputFileFormats.JPEG, True))
     assert dst.exists()
 
 
-def test_write_dm(dm4):
+def test_write_dm(dm4, tmp_path):
     src = dm4
-    dst = src.with_suffix(JPEG_FILE_EXT)
-    write_dm((src, None, OutputFileFormats.JPEG, True))
+    dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
+    write_dm((src, dst, OutputFileFormats.JPEG, True))
     assert dst.exists()
 
 
@@ -303,10 +303,10 @@ def test_write_dm_fails_with_exception(tmp_path):
     assert not dst.exists()
 
 
-def test_write_emd(emd):
+def test_write_emd(emd, tmp_path):
     src = emd
-    dst = src.with_suffix(JPEG_FILE_EXT)
-    write_emd((src, None, OutputFileFormats.JPEG, True))
+    dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
+    write_emd((src, dst, OutputFileFormats.JPEG, True))
     assert dst.exists()
 
 
