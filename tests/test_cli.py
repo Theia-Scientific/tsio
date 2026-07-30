@@ -296,8 +296,10 @@ def test_write_dm_fails_with_not_implemented(mocker, tmp_path):
     src = tmp_path.joinpath("test.dm4")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
-    def mock_file_reader(*args):
+    def mock_file_reader(*args, **kwargs):
         _ = args
+        _ = kwargs
+
         raise NotImplementedError("Not supported version")
 
     mocker.patch("rsciio.digitalmicrograph.file_reader", mock_file_reader)
@@ -362,8 +364,10 @@ def test_write_emd_fails_with_exception(mocker, tmp_path):
     src = tmp_path.joinpath("test.emd")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
-    def mock_file_reader(*args):
+    def mock_file_reader(*args, **kwargs):
         _ = args
+        _ = kwargs
+
         raise Exception("Test Exception")
 
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
