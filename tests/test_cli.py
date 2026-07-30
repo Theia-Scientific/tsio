@@ -328,7 +328,7 @@ def test_write_emd_multiple_images(emd_multiple_images, tmp_path):
     assert len(os.listdir(dst)) == 37
 
 
-def test_write_emd_fails_with_no_image_data(mocker, tmp_path):
+def test_write_emd_with_no_image_data(mocker, tmp_path):
     src = tmp_path.joinpath("test.emd")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
@@ -337,6 +337,21 @@ def test_write_emd_fails_with_no_image_data(mocker, tmp_path):
         _ = kwargs
 
         return []
+
+    mocker.patch("rsciio.emd.file_reader", mock_file_reader)
+    write_emd((src, None, OutputFileFormats.JPEG, True))
+    assert not dst.exists()
+
+
+def test_write_emd_with_no_data_field(mocker, tmp_path):
+    src = tmp_path.joinpath("test.emd")
+    dst = src.with_suffix(JPEG_FILE_EXT)
+
+    def mock_file_reader(*args, **kwargs):
+        _ = args
+        _ = kwargs
+
+        return [{"axes": []}]
 
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
     write_emd((src, None, OutputFileFormats.JPEG, True))
