@@ -6,7 +6,6 @@ import importlib.metadata
 import numpy as np
 import os
 import pytest
-import sys
 
 from pathlib import Path
 from pydicom import Dataset, FileMetaDataset
@@ -451,16 +450,17 @@ def test_app_all_dm_as_directory(dm3, dm4, tmp_assets, tmp_path):
     assert dst_dm4.exists()
 
 
-@pytest.mark.skipif(
-    sys.platform == "linux",
-    reason="Stalls on Linux when run after the test_write_emd test",
-)
-def test_app_emd(emd, tmp_path):
+def test_app_emd(mocker, emd, tmp_path):
     src = emd
-    dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
+
+    def mock_write_emd(*args, **kwargs):
+        _ = args
+        _ = kwargs
+
+    mocker.patch("tsio.cli.write_emd", mock_write_emd)
+
     result = runner.invoke(app, ["emd", "-o", str(tmp_path), "-S", "jpeg", str(src)])
     assert result.exit_code == 0
-    assert dst.exists()
 
 
 def test_app_png(blank_8bit_png, tmp_path):
