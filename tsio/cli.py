@@ -13,7 +13,7 @@ from enum import Enum
 from multiprocess.pool import Pool
 from pathlib import Path
 from pydicom import dcmread, iter_pixels
-from rsciio import digitalmicrograph
+from rsciio import digitalmicrograph, emd
 from rsciio.image import (
     file_reader as image_file_reader,
     file_writer as image_file_writer,
@@ -33,6 +33,8 @@ DM4_FILE_EXT: str = ".dm4"
 DM3_FILE_EXT: str = ".dm3"
 DM3_MIME_TYPE: str = "application/vnd.gatan.dm3"
 DM4_MIME_TYPE: str = "application/vnd.gatan.dm4"
+EMD_FILE_EXT: str = ".emd"
+EMD_MIME_TYPE: str = "application/vnd.velox.emd"
 JPEG_FILE_EXT: str = ".jpg"
 JPEG_MIME_TYPE: str = "image/jpeg"
 PNG_FILE_EXT: str = ".png"
@@ -43,6 +45,7 @@ TIFF_MIME_TYPE: str = "image/tiff"
 mimetypes.add_type(DCM_MIME_TYPE, DCM_FILE_EXT)
 mimetypes.add_type(DM3_MIME_TYPE, DM3_FILE_EXT)
 mimetypes.add_type(DM4_MIME_TYPE, DM4_FILE_EXT)
+mimetypes.add_type(EMD_MIME_TYPE, EMD_FILE_EXT)
 
 logging.getLogger("PIL.Image").setLevel(logging.WARNING)
 
@@ -82,11 +85,15 @@ class OutputFileFormats(Enum):
         return BIT_DEPTHS[self]
 
 
-def map_verbosity(enabled: bool) -> str:
-    if enabled:
-        return "DEBUG"
-    else:
-        return "INFO"
+def map_verbosity(count: int) -> str:
+    log_level = "INFO"
+    if count >= 1:
+        log_level = "DEBUG"
+    if count >= 2:
+        logging.getLogger("rsciio").setLevel(logging.INFO)
+    if count >= 3:
+        logging.getLogger("rsciio").setLevel(logging.DEBUG)
+    return log_level
 
 
 def version_callback(value: bool):
@@ -114,9 +121,8 @@ def write(
     else:
         destination = output.resolve()
     pages_count = len(pages)
-    LOGGER.debug(f"{pages_count}=")
+    LOGGER.debug(f"{pages_count=}")
     src_file_stem = src.stem
-    LOGGER.debug(f"{src_file_stem=}")
     if pages_count > 1:
         destination = destination.joinpath(src_file_stem)
     os.makedirs(destination, exist_ok=True)
@@ -194,6 +200,46 @@ def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
         )
     except NotImplementedError as error:
         LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
+    except Exception as error:
+        LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
+
+
+def write_emd(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
+    LOGGER.debug(f"{config=}")
+    src, output, output_format, silent = config
+    LOGGER.debug(f"{src=}")
+    LOGGER.debug(f"{output=}")
+    LOGGER.debug(f"{output_format=}")
+    LOGGER.debug(f"{silent=}")
+    try:
+        emd_data = emd.file_reader(src, lazy=True, select_type="images")
+        LOGGER.debug(f"{emd_data=}")
+        if len(emd_data) == 0:
+            raise Exception("No image data")
+        if "data" not in emd_data[0]:
+            raise Exception("No data field in EMD file")
+        dask_data = emd_data[0]["data"]
+        LOGGER.debug(f"{dask_data=}")
+        data = dask_data.compute(close_file=True)
+        LOGGER.debug(f"{data.shape=}")
+        if len(data.shape) == 2:
+            pages_count = 1
+            pages = [{"data": data, "axes": emd_data[0]["axes"]}]
+        else:
+            pages_count = data.shape[0]
+            LOGGER.debug(f"{pages_count=}")
+            pages = [
+                {"data": data[i, ...], "axes": emd_data[0]["axes"]}
+                for i in range(pages_count)
+            ]
+        write(
+            pages,
+            src,
+            output,
+            output_format,
+            silent,
+            normalize=True,
+        )
     except Exception as error:
         LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
 
@@ -306,10 +352,35 @@ def dm(
     run(write_dm, expand_sources(paths, output, output_format, silent), num_cpus)
 
 
+@app.command(help="Handle Input/Output (IO) of Velox (EMD) files.", name="emd")
+def app_emd(
+    output_format: OutputFileFormats = typer.Argument(help="The output file format."),
+    paths: List[Path] = typer.Argument(help="The original EMD source files."),
+    num_cpus: Optional[int] = typer.Option(
+        None,
+        "-n",
+        "--num-cpus",
+        help="The number of CPU cores to use for parallel execution.",
+    ),
+    output: Optional[Path] = typer.Option(
+        None, "-o", "--output", help="Destination for output file(s)."
+    ),
+    silent: bool = typer.Option(
+        False, "-S", "--silent", help="Disables the progress bars."
+    ),
+):
+    LOGGER.debug(f"{paths=}")
+    LOGGER.debug(f"{num_cpus=}")
+    LOGGER.debug(f"{output=}")
+    LOGGER.debug(f"{output_format=}")
+    LOGGER.debug(f"{silent=}")
+    run(write_emd, expand_sources(paths, output, output_format, silent), num_cpus)
+
+
 @app.command(help="Handle Input/Output (IO) of PNG files.")
 def png(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
-    paths: List[Path] = typer.Argument(help="The original TIFF source files."),
+    paths: List[Path] = typer.Argument(help="The original PNG source files."),
     num_cpus: Optional[int] = typer.Option(
         None,
         "-n",
@@ -358,12 +429,13 @@ def tiff(
 
 @app.callback()
 def main(
-    verbose: bool = typer.Option(
-        False,
+    verbose: int = typer.Option(
+        0,
         "--verbose",
         "-v",
         help="Print debugging statements.",
         envvar=f"{PREFIX}_VERBOSE",
+        count=True,
     ),
     version: Optional[bool] = typer.Option(
         None,
@@ -374,7 +446,8 @@ def main(
     ),
 ):
     logging.basicConfig(level=map_verbosity(verbose))
-    LOGGER.debug(f"version={version}")
+    LOGGER.debug(f"{verbose=}")
+    LOGGER.debug(f"{version=}")
 
 
 if __name__ == "__main__":

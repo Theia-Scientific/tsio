@@ -29,6 +29,7 @@ from tsio.cli import (
     write,
     write_dcm,
     write_dm,
+    write_emd,
     write_png,
     write_tiff,
 )
@@ -137,6 +138,24 @@ def dm4(tmp_assets) -> Path:
     return dst
 
 
+@pytest.fixture
+def emd_single_image(tmp_assets) -> Path:
+    dst = tmp_assets.joinpath("3.emd")
+    if not dst.exists():
+        url = "https://drive.google.com/uc?id=1Z-aJUxQdpzd4v5ptOZvIY5Q8EYYSGi7L"
+        gdown.download(url, str(dst), quiet=True)
+    return dst
+
+
+@pytest.fixture
+def emd_multiple_images(tmp_assets) -> Path:
+    dst = tmp_assets.joinpath("4.emd")
+    if not dst.exists():
+        url = "https://drive.google.com/uc?id=1GDB9hvN1FAULy1JwQN0THL7fAs4BbTlf"
+        gdown.download(url, str(dst), quiet=True)
+    return dst
+
+
 def test_output_file_formats_mime_type():
     assert OutputFileFormats.JPEG.mime_type == JPEG_MIME_TYPE
     assert OutputFileFormats.PNG.mime_type == PNG_MIME_TYPE
@@ -155,13 +174,29 @@ def test_output_file_formats_supported_bit_depths():
     assert OutputFileFormats.TIFF.supported_bit_depths == ["uint8", "uint16"]
 
 
-def test_map_verbosity_false():
-    actual = map_verbosity(False)
+def test_map_verbosity_none():
+    actual = map_verbosity(0)
     assert actual == "INFO"
 
 
-def test_map_verbosity_true():
-    actual = map_verbosity(True)
+def test_map_verbosity_one():
+    actual = map_verbosity(1)
+    assert actual == "DEBUG"
+
+
+def test_map_verbosity_two():
+    import logging
+
+    actual = map_verbosity(2)
+    assert logging.getLogger("rsciio").level == logging.INFO
+    assert actual == "DEBUG"
+
+
+def test_map_verbosity_three():
+    import logging
+
+    actual = map_verbosity(3)
+    assert logging.getLogger("rsciio").level == logging.DEBUG
     assert actual == "DEBUG"
 
 
@@ -243,17 +278,17 @@ def test_write_with_dm4(dm4, tmp_path):
     assert dst.exists()
 
 
-def test_write_dcm(dcm):
+def test_write_dcm(dcm, tmp_path):
     src = dcm
-    dst = src.with_suffix(JPEG_FILE_EXT)
-    write_dcm((src, None, OutputFileFormats.JPEG, True))
+    dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
+    write_dcm((src, dst, OutputFileFormats.JPEG, True))
     assert dst.exists()
 
 
-def test_write_dm(dm4):
+def test_write_dm(dm4, tmp_path):
     src = dm4
-    dst = src.with_suffix(JPEG_FILE_EXT)
-    write_dm((src, None, OutputFileFormats.JPEG, True))
+    dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
+    write_dm((src, dst, OutputFileFormats.JPEG, True))
     assert dst.exists()
 
 
@@ -261,8 +296,10 @@ def test_write_dm_fails_with_not_implemented(mocker, tmp_path):
     src = tmp_path.joinpath("test.dm4")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
-    def mock_file_reader(*args):
+    def mock_file_reader(*args, **kwargs):
         _ = args
+        _ = kwargs
+
         raise NotImplementedError("Not supported version")
 
     mocker.patch("rsciio.digitalmicrograph.file_reader", mock_file_reader)
@@ -274,6 +311,67 @@ def test_write_dm_fails_with_exception(tmp_path):
     src = tmp_path.joinpath("test.dm4")
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_dm((src, None, OutputFileFormats.JPEG, True))
+    assert not dst.exists()
+
+
+def test_write_emd_single_image(emd_single_image, tmp_path):
+    src = emd_single_image
+    dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
+    write_emd((src, dst, OutputFileFormats.JPEG, True))
+    assert dst.exists()
+
+
+def test_write_emd_multiple_images(emd_multiple_images, tmp_path):
+    src = emd_multiple_images
+    dst = tmp_path.joinpath(src.stem)
+    write_emd((src, tmp_path, OutputFileFormats.JPEG, True))
+    assert dst.exists()
+    assert os.path.isdir(dst)
+    assert len(os.listdir(dst)) == 37
+
+
+def test_write_emd_with_no_image_data(mocker, tmp_path):
+    src = tmp_path.joinpath("test.emd")
+    dst = src.with_suffix(JPEG_FILE_EXT)
+
+    def mock_file_reader(*args, **kwargs):
+        _ = args
+        _ = kwargs
+
+        return []
+
+    mocker.patch("rsciio.emd.file_reader", mock_file_reader)
+    write_emd((src, None, OutputFileFormats.JPEG, True))
+    assert not dst.exists()
+
+
+def test_write_emd_with_no_data_field(mocker, tmp_path):
+    src = tmp_path.joinpath("test.emd")
+    dst = src.with_suffix(JPEG_FILE_EXT)
+
+    def mock_file_reader(*args, **kwargs):
+        _ = args
+        _ = kwargs
+
+        return [{"axes": []}]
+
+    mocker.patch("rsciio.emd.file_reader", mock_file_reader)
+    write_emd((src, None, OutputFileFormats.JPEG, True))
+    assert not dst.exists()
+
+
+def test_write_emd_fails_with_exception(mocker, tmp_path):
+    src = tmp_path.joinpath("test.emd")
+    dst = src.with_suffix(JPEG_FILE_EXT)
+
+    def mock_file_reader(*args, **kwargs):
+        _ = args
+        _ = kwargs
+
+        raise Exception("Test Exception")
+
+    mocker.patch("rsciio.emd.file_reader", mock_file_reader)
+    write_emd((src, None, OutputFileFormats.JPEG, True))
     assert not dst.exists()
 
 
@@ -402,6 +500,19 @@ def test_app_all_dm_as_directory(dm3, dm4, tmp_assets, tmp_path):
     assert result.exit_code == 0
     assert dst_dm3.exists()
     assert dst_dm4.exists()
+
+
+def test_app_emd(mocker, emd_single_image, tmp_path):
+    src = emd_single_image
+
+    def mock_write_emd(*args, **kwargs):
+        _ = args
+        _ = kwargs
+
+    mocker.patch("tsio.cli.write_emd", mock_write_emd)
+
+    result = runner.invoke(app, ["emd", "-o", str(tmp_path), "-S", "jpeg", str(src)])
+    assert result.exit_code == 0
 
 
 def test_app_png(blank_8bit_png, tmp_path):
