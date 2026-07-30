@@ -139,10 +139,19 @@ def dm4(tmp_assets) -> Path:
 
 
 @pytest.fixture
-def emd(tmp_assets) -> Path:
+def emd_single_image(tmp_assets) -> Path:
     dst = tmp_assets.joinpath("3.emd")
     if not dst.exists():
         url = "https://drive.google.com/uc?id=1Z-aJUxQdpzd4v5ptOZvIY5Q8EYYSGi7L"
+        gdown.download(url, str(dst), quiet=True)
+    return dst
+
+
+@pytest.fixture
+def emd_multiple_images(tmp_assets) -> Path:
+    dst = tmp_assets.joinpath("4.emd")
+    if not dst.exists():
+        url = "https://drive.google.com/uc?id=1GDB9hvN1FAULy1JwQN0THL7fAs4BbTlf"
         gdown.download(url, str(dst), quiet=True)
     return dst
 
@@ -303,11 +312,20 @@ def test_write_dm_fails_with_exception(tmp_path):
     assert not dst.exists()
 
 
-def test_write_emd(emd, tmp_path):
-    src = emd
+def test_write_emd_single_image(emd_single_image, tmp_path):
+    src = emd_single_image
     dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
     write_emd((src, dst, OutputFileFormats.JPEG, True))
     assert dst.exists()
+
+
+def test_write_emd_multiple_images(emd_multiple_images, tmp_path):
+    src = emd_multiple_images
+    dst = tmp_path.joinpath(src.stem)
+    write_emd((src, tmp_path, OutputFileFormats.JPEG, True))
+    assert dst.exists()
+    assert os.path.isdir(dst)
+    assert len(os.listdir(dst)) == 37
 
 
 def test_write_emd_fails_with_exception(mocker, tmp_path):
@@ -450,8 +468,8 @@ def test_app_all_dm_as_directory(dm3, dm4, tmp_assets, tmp_path):
     assert dst_dm4.exists()
 
 
-def test_app_emd(mocker, emd, tmp_path):
-    src = emd
+def test_app_emd(mocker, emd_single_image, tmp_path):
+    src = emd_single_image
 
     def mock_write_emd(*args, **kwargs):
         _ = args
