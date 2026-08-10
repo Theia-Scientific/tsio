@@ -472,9 +472,24 @@ def test_expand_sources(tmp_path):
     ]
     actual = expand_sources(paths, None, OutputFileFormats.JPEG, True)
     assert len(actual) == 3
-    assert actual[0] == (paths[0], None, OutputFileFormats.JPEG, True)
-    assert actual[1] == (paths[1], None, OutputFileFormats.JPEG, True)
-    assert actual[2] == (paths[2], None, OutputFileFormats.JPEG, True)
+    assert actual[0] == Configuration(
+        dst=None,
+        output_format=OutputFileFormats.JPEG,
+        silent=True,
+        src=paths[0],
+    )
+    assert actual[1] == Configuration(
+        dst=None,
+        output_format=OutputFileFormats.JPEG,
+        silent=True,
+        src=paths[1],
+    )
+    assert actual[2] == Configuration(
+        dst=None,
+        output_format=OutputFileFormats.JPEG,
+        silent=True,
+        src=paths[2],
+    )
 
 
 def test_expand_sources_with_directories(tmp_path):
