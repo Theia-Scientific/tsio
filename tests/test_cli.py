@@ -536,7 +536,17 @@ def test_run_with_linux(dm4, mocker):
 
         return None
 
-    run(mock_write, [(dm4, None, OutputFileFormats.JPEG, True)])
+    run(
+        mock_write,
+        [
+            Configuration(
+                dst=None,
+                output_format=OutputFileFormats.JPEG,
+                silent=True,
+                src=dm4,
+            )
+        ],
+    )
 
 
 def test_app_help():
