@@ -88,7 +88,7 @@ class OutputFileFormats(Enum):
 
 class Configuration(BaseModel):
     dst: Optional[Path]
-    extras: Optional[Dict[str, Any]] = None
+    extras: Dict[str, Any] = {}
     output_format: OutputFileFormats
     silent: bool
     src: Path
@@ -215,10 +215,8 @@ def write_dm(cfg: Configuration):
 
 def write_emd(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
-    if cfg.extras is None:
-        detector = 0
-    else:
-        detector = cfg.extras.get("detector", 0)
+    detector = cfg.extras.get("detector", 0)
+    LOGGER.debug(f"{detector=}")
     try:
         emd_data = emd.file_reader(cfg.src, lazy=True, select_type="images")
         LOGGER.debug(f"{emd_data=}")
@@ -243,10 +241,10 @@ def write_emd(cfg: Configuration):
             ]
         write(
             pages,
-            src,
-            output,
-            output_format,
-            silent,
+            cfg.src,
+            cfg.dst,
+            cfg.output_format,
+            cfg.silent,
             normalize=True,
         )
     except Exception as error:
@@ -282,7 +280,7 @@ def expand_sources(
     output: Optional[Path],
     output_format: OutputFileFormats,
     silent: bool,
-    extras: Optional[Dict[str, Any]] = None,
+    extras: Dict[str, Any] = {},
 ) -> List[Configuration]:
     sources = []
     for path in paths:
