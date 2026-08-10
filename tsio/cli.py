@@ -12,6 +12,7 @@ import typer
 from enum import Enum
 from multiprocess.pool import Pool
 from pathlib import Path
+from pydantic import BaseModel
 from pydicom import dcmread, iter_pixels
 from rsciio import digitalmicrograph, emd
 from rsciio.image import (
@@ -21,7 +22,7 @@ from rsciio.image import (
 from rsciio.tiff import file_reader as tiff_file_reader
 from tqdm import tqdm
 from tsio import __app_name__
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
 PREFIX: str = f"{__app_name__.upper()}"
@@ -83,6 +84,14 @@ class OutputFileFormats(Enum):
             OutputFileFormats.TIFF: ["uint8", "uint16"],
         }
         return BIT_DEPTHS[self]
+
+
+class Configuration(BaseModel):
+    dst: Optional[Path]
+    extras: Optional[Dict[str, Any]] = None
+    output_format: OutputFileFormats
+    silent: bool
+    src: Path
 
 
 def map_verbosity(count: int) -> str:
@@ -166,8 +175,8 @@ def write(
         image_file_writer(output_file, page)
 
 
-def write_dcm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
-    src, output, output_format, silent = config
+def write_dcm(cfg: Configuration):
+    LOGGER.debug(f"{cfg=}")
     write(
         [
             {
@@ -177,59 +186,59 @@ def write_dcm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
                 "metadata": {},
                 "original_metadata": {},
             }
-            for img in iter_pixels(dcmread(src))
+            for img in iter_pixels(dcmread(cfg.src))
         ],
-        src,
-        output,
-        output_format,
-        silent,
+        cfg.src,
+        cfg.dst,
+        cfg.output_format,
+        cfg.silent,
         normalize=True,
     )
 
 
-def write_dm(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
-    src, output, output_format, silent = config
+def write_dm(cfg: Configuration):
+    LOGGER.debug(f"{cfg=}")
     try:
         write(
-            digitalmicrograph.file_reader(src),
-            src,
-            output,
-            output_format,
-            silent,
+            digitalmicrograph.file_reader(cfg.src),
+            cfg.src,
+            cfg.dst,
+            cfg.output_format,
+            cfg.silent,
             normalize=True,
         )
     except NotImplementedError as error:
-        LOGGER.warning(f"Skipped '{src}' because: '{str(error)}'")
+        LOGGER.warning(f"Skipped '{cfg.src}' because: '{str(error)}'")
     except Exception as error:
-        LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
+        LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
 
 
-def write_emd(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
-    LOGGER.debug(f"{config=}")
-    src, output, output_format, silent = config
-    LOGGER.debug(f"{src=}")
-    LOGGER.debug(f"{output=}")
-    LOGGER.debug(f"{output_format=}")
-    LOGGER.debug(f"{silent=}")
+def write_emd(cfg: Configuration):
+    LOGGER.debug(f"{cfg=}")
+    if cfg.extras is None:
+        detector = 0
+    else:
+        detector = cfg.extras.get("detector", 0)
     try:
-        emd_data = emd.file_reader(src, lazy=True, select_type="images")
+        emd_data = emd.file_reader(cfg.src, lazy=True, select_type="images")
         LOGGER.debug(f"{emd_data=}")
+        LOGGER.debug(f"{len(emd_data)=}")
         if len(emd_data) == 0:
             raise Exception("No image data")
-        if "data" not in emd_data[0]:
+        if "data" not in emd_data[detector]:
             raise Exception("No data field in EMD file")
-        dask_data = emd_data[0]["data"]
+        dask_data = emd_data[detector]["data"]
         LOGGER.debug(f"{dask_data=}")
         data = dask_data.compute(close_file=True)
         LOGGER.debug(f"{data.shape=}")
         if len(data.shape) == 2:
             pages_count = 1
-            pages = [{"data": data, "axes": emd_data[0]["axes"]}]
+            pages = [{"data": data, "axes": emd_data[detector]["axes"]}]
         else:
             pages_count = data.shape[0]
             LOGGER.debug(f"{pages_count=}")
             pages = [
-                {"data": data[i, ...], "axes": emd_data[0]["axes"]}
+                {"data": data[i, ...], "axes": emd_data[detector]["axes"]}
                 for i in range(pages_count)
             ]
         write(
@@ -241,29 +250,29 @@ def write_emd(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
             normalize=True,
         )
     except Exception as error:
-        LOGGER.error(f"Skipped '{src}' because: '{str(error)}'")
+        LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
 
 
-def write_png(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
-    src, output, output_format, silent = config
+def write_png(cfg: Configuration):
+    LOGGER.debug(f"{cfg=}")
     write(
-        image_file_reader(src),
-        src,
-        output,
-        output_format,
-        silent,
+        image_file_reader(cfg.src),
+        cfg.src,
+        cfg.dst,
+        cfg.output_format,
+        cfg.silent,
         normalize=False,
     )
 
 
-def write_tiff(config: Tuple[Path, Optional[Path], OutputFileFormats, bool]):
-    src, output, output_format, silent = config
+def write_tiff(cfg: Configuration):
+    LOGGER.debug(f"{cfg=}")
     write(
-        tiff_file_reader(src, multipage_as_list=True),
-        src,
-        output,
-        output_format,
-        silent,
+        tiff_file_reader(cfg.src, multipage_as_list=True),
+        cfg.src,
+        cfg.dst,
+        cfg.output_format,
+        cfg.silent,
         normalize=False,
     )
 
@@ -273,25 +282,40 @@ def expand_sources(
     output: Optional[Path],
     output_format: OutputFileFormats,
     silent: bool,
-) -> List[Tuple[Path, Optional[Path], OutputFileFormats, bool]]:
+    extras: Optional[Dict[str, Any]] = None,
+) -> List[Configuration]:
     sources = []
     for path in paths:
         if path.is_dir():
             sources.extend(
                 [
-                    (path.joinpath(p), output, output_format, silent)
+                    Configuration(
+                        dst=output,
+                        extras=extras,
+                        output_format=output_format,
+                        silent=silent,
+                        src=path.joinpath(p),
+                    )
                     for p in os.listdir(path)
                     if path.joinpath(p).is_file()
                 ]
             )
         else:
-            sources.append((path, output, output_format, silent))
+            sources.append(
+                Configuration(
+                    dst=output,
+                    extras=extras,
+                    output_format=output_format,
+                    silent=silent,
+                    src=path,
+                )
+            )
     return sources
 
 
 def run(
     write_func: Callable,
-    sources: List[Tuple[Path, Optional[Path], OutputFileFormats, bool]],
+    sources: List[Configuration],
     num_cpus: Optional[int] = None,
 ):
     if platform.system().lower() == "darwin":
@@ -324,7 +348,16 @@ def dcm(
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
-    run(write_dcm, expand_sources(paths, output, output_format, silent), num_cpus)
+    run(
+        write_dcm,
+        expand_sources(
+            paths,
+            output,
+            output_format,
+            silent,
+        ),
+        num_cpus,
+    )
 
 
 @app.command(help="Handle Input/Output (IO) of DigitalMicrograph (DM) files.")
@@ -349,13 +382,20 @@ def dm(
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
-    run(write_dm, expand_sources(paths, output, output_format, silent), num_cpus)
+    run(
+        write_dm,
+        expand_sources(paths, output, output_format, silent),
+        num_cpus,
+    )
 
 
 @app.command(help="Handle Input/Output (IO) of Velox (EMD) files.", name="emd")
 def app_emd(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
     paths: List[Path] = typer.Argument(help="The original EMD source files."),
+    detector: int = typer.Option(
+        0, "-d", "--detector", help="The index of the detector to export images."
+    ),
     num_cpus: Optional[int] = typer.Option(
         None,
         "-n",
@@ -369,12 +409,19 @@ def app_emd(
         False, "-S", "--silent", help="Disables the progress bars."
     ),
 ):
-    LOGGER.debug(f"{paths=}")
+    LOGGER.debug(f"{detector=}")
     LOGGER.debug(f"{num_cpus=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
+    LOGGER.debug(f"{paths=}")
     LOGGER.debug(f"{silent=}")
-    run(write_emd, expand_sources(paths, output, output_format, silent), num_cpus)
+    run(
+        write_emd,
+        expand_sources(
+            paths, output, output_format, silent, extras={"detector": detector}
+        ),
+        num_cpus,
+    )
 
 
 @app.command(help="Handle Input/Output (IO) of PNG files.")
