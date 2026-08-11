@@ -16,6 +16,7 @@ from rsciio.tiff import file_reader as tiff_file_reader, file_writer as tiff_fil
 from tsio import __app_name__
 from tsio.cli import (
     app,
+    Configuration,
     expand_sources,
     map_verbosity,
     JPEG_FILE_EXT,
@@ -281,14 +282,28 @@ def test_write_with_dm4(dm4, tmp_path):
 def test_write_dcm(dcm, tmp_path):
     src = dcm
     dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
-    write_dcm((src, dst, OutputFileFormats.JPEG, True))
+    write_dcm(
+        Configuration(
+            dst=dst,
+            output_format=OutputFileFormats.JPEG,
+            silent=True,
+            src=src,
+        )
+    )
     assert dst.exists()
 
 
 def test_write_dm(dm4, tmp_path):
     src = dm4
     dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
-    write_dm((src, dst, OutputFileFormats.JPEG, True))
+    write_dm(
+        Configuration(
+            dst=dst,
+            output_format=OutputFileFormats.JPEG,
+            silent=True,
+            src=src,
+        )
+    )
     assert dst.exists()
 
 
@@ -303,28 +318,56 @@ def test_write_dm_fails_with_not_implemented(mocker, tmp_path):
         raise NotImplementedError("Not supported version")
 
     mocker.patch("rsciio.digitalmicrograph.file_reader", mock_file_reader)
-    write_dm((src, None, OutputFileFormats.JPEG, True))
+    write_dm(
+        Configuration(
+            dst=None,
+            output_format=OutputFileFormats.JPEG,
+            silent=True,
+            src=src,
+        )
+    )
     assert not dst.exists()
 
 
 def test_write_dm_fails_with_exception(tmp_path):
     src = tmp_path.joinpath("test.dm4")
     dst = src.with_suffix(JPEG_FILE_EXT)
-    write_dm((src, None, OutputFileFormats.JPEG, True))
+    write_dm(
+        Configuration(
+            dst=None,
+            output_format=OutputFileFormats.JPEG,
+            silent=True,
+            src=src,
+        )
+    )
     assert not dst.exists()
 
 
 def test_write_emd_single_image(emd_single_image, tmp_path):
     src = emd_single_image
     dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
-    write_emd((src, dst, OutputFileFormats.JPEG, True))
+    write_emd(
+        Configuration(
+            dst=dst,
+            output_format=OutputFileFormats.JPEG,
+            silent=True,
+            src=src,
+        )
+    )
     assert dst.exists()
 
 
 def test_write_emd_multiple_images(emd_multiple_images, tmp_path):
     src = emd_multiple_images
     dst = tmp_path.joinpath(src.stem)
-    write_emd((src, tmp_path, OutputFileFormats.JPEG, True))
+    write_emd(
+        Configuration(
+            dst=tmp_path,
+            output_format=OutputFileFormats.JPEG,
+            silent=True,
+            src=src,
+        )
+    )
     assert dst.exists()
     assert os.path.isdir(dst)
     assert len(os.listdir(dst)) == 37
@@ -341,7 +384,14 @@ def test_write_emd_with_no_image_data(mocker, tmp_path):
         return []
 
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
-    write_emd((src, None, OutputFileFormats.JPEG, True))
+    write_emd(
+        Configuration(
+            dst=None,
+            output_format=OutputFileFormats.JPEG,
+            silent=True,
+            src=src,
+        )
+    )
     assert not dst.exists()
 
 
@@ -356,7 +406,14 @@ def test_write_emd_with_no_data_field(mocker, tmp_path):
         return [{"axes": []}]
 
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
-    write_emd((src, None, OutputFileFormats.JPEG, True))
+    write_emd(
+        Configuration(
+            dst=None,
+            output_format=OutputFileFormats.JPEG,
+            silent=True,
+            src=src,
+        )
+    )
     assert not dst.exists()
 
 
@@ -371,21 +428,39 @@ def test_write_emd_fails_with_exception(mocker, tmp_path):
         raise Exception("Test Exception")
 
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
-    write_emd((src, None, OutputFileFormats.JPEG, True))
+    write_emd(
+        Configuration(
+            src=src, dst=None, output_format=OutputFileFormats.JPEG, silent=True
+        )
+    )
     assert not dst.exists()
 
 
 def test_write_png(blank_8bit_png):
     src = blank_8bit_png
     dst = src.with_suffix(JPEG_FILE_EXT)
-    write_png((src, None, OutputFileFormats.JPEG, True))
+    write_png(
+        Configuration(
+            dst=None,
+            output_format=OutputFileFormats.JPEG,
+            silent=True,
+            src=src,
+        )
+    )
     assert dst.exists()
 
 
 def test_write_tiff(blank_16bit_single_page_tiff):
     src = blank_16bit_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
-    write_tiff((src, None, OutputFileFormats.JPEG, True))
+    write_tiff(
+        Configuration(
+            dst=None,
+            output_format=OutputFileFormats.JPEG,
+            silent=True,
+            src=src,
+        )
+    )
     assert dst.exists()
 
 
@@ -397,9 +472,24 @@ def test_expand_sources(tmp_path):
     ]
     actual = expand_sources(paths, None, OutputFileFormats.JPEG, True)
     assert len(actual) == 3
-    assert actual[0] == (paths[0], None, OutputFileFormats.JPEG, True)
-    assert actual[1] == (paths[1], None, OutputFileFormats.JPEG, True)
-    assert actual[2] == (paths[2], None, OutputFileFormats.JPEG, True)
+    assert actual[0] == Configuration(
+        dst=None,
+        output_format=OutputFileFormats.JPEG,
+        silent=True,
+        src=paths[0],
+    )
+    assert actual[1] == Configuration(
+        dst=None,
+        output_format=OutputFileFormats.JPEG,
+        silent=True,
+        src=paths[1],
+    )
+    assert actual[2] == Configuration(
+        dst=None,
+        output_format=OutputFileFormats.JPEG,
+        silent=True,
+        src=paths[2],
+    )
 
 
 def test_expand_sources_with_directories(tmp_path):
@@ -417,11 +507,11 @@ def test_expand_sources_with_directories(tmp_path):
     expected = [file1, file2, file3, file4, file5]
     actual = expand_sources(paths, None, OutputFileFormats.JPEG, True)
     assert len(actual) == 5
-    assert actual[0][0] in expected
-    assert actual[1][0] in expected
-    assert actual[2][0] in expected
-    assert actual[3][0] in expected
-    assert actual[4][0] in expected
+    assert actual[0].src in expected
+    assert actual[1].src in expected
+    assert actual[2].src in expected
+    assert actual[3].src in expected
+    assert actual[4].src in expected
 
 
 def test_run_with_darwin(dm4, mocker):
@@ -436,7 +526,17 @@ def test_run_with_darwin(dm4, mocker):
 
         return None
 
-    run(mock_write, [(dm4, None, OutputFileFormats.JPEG, True)])
+    run(
+        mock_write,
+        [
+            Configuration(
+                dst=None,
+                output_format=OutputFileFormats.JPEG,
+                silent=True,
+                src=dm4,
+            )
+        ],
+    )
 
 
 def test_run_with_linux(dm4, mocker):
@@ -451,7 +551,17 @@ def test_run_with_linux(dm4, mocker):
 
         return None
 
-    run(mock_write, [(dm4, None, OutputFileFormats.JPEG, True)])
+    run(
+        mock_write,
+        [
+            Configuration(
+                dst=None,
+                output_format=OutputFileFormats.JPEG,
+                silent=True,
+                src=dm4,
+            )
+        ],
+    )
 
 
 def test_app_help():
