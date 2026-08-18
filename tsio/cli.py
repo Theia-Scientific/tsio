@@ -20,6 +20,7 @@ from rsciio.image import (
     file_writer as image_file_writer,
 )
 from rsciio.tiff import file_reader as tiff_file_reader
+from tifffile import TiffFileError
 from tqdm import tqdm
 from tsio import __app_name__
 from typing import Any, Callable, Dict, List, Optional
@@ -265,14 +266,18 @@ def write_png(cfg: Configuration):
 
 def write_tiff(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
-    write(
-        tiff_file_reader(cfg.src, multipage_as_list=True),
-        cfg.src,
-        cfg.dst,
-        cfg.output_format,
-        cfg.silent,
-        normalize=False,
-    )
+    try:
+        write(
+            tiff_file_reader(cfg.src, multipage_as_list=True),
+            cfg.src,
+            cfg.dst,
+            cfg.output_format,
+            cfg.silent,
+            normalize=False,
+        )
+    except TiffFileError:
+        if not cfg.silent:
+            LOGGER.warning(f"The '{cfg.src}' file is not a TIFF, skipped.")
 
 
 def expand_sources(
