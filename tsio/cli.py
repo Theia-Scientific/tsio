@@ -277,7 +277,7 @@ def write_tiff(cfg: Configuration):
         )
     except TiffFileError:
         if not cfg.silent:
-            LOGGER.warning(f"The '{cfg.src}' file is not a TIFF, skipping.")
+            LOGGER.warning(f"The '{cfg.src}' file is not a TIFF, skipped.")
 
 
 def expand_sources(

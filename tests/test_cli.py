@@ -3,6 +3,7 @@
 import datetime
 import gdown
 import importlib.metadata
+import logging
 import numpy as np
 import os
 import pytest
@@ -462,6 +463,36 @@ def test_write_tiff(blank_16bit_single_page_tiff):
         )
     )
     assert dst.exists()
+
+
+def test_write_tiff_with_nontiff(blank_8bit_image, blank_16bit_image, caplog, tmp_path):
+    png_file = tmp_path.joinpath("image.png")
+    signal = {"data": blank_8bit_image, "axes": {}}
+    image_file_writer(str(png_file), signal)
+    tif_file = tmp_path.joinpath("image.tif")
+    signal = {
+        "data": blank_16bit_image,
+    }
+    tiff_file_writer(str(tif_file), signal)
+    with caplog.at_level(logging.WARNING):
+        write_tiff(
+            Configuration(
+                dst=tmp_path,
+                output_format=OutputFileFormats.JPEG,
+                silent=False,
+                src=png_file,
+            )
+        )
+    write_tiff(
+        Configuration(
+            dst=tmp_path,
+            output_format=OutputFileFormats.JPEG,
+            silent=True,
+            src=tif_file,
+        )
+    )
+    assert "file is not a TIFF, skipped." in caplog.text
+    assert tif_file.with_suffix(JPEG_FILE_EXT).exists()
 
 
 def test_expand_sources(tmp_path):
