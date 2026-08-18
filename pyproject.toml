@@ -35,6 +35,7 @@ dependencies = [
     "python-gdcm",
     "rosettasciio[all]",
     "tdqm",
+    "tifffile",
     "typer",
 ]
 
