@@ -51,6 +51,14 @@ mimetypes.add_type(EMD_MIME_TYPE, EMD_FILE_EXT)
 
 logging.getLogger("PIL.Image").setLevel(logging.WARNING)
 
+DELETE_ORIGINAL_OPT: bool = typer.Option(
+    False,
+    "-D",
+    "--delete-original",
+    help="Deletes the original file after conversion.",
+)
+
+
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
 
@@ -346,6 +354,7 @@ def run(
 def dcm(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
     paths: List[Path] = typer.Argument(help="The original DCM source files."),
+    delete_original: bool = DELETE_ORIGINAL_OPT,
     num_cpus: Optional[int] = typer.Option(
         None,
         "-n",
@@ -359,6 +368,7 @@ def dcm(
         False, "-S", "--silent", help="Disables the progress bars."
     ),
 ):
+    LOGGER.debug(f"{delete_original=}")
     LOGGER.debug(f"{paths=}")
     LOGGER.debug(f"{num_cpus=}")
     LOGGER.debug(f"{output=}")
@@ -367,10 +377,7 @@ def dcm(
     run(
         write_dcm,
         expand_sources(
-            paths,
-            output,
-            output_format,
-            silent,
+            paths, output, output_format, silent, delete_original=delete_original
         ),
         num_cpus,
     )
@@ -380,6 +387,7 @@ def dcm(
 def dm(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
     paths: List[Path] = typer.Argument(help="The original DM source files."),
+    delete_original: bool = DELETE_ORIGINAL_OPT,
     num_cpus: Optional[int] = typer.Option(
         None,
         "-n",
@@ -394,13 +402,16 @@ def dm(
     ),
 ):
     LOGGER.debug(f"{paths=}")
+    LOGGER.debug(f"{delete_original=}")
     LOGGER.debug(f"{num_cpus=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
     run(
         write_dm,
-        expand_sources(paths, output, output_format, silent),
+        expand_sources(
+            paths, output, output_format, silent, delete_original=delete_original
+        ),
         num_cpus,
     )
 
@@ -409,6 +420,7 @@ def dm(
 def app_emd(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
     paths: List[Path] = typer.Argument(help="The original EMD source files."),
+    delete_original: bool = DELETE_ORIGINAL_OPT,
     detector: int = typer.Option(
         0, "-d", "--detector", help="The index of the detector to export images."
     ),
@@ -426,6 +438,7 @@ def app_emd(
     ),
 ):
     LOGGER.debug(f"{detector=}")
+    LOGGER.debug(f"{delete_original=}")
     LOGGER.debug(f"{num_cpus=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
@@ -434,7 +447,12 @@ def app_emd(
     run(
         write_emd,
         expand_sources(
-            paths, output, output_format, silent, extras={"detector": detector}
+            paths,
+            output,
+            output_format,
+            silent,
+            delete_original=delete_original,
+            extras={"detector": detector},
         ),
         num_cpus,
     )
@@ -444,6 +462,7 @@ def app_emd(
 def png(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
     paths: List[Path] = typer.Argument(help="The original PNG source files."),
+    delete_original: bool = DELETE_ORIGINAL_OPT,
     num_cpus: Optional[int] = typer.Option(
         None,
         "-n",
@@ -458,23 +477,25 @@ def png(
     ),
 ):
     LOGGER.debug(f"{paths=}")
+    LOGGER.debug(f"{delete_original=}")
     LOGGER.debug(f"{num_cpus=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
-    run(write_png, expand_sources(paths, output, output_format, silent), num_cpus)
+    run(
+        write_png,
+        expand_sources(
+            paths, output, output_format, silent, delete_original=delete_original
+        ),
+        num_cpus,
+    )
 
 
 @app.command(help="Handle Input/Output (IO) of TIFF files.")
 def tiff(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
     paths: List[Path] = typer.Argument(help="The original TIFF source files."),
-    delete_original: bool = typer.Option(
-        False,
-        "-D",
-        "--delete-original",
-        help="Deletes the original file after conversion.",
-    ),
+    delete_original: bool = DELETE_ORIGINAL_OPT,
     num_cpus: Optional[int] = typer.Option(
         None,
         "-n",
@@ -496,7 +517,9 @@ def tiff(
     LOGGER.debug(f"{silent=}")
     run(
         write_tiff,
-        expand_sources(paths, output, output_format, silent),
+        expand_sources(
+            paths, output, output_format, silent, delete_original=delete_original
+        ),
         num_cpus,
     )
 
