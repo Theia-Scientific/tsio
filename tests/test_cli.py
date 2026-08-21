@@ -228,6 +228,23 @@ def test_write_with_single_tiff_output(blank_16bit_single_page_tiff, tmp_path):
         normalize=False,
     )
     assert dst.exists()
+    assert src.exists()
+
+
+def test_write_with_single_tiff_delete_original(blank_16bit_single_page_tiff):
+    src = blank_16bit_single_page_tiff
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write(
+        tiff_file_reader(src, multipage_as_list=True),
+        src,
+        None,
+        OutputFileFormats.JPEG,
+        True,
+        delete_original=True,
+        normalize=False,
+    )
+    assert dst.exists()
+    assert not src.exists()
 
 
 def test_write_with_multipages_tiff(
