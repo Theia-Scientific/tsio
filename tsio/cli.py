@@ -51,14 +51,6 @@ mimetypes.add_type(EMD_MIME_TYPE, EMD_FILE_EXT)
 
 logging.getLogger("PIL.Image").setLevel(logging.WARNING)
 
-DELETE_ORIGINAL_OPT: bool = typer.Option(
-    False,
-    "-D",
-    "--delete-original",
-    help="Deletes the original file after conversion.",
-)
-
-
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
 
@@ -350,23 +342,35 @@ def run(
             list(pool.imap(write_func, sources))
 
 
+DELETE_ORIGINAL_OPT: bool = typer.Option(
+    False,
+    "-D",
+    "--delete-original",
+    help="Deletes the original file after conversion.",
+)
+NUM_CPUS_OPT: Optional[int] = typer.Option(
+    None,
+    "-n",
+    "--num-cpus",
+    help="The number of CPU cores to use for parallel execution.",
+)
+OUTPUT_FORMAT_ARG: OutputFileFormats = typer.Argument(help="The output file format.")
+OUTPUT_OPT: Optional[Path] = typer.Option(
+    None, "-o", "--output", help="Destination for output file(s)."
+)
+SILENT_OPT: bool = typer.Option(
+    False, "-S", "--silent", help="Disables the progress bars."
+)
+
+
 @app.command(help="Handle Input/Output (IO) of DICOM (DCM) files.")
 def dcm(
-    output_format: OutputFileFormats = typer.Argument(help="The output file format."),
+    output_format: OutputFileFormats = OUTPUT_FORMAT_ARG,
     paths: List[Path] = typer.Argument(help="The original DCM source files."),
     delete_original: bool = DELETE_ORIGINAL_OPT,
-    num_cpus: Optional[int] = typer.Option(
-        None,
-        "-n",
-        "--num-cpus",
-        help="The number of CPU cores to use for parallel execution.",
-    ),
-    output: Optional[Path] = typer.Option(
-        None, "-o", "--output", help="Destination for output file(s)."
-    ),
-    silent: bool = typer.Option(
-        False, "-S", "--silent", help="Disables the progress bars."
-    ),
+    num_cpus: Optional[int] = NUM_CPUS_OPT,
+    output: Optional[Path] = OUTPUT_OPT,
+    silent: bool = SILENT_OPT,
 ):
     LOGGER.debug(f"{delete_original=}")
     LOGGER.debug(f"{paths=}")
@@ -385,21 +389,12 @@ def dcm(
 
 @app.command(help="Handle Input/Output (IO) of DigitalMicrograph (DM) files.")
 def dm(
-    output_format: OutputFileFormats = typer.Argument(help="The output file format."),
+    output_format: OutputFileFormats = OUTPUT_FORMAT_ARG,
     paths: List[Path] = typer.Argument(help="The original DM source files."),
     delete_original: bool = DELETE_ORIGINAL_OPT,
-    num_cpus: Optional[int] = typer.Option(
-        None,
-        "-n",
-        "--num-cpus",
-        help="The number of CPU cores to use for parallel execution.",
-    ),
-    output: Optional[Path] = typer.Option(
-        None, "-o", "--output", help="Destination for output file(s)."
-    ),
-    silent: bool = typer.Option(
-        False, "-S", "--silent", help="Disables the progress bars."
-    ),
+    num_cpus: Optional[int] = NUM_CPUS_OPT,
+    output: Optional[Path] = OUTPUT_OPT,
+    silent: bool = SILENT_OPT,
 ):
     LOGGER.debug(f"{paths=}")
     LOGGER.debug(f"{delete_original=}")
@@ -418,24 +413,15 @@ def dm(
 
 @app.command(help="Handle Input/Output (IO) of Velox (EMD) files.", name="emd")
 def app_emd(
-    output_format: OutputFileFormats = typer.Argument(help="The output file format."),
+    output_format: OutputFileFormats = OUTPUT_FORMAT_ARG,
     paths: List[Path] = typer.Argument(help="The original EMD source files."),
     delete_original: bool = DELETE_ORIGINAL_OPT,
     detector: int = typer.Option(
         0, "-d", "--detector", help="The index of the detector to export images."
     ),
-    num_cpus: Optional[int] = typer.Option(
-        None,
-        "-n",
-        "--num-cpus",
-        help="The number of CPU cores to use for parallel execution.",
-    ),
-    output: Optional[Path] = typer.Option(
-        None, "-o", "--output", help="Destination for output file(s)."
-    ),
-    silent: bool = typer.Option(
-        False, "-S", "--silent", help="Disables the progress bars."
-    ),
+    num_cpus: Optional[int] = NUM_CPUS_OPT,
+    output: Optional[Path] = OUTPUT_OPT,
+    silent: bool = SILENT_OPT,
 ):
     LOGGER.debug(f"{detector=}")
     LOGGER.debug(f"{delete_original=}")
@@ -460,21 +446,12 @@ def app_emd(
 
 @app.command(help="Handle Input/Output (IO) of PNG files.")
 def png(
-    output_format: OutputFileFormats = typer.Argument(help="The output file format."),
+    output_format: OutputFileFormats = OUTPUT_FORMAT_ARG,
     paths: List[Path] = typer.Argument(help="The original PNG source files."),
     delete_original: bool = DELETE_ORIGINAL_OPT,
-    num_cpus: Optional[int] = typer.Option(
-        None,
-        "-n",
-        "--num-cpus",
-        help="The number of CPU cores to use for parallel execution.",
-    ),
-    output: Optional[Path] = typer.Option(
-        None, "-o", "--output", help="Destination for output file(s)."
-    ),
-    silent: bool = typer.Option(
-        False, "-S", "--silent", help="Disables the progress bars."
-    ),
+    num_cpus: Optional[int] = NUM_CPUS_OPT,
+    output: Optional[Path] = OUTPUT_OPT,
+    silent: bool = SILENT_OPT,
 ):
     LOGGER.debug(f"{paths=}")
     LOGGER.debug(f"{delete_original=}")
@@ -493,21 +470,12 @@ def png(
 
 @app.command(help="Handle Input/Output (IO) of TIFF files.")
 def tiff(
-    output_format: OutputFileFormats = typer.Argument(help="The output file format."),
+    output_format: OutputFileFormats = OUTPUT_FORMAT_ARG,
     paths: List[Path] = typer.Argument(help="The original TIFF source files."),
     delete_original: bool = DELETE_ORIGINAL_OPT,
-    num_cpus: Optional[int] = typer.Option(
-        None,
-        "-n",
-        "--num-cpus",
-        help="The number of CPU cores to use for parallel execution.",
-    ),
-    output: Optional[Path] = typer.Option(
-        None, "-o", "--output", help="Destination for output file(s)."
-    ),
-    silent: bool = typer.Option(
-        False, "-S", "--silent", help="Disables the progress bars."
-    ),
+    num_cpus: Optional[int] = NUM_CPUS_OPT,
+    output: Optional[Path] = OUTPUT_OPT,
+    silent: bool = SILENT_OPT,
 ):
     LOGGER.debug(f"{paths=}")
     LOGGER.debug(f"{delete_original=}")
