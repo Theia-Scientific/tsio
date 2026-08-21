@@ -88,6 +88,7 @@ class OutputFileFormats(Enum):
 
 
 class Configuration(BaseModel):
+    delete_original: bool = False
     dst: Optional[Path]
     extras: Dict[str, Any] = {}
     output_format: OutputFileFormats
@@ -119,12 +120,14 @@ def write(
     output: Optional[Path],
     output_format: OutputFileFormats,
     silent: bool,
+    delete_original: bool = False,
     normalize: bool = False,
 ):
     LOGGER.debug(f"{src=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
+    LOGGER.debug(f"{delete_original=}")
     LOGGER.debug(f"{normalize=}")
     if output is None:
         destination = src.resolve().parent
@@ -174,6 +177,8 @@ def write(
             if "navigate" not in axis:
                 axis["navigate"] = None
         image_file_writer(output_file, page)
+        if delete_original:
+            src.unlink(missing_ok=True)
 
 
 def write_dcm(cfg: Configuration):
@@ -285,14 +290,22 @@ def expand_sources(
     output: Optional[Path],
     output_format: OutputFileFormats,
     silent: bool,
+    delete_original: bool = False,
     extras: Dict[str, Any] = {},
 ) -> List[Configuration]:
+    LOGGER.debug(f"{paths=}")
+    LOGGER.debug(f"{output=}")
+    LOGGER.debug(f"{output_format=}")
+    LOGGER.debug(f"{silent=}")
+    LOGGER.debug(f"{delete_original=}")
+    LOGGER.debug(f"{extras=}")
     sources = []
     for path in paths:
         if path.is_dir():
             sources.extend(
                 [
                     Configuration(
+                        delete_original=delete_original,
                         dst=output,
                         extras=extras,
                         output_format=output_format,
@@ -456,6 +469,12 @@ def png(
 def tiff(
     output_format: OutputFileFormats = typer.Argument(help="The output file format."),
     paths: List[Path] = typer.Argument(help="The original TIFF source files."),
+    delete_original: bool = typer.Option(
+        False,
+        "-D",
+        "--delete-original",
+        help="Deletes the original file after conversion.",
+    ),
     num_cpus: Optional[int] = typer.Option(
         None,
         "-n",
@@ -470,11 +489,16 @@ def tiff(
     ),
 ):
     LOGGER.debug(f"{paths=}")
+    LOGGER.debug(f"{delete_original=}")
     LOGGER.debug(f"{num_cpus=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
-    run(write_tiff, expand_sources(paths, output, output_format, silent), num_cpus)
+    run(
+        write_tiff,
+        expand_sources(paths, output, output_format, silent),
+        num_cpus,
+    )
 
 
 @app.callback()
