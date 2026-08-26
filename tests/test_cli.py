@@ -436,8 +436,9 @@ def test_write_dm_fails_with_exception(tmp_path):
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_dm(
         Configuration(
-            dst=None,
-            output_format=OutputFileFormats.JPEG,
+            output=Output(
+                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
+            ),
             silent=True,
             src=src,
         )
@@ -450,8 +451,9 @@ def test_write_emd_single_image(emd_single_image, tmp_path):
     dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
     write_emd(
         Configuration(
-            dst=dst,
-            output_format=OutputFileFormats.JPEG,
+            output=Output(
+                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=dst
+            ),
             silent=True,
             src=src,
         )
