@@ -523,6 +523,7 @@ def test_write_tiff_with_nontiff(blank_8bit_image, blank_16bit_image, caplog, tm
 
 
 def test_write_tiff_with_ncsu(ncsu_tif, tmp_path):
+    actual = tmp_path.joinpath(ncsu_tif.with_suffix(JPEG_FILE_EXT).name)
     write_tiff(
         Configuration(
             dst=tmp_path,
@@ -531,7 +532,7 @@ def test_write_tiff_with_ncsu(ncsu_tif, tmp_path):
             src=ncsu_tif,
         )
     )
-    assert ncsu_tif.with_suffix(JPEG_FILE_EXT).exists()
+    assert actual.exists()
 
 
 def test_expand_sources(tmp_path):
