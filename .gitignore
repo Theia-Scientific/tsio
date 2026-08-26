@@ -44,4 +44,5 @@ venv/
 *.pt
 *.zip
 !requirements.txt
+!tests/assets/*.tif
 .projectile-cache.eld
