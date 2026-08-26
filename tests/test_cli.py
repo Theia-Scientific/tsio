@@ -552,8 +552,9 @@ def test_write_png(blank_8bit_png):
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_png(
         Configuration(
-            dst=None,
-            output_format=OutputFileFormats.JPEG,
+            output=Output(
+                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
+            ),
             silent=True,
             src=src,
         )
@@ -566,8 +567,9 @@ def test_write_tiff(blank_16bit_single_page_tiff):
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_tiff(
         Configuration(
-            dst=None,
-            output_format=OutputFileFormats.JPEG,
+            output=Output(
+                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
+            ),
             silent=True,
             src=src,
         )
