@@ -577,28 +577,36 @@ def test_write_tiff(blank_16bit_single_page_tiff):
     assert dst.exists()
 
 
-def test_write_tiff_with_nontiff(blank_8bit_image, blank_16bit_image, caplog, tmp_path):
+def test_write_tiff_with_nontiff(
+    blank_8bit_grayscale_image, blank_16bit_grayscale_image, caplog, tmp_path
+):
     png_file = tmp_path.joinpath("image.png")
-    signal = {"data": blank_8bit_image, "axes": {}}
+    signal = {"data": blank_8bit_grayscale_image, "axes": {}}
     image_file_writer(str(png_file), signal)
     tif_file = tmp_path.joinpath("image.tif")
     signal = {
-        "data": blank_16bit_image,
+        "data": blank_16bit_grayscale_image,
     }
     tiff_file_writer(str(tif_file), signal)
     with caplog.at_level(logging.WARNING):
         write_tiff(
             Configuration(
-                dst=tmp_path,
-                output_format=OutputFileFormats.JPEG,
+                output=Output(
+                    bit_depth=BitDepths.EIGHT,
+                    format=OutputFileFormats.JPEG,
+                    path=tmp_path,
+                ),
                 silent=False,
                 src=png_file,
             )
         )
     write_tiff(
         Configuration(
-            dst=tmp_path,
-            output_format=OutputFileFormats.JPEG,
+            output=Output(
+                bit_depth=BitDepths.EIGHT,
+                format=OutputFileFormats.JPEG,
+                path=tmp_path,
+            ),
             silent=True,
             src=tif_file,
         )
