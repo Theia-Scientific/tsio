@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import cv2
 import datetime
 import gdown
 import importlib.metadata
@@ -533,6 +534,11 @@ def test_write_tiff_with_ncsu(ncsu_tif, tmp_path):
         )
     )
     assert actual.exists()
+    jpeg_img = cv2.imread(str(actual))
+    assert jpeg_img is not None
+    tiff_img = cv2.imread(str(ncsu_tif))
+    assert tiff_img is not None
+    np.testing.assert_array_equal(jpeg_img, tiff_img)
 
 
 def test_expand_sources(tmp_path):
