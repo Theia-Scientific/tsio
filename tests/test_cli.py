@@ -113,9 +113,9 @@ def ncsu_tif(assets) -> Path:
 
 
 @pytest.fixture
-def dcm(tmp_path, blank_8bit_image) -> Path:
-    _, height, width = blank_8bit_image.shape
-    grey_img = blank_8bit_image[0, :, :]
+def dcm(tmp_path, blank_8bit_grayscale_image) -> Path:
+    height, width = blank_8bit_grayscale_image.shape
+    grey_img = blank_8bit_grayscale_image
     dcm_file = tmp_path.joinpath("test.dcm")
     ds = Dataset()
     ds.Rows = height
@@ -285,25 +285,35 @@ def test_write_with_single_tiff(blank_16bit_single_page_tiff):
     kind = filetype.guess(str(dst))
     assert kind is not None
     assert kind.mime == "image/jpeg"
-    jpeg_img = cv2.imread(str(dst))
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
     assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
     assert jpeg_img.shape == (256, 256, 3)
     assert not np.any(jpeg_img)
 
 
 def test_write_with_single_tiff_output(blank_16bit_single_page_tiff, tmp_path):
     src = blank_16bit_single_page_tiff
-    dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
+    dst = tmp_path.joinpath(src.name).with_suffix(TIFF_FILE_EXT)
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
-        Output(bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=tmp_path),
-        tmp_path,
+        Output(
+            bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.TIFF, path=tmp_path
+        ),
         True,
         normalize=False,
     )
     assert dst.exists()
     assert src.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/tiff"
+    tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert tiff_img is not None
+    assert tiff_img.dtype.name == "uint16"
+    assert tiff_img.shape == (256, 256, 3)
+    assert not np.any(tiff_img)
 
 
 def test_write_with_single_tiff_delete_original(blank_16bit_single_page_tiff):
@@ -374,7 +384,7 @@ def test_write_dcm(dcm, tmp_path):
     write_dcm(
         Configuration(
             output=Output(
-                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=dst
+                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=tmp_path
             ),
             silent=True,
             src=src,
