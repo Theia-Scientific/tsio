@@ -537,7 +537,11 @@ def test_write_emd_fails_with_exception(mocker, tmp_path):
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
     write_emd(
         Configuration(
-            src=src, dst=None, output_format=OutputFileFormats.JPEG, silent=True
+            src=src,
+            output=Output(
+                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
+            ),
+            silent=True,
         )
     )
     assert not dst.exists()
