@@ -93,6 +93,11 @@ def tmp_assets() -> Path:
 
 
 @pytest.fixture
+def assets() -> Path:
+    return Path(os.getcwd()).joinpath("tests", "assets")
+
+
+@pytest.fixture
 def dcm(tmp_path, blank_8bit_image) -> Path:
     _, height, width = blank_8bit_image.shape
     grey_img = blank_8bit_image[0, :, :]
