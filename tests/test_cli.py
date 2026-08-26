@@ -740,8 +740,9 @@ def test_run_with_linux(dm4, mocker):
         mock_write,
         [
             Configuration(
-                dst=None,
-                output_format=OutputFileFormats.JPEG,
+                output=Output(
+                    bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
+                ),
                 silent=True,
                 src=dm4,
             )
