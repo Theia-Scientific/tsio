@@ -619,8 +619,11 @@ def test_write_tiff_with_ncsu(ncsu_tif, tmp_path):
     actual = tmp_path.joinpath(ncsu_tif.with_suffix(JPEG_FILE_EXT).name)
     write_tiff(
         Configuration(
-            dst=tmp_path,
-            output_format=OutputFileFormats.JPEG,
+            output=Output(
+                bit_depth=BitDepths.EIGHT,
+                format=OutputFileFormats.JPEG,
+                path=tmp_path,
+            ),
             silent=True,
             src=ncsu_tif,
         )
@@ -632,7 +635,6 @@ def test_write_tiff_with_ncsu(ncsu_tif, tmp_path):
     tiff_img = cv2.imread(str(ncsu_tif))
     assert tiff_img is not None
     tiff_img = normalize_image(tiff_img)
-    # np.testing.assert_array_equal(jpeg_img, tiff_img)
 
 
 def test_expand_sources(tmp_path):
