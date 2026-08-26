@@ -98,6 +98,11 @@ def assets() -> Path:
 
 
 @pytest.fixture
+def asset_1138622_small_slice_42_tif(assets) -> Path:
+    return assets.joinpath("1138622_small_slice_42_tif")
+
+
+@pytest.fixture
 def dcm(tmp_path, blank_8bit_image) -> Path:
     _, height, width = blank_8bit_image.shape
     grey_img = blank_8bit_image[0, :, :]
