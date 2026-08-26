@@ -491,8 +491,9 @@ def test_write_emd_with_no_image_data(mocker, tmp_path):
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
     write_emd(
         Configuration(
-            dst=None,
-            output_format=OutputFileFormats.JPEG,
+            output=Output(
+                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
+            ),
             silent=True,
             src=src,
         )
