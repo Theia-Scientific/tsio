@@ -421,8 +421,9 @@ def test_write_dm_fails_with_not_implemented(mocker, tmp_path):
     mocker.patch("rsciio.digitalmicrograph.file_reader", mock_file_reader)
     write_dm(
         Configuration(
-            dst=None,
-            output_format=OutputFileFormats.JPEG,
+            output=Output(
+                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
+            ),
             silent=True,
             src=src,
         )
