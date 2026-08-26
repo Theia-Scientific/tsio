@@ -466,8 +466,9 @@ def test_write_emd_multiple_images(emd_multiple_images, tmp_path):
     dst = tmp_path.joinpath(src.stem)
     write_emd(
         Configuration(
-            dst=tmp_path,
-            output_format=OutputFileFormats.JPEG,
+            output=Output(
+                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=tmp_path
+            ),
             silent=True,
             src=src,
         )
