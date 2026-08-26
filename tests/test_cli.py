@@ -98,8 +98,8 @@ def assets() -> Path:
 
 
 @pytest.fixture
-def asset_1138622_small_slice_42_tif(assets) -> Path:
-    return assets.joinpath("1138622_small_slice_42_tif")
+def ncsu_tif(assets) -> Path:
+    return assets.joinpath("1138622_small_slice_42.tif")
 
 
 @pytest.fixture
@@ -520,6 +520,18 @@ def test_write_tiff_with_nontiff(blank_8bit_image, blank_16bit_image, caplog, tm
     )
     assert "file is not a TIFF, skipped." in caplog.text
     assert tif_file.with_suffix(JPEG_FILE_EXT).exists()
+
+
+def test_write_tiff_with_ncsu(ncsu_tif, tmp_path):
+    write_tiff(
+        Configuration(
+            dst=tmp_path,
+            output_format=OutputFileFormats.JPEG,
+            silent=True,
+            src=ncsu_tif,
+        )
+    )
+    assert ncsu_tif.with_suffix(JPEG_FILE_EXT).exists()
 
 
 def test_expand_sources(tmp_path):
