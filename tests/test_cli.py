@@ -643,23 +643,30 @@ def test_expand_sources(tmp_path):
         tmp_path.joinpath("dst2.dm3"),
         tmp_path.joinpath("dst3.dm4"),
     ]
-    actual = expand_sources(paths, None, OutputFileFormats.JPEG, True)
+    actual = expand_sources(
+        paths,
+        Output(bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None),
+        True,
+    )
     assert len(actual) == 3
     assert actual[0] == Configuration(
-        dst=None,
-        output_format=OutputFileFormats.JPEG,
+        output=Output(
+            bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
+        ),
         silent=True,
         src=paths[0],
     )
     assert actual[1] == Configuration(
-        dst=None,
-        output_format=OutputFileFormats.JPEG,
+        output=Output(
+            bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
+        ),
         silent=True,
         src=paths[1],
     )
     assert actual[2] == Configuration(
-        dst=None,
-        output_format=OutputFileFormats.JPEG,
+        output=Output(
+            bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
+        ),
         silent=True,
         src=paths[2],
     )
