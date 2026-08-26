@@ -685,7 +685,11 @@ def test_expand_sources_with_directories(tmp_path):
     file5 = tmp_path.joinpath("dst3.dm4")
     paths = [dir1, file4, file5]
     expected = [file1, file2, file3, file4, file5]
-    actual = expand_sources(paths, None, OutputFileFormats.JPEG, True)
+    actual = expand_sources(
+        paths,
+        Output(bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None),
+        True,
+    )
     assert len(actual) == 5
     assert actual[0].src in expected
     assert actual[1].src in expected
