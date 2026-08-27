@@ -328,6 +328,14 @@ def test_write_with_single_tiff_delete_original(
     )
     assert dst.exists()
     assert not src.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
 def test_write_with_multipages_tiff(
@@ -349,6 +357,16 @@ def test_write_with_multipages_tiff(
         len([name for name in os.listdir(dst) if dst.joinpath(name).is_file()])
         == pages_count
     )
+    for name in os.listdir(dst):
+        assert dst.joinpath(name).exists()
+        kind = filetype.guess(str(dst.joinpath(name)))
+        assert kind is not None
+        assert kind.mime == "image/jpeg"
+        jpeg_img = cv2.imread(str(dst.joinpath(name)), cv2.IMREAD_UNCHANGED)
+        assert jpeg_img is not None
+        assert jpeg_img.dtype.name == "uint8"
+        assert len(jpeg_img.shape) == 3
+        assert np.any(jpeg_img)
 
 
 def test_write_with_dm3(dm3, output_cfg, tmp_path):
@@ -375,6 +393,14 @@ def test_write_with_dm4(dm4, output_cfg, tmp_path):
         normalize=True,
     )
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (1024, 1024, 3)
+    assert np.any(jpeg_img)
 
 
 def test_write_dcm(dcm, output_cfg, tmp_path):
