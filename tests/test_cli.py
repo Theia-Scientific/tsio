@@ -721,6 +721,26 @@ def test_write_16bit_grayscale_png_to_16bit_tiff(blank_16bit_grayscale_png, outp
     assert tiff_img.shape == (256, 256, 3)
 
 
+def test_write_16bit_grayscale_png_to_jpeg(blank_16bit_grayscale_png, output_cfg):
+    src = blank_16bit_grayscale_png
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+
+
 def test_write_tiff(blank_16bit_single_page_tiff, output_cfg):
     src = blank_16bit_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
@@ -1002,10 +1022,19 @@ def test_app_emd_fails(mocker, emd_single_image, tmp_path):
     assert result.exit_code == 1
 
 
-def test_app_png(blank_8bit_png, tmp_path):
+def test_app_png_8bit(blank_8bit_png, tmp_path):
     dst = tmp_path.joinpath(blank_8bit_png.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(
         app, ["png", "-o", str(tmp_path), "-S", "jpeg", str(blank_8bit_png)]
+    )
+    assert result.exit_code == 0
+    assert dst.exists()
+
+
+def test_app_png_16bit(blank_16bit_grayscale_png, tmp_path):
+    dst = tmp_path.joinpath(blank_16bit_grayscale_png.name).with_suffix(JPEG_FILE_EXT)
+    result = runner.invoke(
+        app, ["png", "-o", str(tmp_path), "-S", "jpeg", str(blank_16bit_grayscale_png)]
     )
     assert result.exit_code == 0
     assert dst.exists()
