@@ -816,11 +816,25 @@ def test_app_dcm(dcm, tmp_path):
     assert dst.exists()
 
 
+def test_app_dcm_fails(dcm, tmp_path):
+    result = runner.invoke(
+        app, ["dcm", "-o", str(tmp_path), "-S", "-b", "16", "jpeg", str(dcm)]
+    )
+    assert result.exit_code == 1
+
+
 def test_app_dm(dm4, tmp_path):
     dst = tmp_path.joinpath(dm4.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(app, ["dm", "-o", str(tmp_path), "-S", "jpeg", str(dm4)])
     assert result.exit_code == 0
     assert dst.exists()
+
+
+def test_app_dm_fails(dm4, tmp_path):
+    result = runner.invoke(
+        app, ["dm", "-o", str(tmp_path), "-S", "-b", "16", "jpeg", str(dm4)]
+    )
+    assert result.exit_code == 1
 
 
 def test_app_all_dm_as_files(dm3, dm4, tmp_path):
@@ -858,6 +872,21 @@ def test_app_emd(mocker, emd_single_image, tmp_path):
     assert result.exit_code == 0
 
 
+def test_app_emd_fails(mocker, emd_single_image, tmp_path):
+    src = emd_single_image
+
+    def mock_write_emd(*args, **kwargs):
+        _ = args
+        _ = kwargs
+
+    mocker.patch("tsio.cli.write_emd", mock_write_emd)
+
+    result = runner.invoke(
+        app, ["emd", "-o", str(tmp_path), "-S", "-b", "16", "jpeg", str(src)]
+    )
+    assert result.exit_code == 1
+
+
 def test_app_png(blank_8bit_png, tmp_path):
     dst = tmp_path.joinpath(blank_8bit_png.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(
@@ -865,6 +894,13 @@ def test_app_png(blank_8bit_png, tmp_path):
     )
     assert result.exit_code == 0
     assert dst.exists()
+
+
+def test_app_png_fails(blank_8bit_png, tmp_path):
+    result = runner.invoke(
+        app, ["png", "-o", str(tmp_path), "-S", "-b", "16", "jpeg", str(blank_8bit_png)]
+    )
+    assert result.exit_code == 1
 
 
 def test_app_tiff(blank_16bit_single_page_tiff, tmp_path):
@@ -877,3 +913,20 @@ def test_app_tiff(blank_16bit_single_page_tiff, tmp_path):
     )
     assert result.exit_code == 0
     assert dst.exists()
+
+
+def test_app_tiff_fails(blank_16bit_single_page_tiff, tmp_path):
+    result = runner.invoke(
+        app,
+        [
+            "tiff",
+            "-o",
+            str(tmp_path),
+            "-S",
+            "-b",
+            "16",
+            "jpeg",
+            str(blank_16bit_single_page_tiff),
+        ],
+    )
+    assert result.exit_code == 1
