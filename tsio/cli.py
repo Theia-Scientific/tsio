@@ -219,6 +219,7 @@ def write_dcm(cfg: Configuration):
         cfg.src,
         cfg.output,
         cfg.silent,
+        delete_original=cfg.delete_original,
         normalize=True,
     )
 
@@ -231,6 +232,7 @@ def write_dm(cfg: Configuration):
             cfg.src,
             cfg.output,
             cfg.silent,
+            delete_original=cfg.delete_original,
             normalize=True,
         )
     except NotImplementedError as error:
@@ -270,6 +272,7 @@ def write_emd(cfg: Configuration):
             cfg.src,
             cfg.output,
             cfg.silent,
+            delete_original=cfg.delete_original,
             normalize=True,
         )
     except Exception as error:
@@ -283,6 +286,7 @@ def write_png(cfg: Configuration):
         cfg.src,
         cfg.output,
         cfg.silent,
+        delete_original=cfg.delete_original,
         normalize=True,
     )
 
@@ -295,6 +299,7 @@ def write_tiff(cfg: Configuration):
             cfg.src,
             cfg.output,
             cfg.silent,
+            delete_original=cfg.delete_original,
             normalize=True,
         )
     except TiffFileError:
