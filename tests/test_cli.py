@@ -980,7 +980,23 @@ def test_app_all_dm_as_files(dm3, dm4, tmp_path):
     )
     assert result.exit_code == 0
     assert dst_dm3.exists()
+    kind = filetype.guess(str(dst_dm3))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst_dm3))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (1024, 1024, 3)
+    assert np.any(jpeg_img)
     assert dst_dm4.exists()
+    kind = filetype.guess(str(dst_dm4))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst_dm4))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (1024, 1024, 3)
+    assert np.any(jpeg_img)
 
 
 def test_app_all_dm_as_directory(dm3, dm4, tmp_assets, tmp_path):
@@ -1029,6 +1045,14 @@ def test_app_png_8bit(blank_8bit_png, tmp_path):
     )
     assert result.exit_code == 0
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
 def test_app_png_16bit(blank_16bit_grayscale_png, tmp_path):
@@ -1038,6 +1062,14 @@ def test_app_png_16bit(blank_16bit_grayscale_png, tmp_path):
     )
     assert result.exit_code == 0
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
 def test_app_png_fails(blank_8bit_png, tmp_path):
