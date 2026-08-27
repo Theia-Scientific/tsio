@@ -219,28 +219,24 @@ def test_output_destination_with_path(tmp_path, output_cfg):
     assert output_cfg(path=tmp_path).destination(tmp_path) == tmp_path
 
 
-def test_output_cast_eight_gray(blank_16bit_grayscale_image, tmp_path):
-    img = Output(
-        bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=tmp_path
-    ).cast(blank_16bit_grayscale_image)
+def test_output_cast_eight_gray(blank_16bit_grayscale_image, output_cfg, tmp_path):
+    img = output_cfg(path=tmp_path).cast(blank_16bit_grayscale_image)
     assert img.dtype.name == "uint8"
     assert img.shape == (256, 256, 3)
     assert not np.any(img)
 
 
-def test_output_cast_eight_bgr(blank_16bit_bgr_image, tmp_path):
-    img = Output(
-        bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=tmp_path
-    ).cast(blank_16bit_bgr_image)
+def test_output_cast_eight_bgr(blank_16bit_bgr_image, output_cfg, tmp_path):
+    img = output_cfg(path=tmp_path).cast(blank_16bit_bgr_image)
     assert img.dtype.name == "uint8"
     assert img.shape == (256, 256, 3)
     assert not np.any(img)
 
 
-def test_output_cast_sixteen(blank_16bit_grayscale_image, tmp_path):
-    img = Output(
-        bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.PNG, path=tmp_path
-    ).cast(blank_16bit_grayscale_image)
+def test_output_cast_sixteen(blank_16bit_grayscale_image, output_cfg, tmp_path):
+    img = output_cfg(bit_depth=BitDepths.SIXTEEN, path=tmp_path).cast(
+        blank_16bit_grayscale_image
+    )
     assert img.dtype.name == "uint16"
     assert img.shape == (256, 256, 3)
     assert not np.any(img)
@@ -272,13 +268,13 @@ def test_map_verbosity_three():
     assert actual == "DEBUG"
 
 
-def test_write_with_single_tiff(blank_16bit_single_page_tiff):
+def test_write_with_single_tiff(blank_16bit_single_page_tiff, output_cfg):
     src = blank_16bit_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
-        Output(bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None),
+        output_cfg(),
         True,
         normalize=False,
     )
@@ -293,15 +289,15 @@ def test_write_with_single_tiff(blank_16bit_single_page_tiff):
     assert not np.any(jpeg_img)
 
 
-def test_write_with_single_tiff_output(blank_16bit_single_page_tiff, tmp_path):
+def test_write_with_single_tiff_output(
+    blank_16bit_single_page_tiff, output_cfg, tmp_path
+):
     src = blank_16bit_single_page_tiff
     dst = tmp_path.joinpath(src.name).with_suffix(TIFF_FILE_EXT)
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
-        Output(
-            bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.TIFF, path=tmp_path
-        ),
+        output_cfg(path=tmp_path),
         True,
         normalize=False,
     )
@@ -317,13 +313,15 @@ def test_write_with_single_tiff_output(blank_16bit_single_page_tiff, tmp_path):
     assert not np.any(tiff_img)
 
 
-def test_write_with_single_tiff_delete_original(blank_16bit_single_page_tiff):
+def test_write_with_single_tiff_delete_original(
+    blank_16bit_single_page_tiff, output_cfg
+):
     src = blank_16bit_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
-        Output(bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None),
+        output_cfg(),
         True,
         delete_original=True,
         normalize=False,
@@ -333,7 +331,7 @@ def test_write_with_single_tiff_delete_original(blank_16bit_single_page_tiff):
 
 
 def test_write_with_multipages_tiff(
-    random_multipage_tiff, random_16bit_multipage_image
+    output_cfg, random_multipage_tiff, random_16bit_multipage_image
 ):
     pages_count, *_ = random_16bit_multipage_image.shape
     src = random_multipage_tiff
@@ -342,7 +340,7 @@ def test_write_with_multipages_tiff(
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
-        Output(bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None),
+        output_cfg(),
         True,
         normalize=False,
     )
@@ -353,40 +351,38 @@ def test_write_with_multipages_tiff(
     )
 
 
-def test_write_with_dm3(dm3, tmp_path):
+def test_write_with_dm3(dm3, output_cfg, tmp_path):
     src = dm3
     dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
     write(
         dm_file_reader(src),
         src,
-        Output(bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=tmp_path),
+        output_cfg(path=tmp_path),
         True,
         normalize=True,
     )
     assert dst.exists()
 
 
-def test_write_with_dm4(dm4, tmp_path):
+def test_write_with_dm4(dm4, output_cfg, tmp_path):
     src = dm4
     dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
     write(
         dm_file_reader(src),
         src,
-        Output(bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=tmp_path),
+        output_cfg(path=tmp_path),
         True,
         normalize=True,
     )
     assert dst.exists()
 
 
-def test_write_dcm(dcm, tmp_path):
+def test_write_dcm(dcm, output_cfg, tmp_path):
     src = dcm
     dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
     write_dcm(
         Configuration(
-            output=Output(
-                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=tmp_path
-            ),
+            output=output_cfg(path=tmp_path),
             silent=True,
             src=src,
         )
@@ -394,14 +390,12 @@ def test_write_dcm(dcm, tmp_path):
     assert dst.exists()
 
 
-def test_write_dm(dm4, tmp_path):
+def test_write_dm(dm4, output_cfg, tmp_path):
     src = dm4
     dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
     write_dm(
         Configuration(
-            output=Output(
-                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=dst
-            ),
+            output=output_cfg(path=dst),
             silent=True,
             src=src,
         )
@@ -409,7 +403,7 @@ def test_write_dm(dm4, tmp_path):
     assert dst.exists()
 
 
-def test_write_dm_fails_with_not_implemented(mocker, tmp_path):
+def test_write_dm_fails_with_not_implemented(mocker, output_cfg, tmp_path):
     src = tmp_path.joinpath("test.dm4")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
@@ -422,9 +416,7 @@ def test_write_dm_fails_with_not_implemented(mocker, tmp_path):
     mocker.patch("rsciio.digitalmicrograph.file_reader", mock_file_reader)
     write_dm(
         Configuration(
-            output=Output(
-                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
-            ),
+            output=output_cfg(),
             silent=True,
             src=src,
         )
@@ -432,14 +424,12 @@ def test_write_dm_fails_with_not_implemented(mocker, tmp_path):
     assert not dst.exists()
 
 
-def test_write_dm_fails_with_exception(tmp_path):
+def test_write_dm_fails_with_exception(output_cfg, tmp_path):
     src = tmp_path.joinpath("test.dm4")
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_dm(
         Configuration(
-            output=Output(
-                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
-            ),
+            output=output_cfg(),
             silent=True,
             src=src,
         )
@@ -447,14 +437,12 @@ def test_write_dm_fails_with_exception(tmp_path):
     assert not dst.exists()
 
 
-def test_write_emd_single_image(emd_single_image, tmp_path):
+def test_write_emd_single_image(emd_single_image, output_cfg, tmp_path):
     src = emd_single_image
     dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
     write_emd(
         Configuration(
-            output=Output(
-                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=dst
-            ),
+            output=output_cfg(path=dst),
             silent=True,
             src=src,
         )
@@ -462,14 +450,12 @@ def test_write_emd_single_image(emd_single_image, tmp_path):
     assert dst.exists()
 
 
-def test_write_emd_multiple_images(emd_multiple_images, tmp_path):
+def test_write_emd_multiple_images(emd_multiple_images, output_cfg, tmp_path):
     src = emd_multiple_images
     dst = tmp_path.joinpath(src.stem)
     write_emd(
         Configuration(
-            output=Output(
-                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=tmp_path
-            ),
+            output=output_cfg(path=tmp_path),
             silent=True,
             src=src,
         )
@@ -479,7 +465,7 @@ def test_write_emd_multiple_images(emd_multiple_images, tmp_path):
     assert len(os.listdir(dst)) == 37
 
 
-def test_write_emd_with_no_image_data(mocker, tmp_path):
+def test_write_emd_with_no_image_data(mocker, output_cfg, tmp_path):
     src = tmp_path.joinpath("test.emd")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
@@ -492,9 +478,7 @@ def test_write_emd_with_no_image_data(mocker, tmp_path):
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
     write_emd(
         Configuration(
-            output=Output(
-                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
-            ),
+            output=output_cfg(),
             silent=True,
             src=src,
         )
@@ -502,7 +486,7 @@ def test_write_emd_with_no_image_data(mocker, tmp_path):
     assert not dst.exists()
 
 
-def test_write_emd_with_no_data_field(mocker, tmp_path):
+def test_write_emd_with_no_data_field(mocker, output_cfg, tmp_path):
     src = tmp_path.joinpath("test.emd")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
@@ -515,9 +499,7 @@ def test_write_emd_with_no_data_field(mocker, tmp_path):
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
     write_emd(
         Configuration(
-            output=Output(
-                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
-            ),
+            output=output_cfg(),
             silent=True,
             src=src,
         )
@@ -525,7 +507,7 @@ def test_write_emd_with_no_data_field(mocker, tmp_path):
     assert not dst.exists()
 
 
-def test_write_emd_fails_with_exception(mocker, tmp_path):
+def test_write_emd_fails_with_exception(mocker, output_cfg, tmp_path):
     src = tmp_path.joinpath("test.emd")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
@@ -538,24 +520,20 @@ def test_write_emd_fails_with_exception(mocker, tmp_path):
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
     write_emd(
         Configuration(
-            src=src,
-            output=Output(
-                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
-            ),
+            output=output_cfg(),
             silent=True,
+            src=src,
         )
     )
     assert not dst.exists()
 
 
-def test_write_png(blank_8bit_png):
+def test_write_png(blank_8bit_png, output_cfg):
     src = blank_8bit_png
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_png(
         Configuration(
-            output=Output(
-                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
-            ),
+            output=output_cfg(),
             silent=True,
             src=src,
         )
@@ -563,14 +541,12 @@ def test_write_png(blank_8bit_png):
     assert dst.exists()
 
 
-def test_write_tiff(blank_16bit_single_page_tiff):
+def test_write_tiff(blank_16bit_single_page_tiff, output_cfg):
     src = blank_16bit_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_tiff(
         Configuration(
-            output=Output(
-                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
-            ),
+            output=output_cfg(),
             silent=True,
             src=src,
         )
@@ -579,7 +555,11 @@ def test_write_tiff(blank_16bit_single_page_tiff):
 
 
 def test_write_tiff_with_nontiff(
-    blank_8bit_grayscale_image, blank_16bit_grayscale_image, caplog, tmp_path
+    blank_8bit_grayscale_image,
+    blank_16bit_grayscale_image,
+    caplog,
+    output_cfg,
+    tmp_path,
 ):
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": blank_8bit_grayscale_image, "axes": {}}
@@ -592,11 +572,7 @@ def test_write_tiff_with_nontiff(
     with caplog.at_level(logging.WARNING):
         write_tiff(
             Configuration(
-                output=Output(
-                    bit_depth=BitDepths.EIGHT,
-                    format=OutputFileFormats.JPEG,
-                    path=tmp_path,
-                ),
+                output=output_cfg(path=tmp_path),
                 silent=False,
                 src=png_file,
             )
@@ -616,15 +592,11 @@ def test_write_tiff_with_nontiff(
     assert tif_file.with_suffix(JPEG_FILE_EXT).exists()
 
 
-def test_write_tiff_with_ncsu(ncsu_tif, tmp_path):
+def test_write_tiff_with_ncsu(ncsu_tif, output_cfg, tmp_path):
     actual = tmp_path.joinpath(ncsu_tif.with_suffix(JPEG_FILE_EXT).name)
     write_tiff(
         Configuration(
-            output=Output(
-                bit_depth=BitDepths.EIGHT,
-                format=OutputFileFormats.JPEG,
-                path=tmp_path,
-            ),
+            output=output_cfg(path=tmp_path),
             silent=True,
             src=ncsu_tif,
         )
@@ -638,7 +610,7 @@ def test_write_tiff_with_ncsu(ncsu_tif, tmp_path):
     tiff_img = normalize_image(tiff_img)
 
 
-def test_expand_sources(tmp_path):
+def test_expand_sources(output_cfg, tmp_path):
     paths = [
         tmp_path.joinpath("dst1.tif"),
         tmp_path.joinpath("dst2.dm3"),
@@ -646,34 +618,28 @@ def test_expand_sources(tmp_path):
     ]
     actual = expand_sources(
         paths,
-        Output(bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None),
+        output_cfg(),
         True,
     )
     assert len(actual) == 3
     assert actual[0] == Configuration(
-        output=Output(
-            bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
-        ),
+        output=output_cfg(),
         silent=True,
         src=paths[0],
     )
     assert actual[1] == Configuration(
-        output=Output(
-            bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
-        ),
+        output=output_cfg(),
         silent=True,
         src=paths[1],
     )
     assert actual[2] == Configuration(
-        output=Output(
-            bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
-        ),
+        output=output_cfg(),
         silent=True,
         src=paths[2],
     )
 
 
-def test_expand_sources_with_directories(tmp_path):
+def test_expand_sources_with_directories(output_cfg, tmp_path):
     dir1 = tmp_path.joinpath("dst1")
     os.makedirs(dir1, exist_ok=True)
     file1 = dir1.joinpath("1.tif")
@@ -688,7 +654,7 @@ def test_expand_sources_with_directories(tmp_path):
     expected = [file1, file2, file3, file4, file5]
     actual = expand_sources(
         paths,
-        Output(bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None),
+        output_cfg(),
         True,
     )
     assert len(actual) == 5
@@ -699,7 +665,7 @@ def test_expand_sources_with_directories(tmp_path):
     assert actual[4].src in expected
 
 
-def test_run_with_darwin(dm4, mocker):
+def test_run_with_darwin(dm4, mocker, output_cfg):
     def mock_platform_system() -> str:
         return "Darwin"
 
@@ -715,9 +681,7 @@ def test_run_with_darwin(dm4, mocker):
         mock_write,
         [
             Configuration(
-                output=Output(
-                    bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
-                ),
+                output=output_cfg(),
                 silent=True,
                 src=dm4,
             )
@@ -725,7 +689,7 @@ def test_run_with_darwin(dm4, mocker):
     )
 
 
-def test_run_with_linux(dm4, mocker):
+def test_run_with_linux(dm4, mocker, output_cfg):
     def mock_platform_system() -> str:
         return "Linux"
 
@@ -741,9 +705,7 @@ def test_run_with_linux(dm4, mocker):
         mock_write,
         [
             Configuration(
-                output=Output(
-                    bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
-                ),
+                output=output_cfg(),
                 silent=True,
                 src=dm4,
             )
