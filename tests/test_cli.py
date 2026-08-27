@@ -505,6 +505,16 @@ def test_write_emd_multiple_images(emd_multiple_images, output_cfg, tmp_path):
     assert dst.exists()
     assert os.path.isdir(dst)
     assert len(os.listdir(dst)) == 37
+    for name in os.listdir(dst):
+        dst_file = dst.joinpath(name)
+        assert dst_file.exists()
+        kind = filetype.guess(str(dst_file))
+        assert kind is not None
+        assert kind.mime == "image/jpeg"
+        jpeg_img = cv2.imread(str(dst_file), cv2.IMREAD_UNCHANGED)
+        assert jpeg_img is not None
+        assert jpeg_img.dtype.name == "uint8"
+        assert len(jpeg_img.shape) == 3
 
 
 def test_write_emd_with_no_image_data(mocker, output_cfg, tmp_path):
