@@ -293,7 +293,7 @@ def test_write_with_single_tiff_output(
     blank_16bit_single_page_tiff, output_cfg, tmp_path
 ):
     src = blank_16bit_single_page_tiff
-    dst = tmp_path.joinpath(src.name).with_suffix(TIFF_FILE_EXT)
+    dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
@@ -305,12 +305,12 @@ def test_write_with_single_tiff_output(
     assert src.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
-    assert kind.mime == "image/tiff"
-    tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
-    assert tiff_img is not None
-    assert tiff_img.dtype.name == "uint16"
-    assert tiff_img.shape == (256, 256, 3)
-    assert not np.any(tiff_img)
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
 def test_write_with_single_tiff_delete_original(

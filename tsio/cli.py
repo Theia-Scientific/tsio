@@ -102,11 +102,13 @@ class Output(BaseModel):
         return src.resolve().parent if self.path is None else self.path
 
     def cast(self, img: np.ndarray) -> np.ndarray:
+        LOGGER.debug(f"{img.dtype.name=}")
         if img.dtype.name != "float32":
             img = normalize_image(img)
         casted_img = np.round(img * self.bit_depth.max_pixel_intensity).astype(
             self.bit_depth.type
         )
+        LOGGER.debug(f"{len(img.shape)=}")
         if len(img.shape) == 2:
             return cv2.cvtColor(
                 casted_img,
