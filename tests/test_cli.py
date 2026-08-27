@@ -679,12 +679,14 @@ def test_write_tiff_with_ncsu(ncsu_tif, output_cfg, tmp_path):
         )
     )
     assert actual.exists()
+    kind = filetype.guess(str(actual))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
     jpeg_img = cv2.imread(str(actual))
     assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (500, 500, 3)
     assert np.any(jpeg_img)
-    tiff_img = cv2.imread(str(ncsu_tif))
-    assert tiff_img is not None
-    tiff_img = normalize_image(tiff_img)
 
 
 def test_expand_sources(output_cfg, tmp_path):
