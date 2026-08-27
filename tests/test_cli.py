@@ -41,6 +41,7 @@ from tsio.cli import (
     write_tiff,
 )
 from typer.testing import CliRunner
+from typing import Callable
 
 runner = CliRunner()
 
@@ -178,6 +179,16 @@ def emd_multiple_images(tmp_assets) -> Path:
     return dst
 
 
+@pytest.fixture
+def output_cfg() -> Callable[[BitDepths, OutputFileFormats, Path], Output]:
+    def _make_output_cfg(
+        bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
+    ) -> Output:
+        return Output(bit_depth=bit_depth, format=format, path=path)
+
+    return _make_output_cfg
+
+
 def test_bit_depths_type():
     assert BitDepths.EIGHT.type == "uint8"
     assert BitDepths.SIXTEEN.type == "uint16"
@@ -200,22 +211,12 @@ def test_output_file_formats_file_ext():
     assert OutputFileFormats.TIFF.file_ext == TIFF_FILE_EXT
 
 
-def test_output_destination_with_none_path(tmp_path):
-    assert (
-        Output(
-            bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
-        ).destination(tmp_path)
-        == tmp_path.resolve().parent
-    )
+def test_output_destination_with_none_path(tmp_path, output_cfg):
+    assert output_cfg().destination(tmp_path) == tmp_path.resolve().parent
 
 
-def test_output_destination_with_path(tmp_path):
-    assert (
-        Output(
-            bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=tmp_path
-        ).destination(tmp_path)
-        == tmp_path
-    )
+def test_output_destination_with_path(tmp_path, output_cfg):
+    assert output_cfg(path=tmp_path).destination(tmp_path) == tmp_path
 
 
 def test_output_cast_eight_gray(blank_16bit_grayscale_image, tmp_path):
