@@ -60,6 +60,19 @@ def blank_8bit_png(blank_8bit_grayscale_image, tmp_path) -> Path:
 
 
 @pytest.fixture
+def blank_16bit_grayscale_png(blank_16bit_grayscale_image, tmp_path) -> Path:
+    png_file = tmp_path.joinpath("tmp.png")
+    write_result = cv2.imwrite(str(png_file), blank_16bit_grayscale_image)
+    assert write_result
+    assert png_file.exists()
+    png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint16"
+    assert png_img.shape == (256, 256)
+    return png_file
+
+
+@pytest.fixture
 def blank_16bit_grayscale_image() -> np.ndarray:
     return np.zeros((256, 256), dtype=np.uint16)
 
@@ -604,6 +617,108 @@ def test_write_png(blank_8bit_png, output_cfg):
     assert jpeg_img.dtype.name == "uint8"
     assert jpeg_img.shape == (256, 256, 3)
     assert not np.any(jpeg_img)
+
+
+def test_write_8bit_grayscale_png_to_8bit_tiff(
+    blank_8bit_grayscale_image, output_cfg, tmp_path
+):
+    src = tmp_path.joinpath("src.png")
+    write_result = cv2.imwrite(str(src), blank_8bit_grayscale_image)
+    assert write_result
+    assert src.exists()
+    png_img = cv2.imread(str(src), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint8"
+    assert png_img.shape == (256, 256)
+    dst = src.with_suffix(TIFF_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(format=OutputFileFormats.TIFF),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/tiff"
+    tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert tiff_img is not None
+    assert tiff_img.dtype.name == "uint8"
+    assert tiff_img.shape == (256, 256, 3)
+
+
+def test_write_8bit_grayscale_png_to_16bit_tiff(
+    blank_8bit_grayscale_image, output_cfg, tmp_path
+):
+    src = tmp_path.joinpath("tmp.png")
+    write_result = cv2.imwrite(str(src), blank_8bit_grayscale_image)
+    assert write_result
+    assert src.exists()
+    png_img = cv2.imread(str(src), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint8"
+    assert png_img.shape == (256, 256)
+    dst = src.with_suffix(TIFF_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(
+                bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.TIFF
+            ),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/tiff"
+    tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert tiff_img is not None
+    assert tiff_img.dtype.name == "uint16"
+    assert tiff_img.shape == (256, 256, 3)
+
+
+def test_write_16bit_grayscale_png_to_8bit_tiff(blank_16bit_grayscale_png, output_cfg):
+    src = blank_16bit_grayscale_png
+    dst = src.with_suffix(TIFF_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(format=OutputFileFormats.TIFF),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/tiff"
+    tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert tiff_img is not None
+    assert tiff_img.dtype.name == "uint8"
+    assert tiff_img.shape == (256, 256, 3)
+
+
+def test_write_16bit_grayscale_png_to_16bit_tiff(blank_16bit_grayscale_png, output_cfg):
+    src = blank_16bit_grayscale_png
+    dst = src.with_suffix(TIFF_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(
+                bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.TIFF
+            ),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/tiff"
+    tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert tiff_img is not None
+    assert tiff_img.dtype.name == "uint16"
+    assert tiff_img.shape == (256, 256, 3)
 
 
 def test_write_tiff(blank_16bit_single_page_tiff, output_cfg):
