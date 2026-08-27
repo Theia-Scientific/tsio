@@ -213,8 +213,8 @@ def test_bit_depths_type():
 
 
 def test_bit_depths_max_pixel_intensity():
-    assert BitDepths.EIGHT.max_pixel_intensity == 256
-    assert BitDepths.SIXTEEN.max_pixel_intensity == 65536
+    assert BitDepths.EIGHT.max_pixel_intensity == 255
+    assert BitDepths.SIXTEEN.max_pixel_intensity == 65535
 
 
 def test_output_file_formats_mime_type():
@@ -727,13 +727,38 @@ def test_write_16bit_grayscale_png_to_16bit_tiff(blank_16bit_grayscale_png, outp
     assert not np.any(tiff_img)
 
 
-def test_write_heart_png_to_tiff(heart_png, output_cfg):
+def test_write_heart_png_to_8bit_tiff(heart_png, output_cfg, tmp_path):
     src = heart_png
-    dst = src.with_suffix(TIFF_FILE_EXT)
+    dst = tmp_path.joinpath(src.name).with_suffix(TIFF_FILE_EXT)
     write_png(
         Configuration(
             output=output_cfg(
-                bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.TIFF
+                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.TIFF, path=tmp_path
+            ),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/tiff"
+    tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert tiff_img is not None
+    assert tiff_img.dtype.name == "uint8"
+    assert tiff_img.shape == (256, 256, 3)
+    assert np.any(tiff_img)
+
+
+def test_write_heart_png_to_16bit_tiff(heart_png, output_cfg, tmp_path):
+    src = heart_png
+    dst = tmp_path.joinpath(src.name).with_suffix(TIFF_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(
+                bit_depth=BitDepths.SIXTEEN,
+                format=OutputFileFormats.TIFF,
+                path=tmp_path,
             ),
             silent=True,
             src=src,
