@@ -333,6 +333,7 @@ def expand_sources(
         else:
             sources.append(
                 Configuration(
+                    delete_original=delete_original,
                     extras=extras,
                     output=output,
                     silent=silent,
@@ -347,6 +348,8 @@ def run(
     sources: List[Configuration],
     num_cpus: Optional[int] = None,
 ):
+    LOGGER.debug(f"{sources=}")
+    LOGGER.debug(f"{num_cpus=}")
     if platform.system().lower() == "darwin":
         for src in sources:
             write_func(src)
