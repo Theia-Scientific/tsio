@@ -591,6 +591,14 @@ def test_write_png(blank_8bit_png, output_cfg):
         )
     )
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
 def test_write_tiff(blank_16bit_single_page_tiff, output_cfg):
@@ -604,6 +612,14 @@ def test_write_tiff(blank_16bit_single_page_tiff, output_cfg):
         )
     )
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
 def test_write_tiff_with_nontiff(
@@ -640,8 +656,17 @@ def test_write_tiff_with_nontiff(
             src=tif_file,
         )
     )
+    dst = tif_file.with_suffix(JPEG_FILE_EXT)
     assert "file is not a TIFF, skipped." in caplog.text
-    assert tif_file.with_suffix(JPEG_FILE_EXT).exists()
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
 def test_write_tiff_with_ncsu(ncsu_tif, output_cfg, tmp_path):
