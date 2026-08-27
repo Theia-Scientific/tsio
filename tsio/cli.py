@@ -12,7 +12,7 @@ import typer
 from enum import Enum
 from multiprocess.pool import Pool
 from pathlib import Path
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from pydicom import dcmread, iter_pixels
 from rsciio import digitalmicrograph, emd
 from rsciio.image import (
@@ -24,6 +24,7 @@ from tifffile import TiffFileError
 from tqdm import tqdm
 from tsio import __app_name__
 from typing import Any, Callable, Dict, List, Literal, Optional
+from typing_extensions import Self
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
 PREFIX: str = f"{__app_name__.upper()}"
@@ -116,6 +117,20 @@ class Output(BaseModel):
             )
         else:
             return casted_img
+
+    @model_validator(mode="after")
+    def check_supported_bit_depth(self) -> Self:
+        SUPPORTED_MAP = {
+            OutputFileFormats.JPEG: [BitDepths.EIGHT],
+            OutputFileFormats.PNG: [BitDepths.EIGHT, BitDepths.SIXTEEN],
+            OutputFileFormats.TIFF: [BitDepths.EIGHT, BitDepths.SIXTEEN],
+        }
+        if self.bit_depth in SUPPORTED_MAP[self.format]:
+            return self
+        else:
+            raise ValueError(
+                f"The {self.bit_depth.value} bit depth is not supported for the {self.format.value.upper()} output format."
+            )
 
 
 class Configuration(BaseModel):
