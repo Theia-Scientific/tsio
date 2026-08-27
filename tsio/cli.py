@@ -447,6 +447,7 @@ def dcm(
         )
     except ValidationError as err:
         print_validation_error(err)
+        raise typer.Exit(code=1)
 
 
 @app.command(help="Handle Input/Output (IO) of DigitalMicrograph (DM) files.")
@@ -483,6 +484,7 @@ def dm(
         )
     except ValidationError as err:
         print_validation_error(err)
+        raise typer.Exit(code=1)
 
 
 @app.command(help="Handle Input/Output (IO) of Velox (EMD) files.", name="emd")
@@ -524,6 +526,7 @@ def app_emd(
         )
     except ValidationError as err:
         print_validation_error(err)
+        raise typer.Exit(code=1)
 
 
 @app.command(help="Handle Input/Output (IO) of PNG files.")
@@ -560,6 +563,7 @@ def png(
         )
     except ValidationError as err:
         print_validation_error(err)
+        raise typer.Exit(code=1)
 
 
 @app.command(help="Handle Input/Output (IO) of TIFF files.")
@@ -596,6 +600,7 @@ def tiff(
         )
     except ValidationError as err:
         print_validation_error(err)
+        raise typer.Exit(code=1)
 
 
 @app.callback()
