@@ -414,6 +414,14 @@ def test_write_dcm(dcm, output_cfg, tmp_path):
         )
     )
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
 def test_write_dm(dm4, output_cfg, tmp_path):
@@ -463,17 +471,25 @@ def test_write_dm_fails_with_exception(output_cfg, tmp_path):
     assert not dst.exists()
 
 
-def test_write_emd_single_image(emd_single_image, output_cfg, tmp_path):
+def test_write_emd_single_image(emd_single_image, output_cfg):
     src = emd_single_image
-    dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
+    dst = src.with_suffix(JPEG_FILE_EXT)
     write_emd(
         Configuration(
-            output=output_cfg(path=dst),
+            output=output_cfg(),
             silent=True,
             src=src,
         )
     )
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (1024, 1024, 3)
+    assert np.any(jpeg_img)
 
 
 def test_write_emd_multiple_images(emd_multiple_images, output_cfg, tmp_path):
