@@ -122,6 +122,11 @@ def assets() -> Path:
 
 
 @pytest.fixture
+def heart_png(assets) -> Path:
+    return assets.joinpath("heart16.png")
+
+
+@pytest.fixture
 def ncsu_tif(assets) -> Path:
     return assets.joinpath("1138622_small_slice_42.tif")
 
@@ -719,6 +724,30 @@ def test_write_16bit_grayscale_png_to_16bit_tiff(blank_16bit_grayscale_png, outp
     assert tiff_img is not None
     assert tiff_img.dtype.name == "uint16"
     assert tiff_img.shape == (256, 256, 3)
+    assert not np.any(tiff_img)
+
+
+def test_write_heart_png_to_tiff(heart_png, output_cfg):
+    src = heart_png
+    dst = src.with_suffix(TIFF_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(
+                bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.TIFF
+            ),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/tiff"
+    tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert tiff_img is not None
+    assert tiff_img.dtype.name == "uint16"
+    assert tiff_img.shape == (256, 256, 3)
+    assert np.any(tiff_img)
 
 
 def test_write_16bit_grayscale_png_to_jpeg(blank_16bit_grayscale_png, output_cfg):
