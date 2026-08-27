@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+import cv2
 import datetime
+import filetype
 import gdown
 import importlib.metadata
 import logging
@@ -9,6 +11,7 @@ import os
 import pytest
 
 from pathlib import Path
+from pydantic import ValidationError
 from pydicom import Dataset, FileMetaDataset
 from pydicom.uid import UID, ExplicitVRLittleEndian
 from rsciio.digitalmicrograph import file_reader as dm_file_reader
@@ -17,11 +20,13 @@ from rsciio.tiff import file_reader as tiff_file_reader, file_writer as tiff_fil
 from tsio import __app_name__
 from tsio.cli import (
     app,
+    BitDepths,
     Configuration,
     expand_sources,
     map_verbosity,
     JPEG_FILE_EXT,
     JPEG_MIME_TYPE,
+    Output,
     OutputFileFormats,
     PNG_FILE_EXT,
     PNG_MIME_TYPE,
@@ -36,26 +41,32 @@ from tsio.cli import (
     write_tiff,
 )
 from typer.testing import CliRunner
+from typing import Callable
 
 runner = CliRunner()
 
 
 @pytest.fixture
-def blank_8bit_image() -> np.ndarray:
-    return np.zeros((1, 256, 256), dtype=np.uint8)
+def blank_8bit_grayscale_image() -> np.ndarray:
+    return np.zeros((256, 256), dtype=np.uint8)
 
 
 @pytest.fixture
-def blank_8bit_png(blank_8bit_image, tmp_path) -> Path:
+def blank_8bit_png(blank_8bit_grayscale_image, tmp_path) -> Path:
     png_file = tmp_path.joinpath("image.png")
-    signal = {"data": blank_8bit_image, "axes": {}}
+    signal = {"data": blank_8bit_grayscale_image, "axes": {}}
     image_file_writer(str(png_file), signal)
     return png_file
 
 
 @pytest.fixture
-def blank_16bit_image() -> np.ndarray:
-    return np.zeros((1, 256, 256), dtype=np.uint16)
+def blank_16bit_grayscale_image() -> np.ndarray:
+    return np.zeros((256, 256), dtype=np.uint16)
+
+
+@pytest.fixture
+def blank_16bit_bgr_image() -> np.ndarray:
+    return np.zeros((256, 256, 3), dtype=np.uint16)
 
 
 @pytest.fixture
@@ -64,10 +75,10 @@ def random_16bit_multipage_image() -> np.ndarray:
 
 
 @pytest.fixture
-def blank_16bit_single_page_tiff(blank_16bit_image, tmp_path) -> Path:
+def blank_16bit_single_page_tiff(blank_16bit_grayscale_image, tmp_path) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {
-        "data": blank_16bit_image,
+        "data": blank_16bit_grayscale_image,
     }
     tiff_file_writer(str(tif_file), signal)
     return tif_file
@@ -93,9 +104,19 @@ def tmp_assets() -> Path:
 
 
 @pytest.fixture
-def dcm(tmp_path, blank_8bit_image) -> Path:
-    _, height, width = blank_8bit_image.shape
-    grey_img = blank_8bit_image[0, :, :]
+def assets() -> Path:
+    return Path(os.getcwd()).joinpath("tests", "assets")
+
+
+@pytest.fixture
+def ncsu_tif(assets) -> Path:
+    return assets.joinpath("1138622_small_slice_42.tif")
+
+
+@pytest.fixture
+def dcm(tmp_path, blank_8bit_grayscale_image) -> Path:
+    height, width = blank_8bit_grayscale_image.shape
+    grey_img = blank_8bit_grayscale_image
     dcm_file = tmp_path.joinpath("test.dcm")
     ds = Dataset()
     ds.Rows = height
@@ -158,6 +179,26 @@ def emd_multiple_images(tmp_assets) -> Path:
     return dst
 
 
+@pytest.fixture
+def output_cfg() -> Callable[[BitDepths, OutputFileFormats, Path], Output]:
+    def _make_output_cfg(
+        bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
+    ) -> Output:
+        return Output(bit_depth=bit_depth, format=format, path=path)
+
+    return _make_output_cfg
+
+
+def test_bit_depths_type():
+    assert BitDepths.EIGHT.type == "uint8"
+    assert BitDepths.SIXTEEN.type == "uint16"
+
+
+def test_bit_depths_max_pixel_intensity():
+    assert BitDepths.EIGHT.max_pixel_intensity == 256
+    assert BitDepths.SIXTEEN.max_pixel_intensity == 65536
+
+
 def test_output_file_formats_mime_type():
     assert OutputFileFormats.JPEG.mime_type == JPEG_MIME_TYPE
     assert OutputFileFormats.PNG.mime_type == PNG_MIME_TYPE
@@ -170,10 +211,40 @@ def test_output_file_formats_file_ext():
     assert OutputFileFormats.TIFF.file_ext == TIFF_FILE_EXT
 
 
-def test_output_file_formats_supported_bit_depths():
-    assert OutputFileFormats.JPEG.supported_bit_depths == ["uint8"]
-    assert OutputFileFormats.PNG.supported_bit_depths == ["uint8", "uint16"]
-    assert OutputFileFormats.TIFF.supported_bit_depths == ["uint8", "uint16"]
+def test_output_destination_with_none_path(tmp_path, output_cfg):
+    assert output_cfg().destination(tmp_path) == tmp_path.resolve().parent
+
+
+def test_output_destination_with_path(tmp_path, output_cfg):
+    assert output_cfg(path=tmp_path).destination(tmp_path) == tmp_path
+
+
+def test_output_cast_eight_gray(blank_16bit_grayscale_image, output_cfg, tmp_path):
+    img = output_cfg(path=tmp_path).cast(blank_16bit_grayscale_image)
+    assert img.dtype.name == "uint8"
+    assert img.shape == (256, 256, 3)
+    assert not np.any(img)
+
+
+def test_output_cast_eight_bgr(blank_16bit_bgr_image, output_cfg, tmp_path):
+    img = output_cfg(path=tmp_path).cast(blank_16bit_bgr_image)
+    assert img.dtype.name == "uint8"
+    assert img.shape == (256, 256, 3)
+    assert not np.any(img)
+
+
+def test_output_cast_sixteen(blank_16bit_grayscale_image, output_cfg, tmp_path):
+    img = output_cfg(
+        bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.PNG, path=tmp_path
+    ).cast(blank_16bit_grayscale_image)
+    assert img.dtype.name == "uint16"
+    assert img.shape == (256, 256, 3)
+    assert not np.any(img)
+
+
+def test_output_validation():
+    with pytest.raises(ValidationError):
+        Output(bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.JPEG, path=None)
 
 
 def test_map_verbosity_none():
@@ -202,53 +273,78 @@ def test_map_verbosity_three():
     assert actual == "DEBUG"
 
 
-def test_write_with_single_tiff(blank_16bit_single_page_tiff):
+def test_write_with_single_tiff(blank_16bit_single_page_tiff, output_cfg):
     src = blank_16bit_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
-        None,
-        OutputFileFormats.JPEG,
+        output_cfg(),
         True,
         normalize=False,
     )
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
-def test_write_with_single_tiff_output(blank_16bit_single_page_tiff, tmp_path):
+def test_write_with_single_tiff_output(
+    blank_16bit_single_page_tiff, output_cfg, tmp_path
+):
     src = blank_16bit_single_page_tiff
     dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
-        tmp_path,
-        OutputFileFormats.JPEG,
+        output_cfg(path=tmp_path),
         True,
         normalize=False,
     )
     assert dst.exists()
     assert src.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
-def test_write_with_single_tiff_delete_original(blank_16bit_single_page_tiff):
+def test_write_with_single_tiff_delete_original(
+    blank_16bit_single_page_tiff, output_cfg
+):
     src = blank_16bit_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
-        None,
-        OutputFileFormats.JPEG,
+        output_cfg(),
         True,
         delete_original=True,
         normalize=False,
     )
     assert dst.exists()
     assert not src.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
 def test_write_with_multipages_tiff(
-    random_multipage_tiff, random_16bit_multipage_image
+    output_cfg, random_multipage_tiff, random_16bit_multipage_image
 ):
     pages_count, *_ = random_16bit_multipage_image.shape
     src = random_multipage_tiff
@@ -257,8 +353,7 @@ def test_write_with_multipages_tiff(
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
-        None,
-        OutputFileFormats.JPEG,
+        output_cfg(),
         True,
         normalize=False,
     )
@@ -267,57 +362,79 @@ def test_write_with_multipages_tiff(
         len([name for name in os.listdir(dst) if dst.joinpath(name).is_file()])
         == pages_count
     )
+    for name in os.listdir(dst):
+        assert dst.joinpath(name).exists()
+        kind = filetype.guess(str(dst.joinpath(name)))
+        assert kind is not None
+        assert kind.mime == "image/jpeg"
+        jpeg_img = cv2.imread(str(dst.joinpath(name)), cv2.IMREAD_UNCHANGED)
+        assert jpeg_img is not None
+        assert jpeg_img.dtype.name == "uint8"
+        assert len(jpeg_img.shape) == 3
+        assert np.any(jpeg_img)
 
 
-def test_write_with_dm3(dm3, tmp_path):
+def test_write_with_dm3(dm3, output_cfg, tmp_path):
     src = dm3
     dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
     write(
         dm_file_reader(src),
         src,
-        tmp_path,
-        OutputFileFormats.JPEG,
+        output_cfg(path=tmp_path),
         True,
         normalize=True,
     )
     assert dst.exists()
 
 
-def test_write_with_dm4(dm4, tmp_path):
+def test_write_with_dm4(dm4, output_cfg, tmp_path):
     src = dm4
     dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
     write(
         dm_file_reader(src),
         src,
-        tmp_path,
-        OutputFileFormats.JPEG,
+        output_cfg(path=tmp_path),
         True,
         normalize=True,
     )
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (1024, 1024, 3)
+    assert np.any(jpeg_img)
 
 
-def test_write_dcm(dcm, tmp_path):
+def test_write_dcm(dcm, output_cfg, tmp_path):
     src = dcm
     dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
     write_dcm(
         Configuration(
-            dst=dst,
-            output_format=OutputFileFormats.JPEG,
+            output=output_cfg(path=tmp_path),
             silent=True,
             src=src,
         )
     )
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
-def test_write_dm(dm4, tmp_path):
+def test_write_dm(dm4, output_cfg, tmp_path):
     src = dm4
     dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
     write_dm(
         Configuration(
-            dst=dst,
-            output_format=OutputFileFormats.JPEG,
+            output=output_cfg(path=dst),
             silent=True,
             src=src,
         )
@@ -325,7 +442,7 @@ def test_write_dm(dm4, tmp_path):
     assert dst.exists()
 
 
-def test_write_dm_fails_with_not_implemented(mocker, tmp_path):
+def test_write_dm_fails_with_not_implemented(mocker, output_cfg, tmp_path):
     src = tmp_path.joinpath("test.dm4")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
@@ -338,8 +455,7 @@ def test_write_dm_fails_with_not_implemented(mocker, tmp_path):
     mocker.patch("rsciio.digitalmicrograph.file_reader", mock_file_reader)
     write_dm(
         Configuration(
-            dst=None,
-            output_format=OutputFileFormats.JPEG,
+            output=output_cfg(),
             silent=True,
             src=src,
         )
@@ -347,13 +463,12 @@ def test_write_dm_fails_with_not_implemented(mocker, tmp_path):
     assert not dst.exists()
 
 
-def test_write_dm_fails_with_exception(tmp_path):
+def test_write_dm_fails_with_exception(output_cfg, tmp_path):
     src = tmp_path.joinpath("test.dm4")
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_dm(
         Configuration(
-            dst=None,
-            output_format=OutputFileFormats.JPEG,
+            output=output_cfg(),
             silent=True,
             src=src,
         )
@@ -361,27 +476,33 @@ def test_write_dm_fails_with_exception(tmp_path):
     assert not dst.exists()
 
 
-def test_write_emd_single_image(emd_single_image, tmp_path):
+def test_write_emd_single_image(emd_single_image, output_cfg):
     src = emd_single_image
-    dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
+    dst = src.with_suffix(JPEG_FILE_EXT)
     write_emd(
         Configuration(
-            dst=dst,
-            output_format=OutputFileFormats.JPEG,
+            output=output_cfg(),
             silent=True,
             src=src,
         )
     )
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (1024, 1024, 3)
+    assert np.any(jpeg_img)
 
 
-def test_write_emd_multiple_images(emd_multiple_images, tmp_path):
+def test_write_emd_multiple_images(emd_multiple_images, output_cfg, tmp_path):
     src = emd_multiple_images
     dst = tmp_path.joinpath(src.stem)
     write_emd(
         Configuration(
-            dst=tmp_path,
-            output_format=OutputFileFormats.JPEG,
+            output=output_cfg(path=tmp_path),
             silent=True,
             src=src,
         )
@@ -389,9 +510,19 @@ def test_write_emd_multiple_images(emd_multiple_images, tmp_path):
     assert dst.exists()
     assert os.path.isdir(dst)
     assert len(os.listdir(dst)) == 37
+    for name in os.listdir(dst):
+        dst_file = dst.joinpath(name)
+        assert dst_file.exists()
+        kind = filetype.guess(str(dst_file))
+        assert kind is not None
+        assert kind.mime == "image/jpeg"
+        jpeg_img = cv2.imread(str(dst_file), cv2.IMREAD_UNCHANGED)
+        assert jpeg_img is not None
+        assert jpeg_img.dtype.name == "uint8"
+        assert len(jpeg_img.shape) == 3
 
 
-def test_write_emd_with_no_image_data(mocker, tmp_path):
+def test_write_emd_with_no_image_data(mocker, output_cfg, tmp_path):
     src = tmp_path.joinpath("test.emd")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
@@ -404,8 +535,7 @@ def test_write_emd_with_no_image_data(mocker, tmp_path):
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
     write_emd(
         Configuration(
-            dst=None,
-            output_format=OutputFileFormats.JPEG,
+            output=output_cfg(),
             silent=True,
             src=src,
         )
@@ -413,7 +543,7 @@ def test_write_emd_with_no_image_data(mocker, tmp_path):
     assert not dst.exists()
 
 
-def test_write_emd_with_no_data_field(mocker, tmp_path):
+def test_write_emd_with_no_data_field(mocker, output_cfg, tmp_path):
     src = tmp_path.joinpath("test.emd")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
@@ -426,8 +556,7 @@ def test_write_emd_with_no_data_field(mocker, tmp_path):
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
     write_emd(
         Configuration(
-            dst=None,
-            output_format=OutputFileFormats.JPEG,
+            output=output_cfg(),
             silent=True,
             src=src,
         )
@@ -435,7 +564,7 @@ def test_write_emd_with_no_data_field(mocker, tmp_path):
     assert not dst.exists()
 
 
-def test_write_emd_fails_with_exception(mocker, tmp_path):
+def test_write_emd_fails_with_exception(mocker, output_cfg, tmp_path):
     src = tmp_path.joinpath("test.emd")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
@@ -448,99 +577,153 @@ def test_write_emd_fails_with_exception(mocker, tmp_path):
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
     write_emd(
         Configuration(
-            src=src, dst=None, output_format=OutputFileFormats.JPEG, silent=True
+            output=output_cfg(),
+            silent=True,
+            src=src,
         )
     )
     assert not dst.exists()
 
 
-def test_write_png(blank_8bit_png):
+def test_write_png(blank_8bit_png, output_cfg):
     src = blank_8bit_png
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_png(
         Configuration(
-            dst=None,
-            output_format=OutputFileFormats.JPEG,
+            output=output_cfg(),
             silent=True,
             src=src,
         )
     )
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
-def test_write_tiff(blank_16bit_single_page_tiff):
+def test_write_tiff(blank_16bit_single_page_tiff, output_cfg):
     src = blank_16bit_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_tiff(
         Configuration(
-            dst=None,
-            output_format=OutputFileFormats.JPEG,
+            output=output_cfg(),
             silent=True,
             src=src,
         )
     )
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
-def test_write_tiff_with_nontiff(blank_8bit_image, blank_16bit_image, caplog, tmp_path):
+def test_write_tiff_with_nontiff(
+    blank_8bit_grayscale_image,
+    blank_16bit_grayscale_image,
+    caplog,
+    output_cfg,
+    tmp_path,
+):
     png_file = tmp_path.joinpath("image.png")
-    signal = {"data": blank_8bit_image, "axes": {}}
+    signal = {"data": blank_8bit_grayscale_image, "axes": {}}
     image_file_writer(str(png_file), signal)
     tif_file = tmp_path.joinpath("image.tif")
     signal = {
-        "data": blank_16bit_image,
+        "data": blank_16bit_grayscale_image,
     }
     tiff_file_writer(str(tif_file), signal)
     with caplog.at_level(logging.WARNING):
         write_tiff(
             Configuration(
-                dst=tmp_path,
-                output_format=OutputFileFormats.JPEG,
+                output=output_cfg(path=tmp_path),
                 silent=False,
                 src=png_file,
             )
         )
     write_tiff(
         Configuration(
-            dst=tmp_path,
-            output_format=OutputFileFormats.JPEG,
+            output=Output(
+                bit_depth=BitDepths.EIGHT,
+                format=OutputFileFormats.JPEG,
+                path=tmp_path,
+            ),
             silent=True,
             src=tif_file,
         )
     )
+    dst = tif_file.with_suffix(JPEG_FILE_EXT)
     assert "file is not a TIFF, skipped." in caplog.text
-    assert tif_file.with_suffix(JPEG_FILE_EXT).exists()
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
-def test_expand_sources(tmp_path):
+def test_write_tiff_with_ncsu(ncsu_tif, output_cfg, tmp_path):
+    actual = tmp_path.joinpath(ncsu_tif.with_suffix(JPEG_FILE_EXT).name)
+    write_tiff(
+        Configuration(
+            output=output_cfg(path=tmp_path),
+            silent=True,
+            src=ncsu_tif,
+        )
+    )
+    assert actual.exists()
+    kind = filetype.guess(str(actual))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(actual))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (500, 500, 3)
+    assert np.any(jpeg_img)
+
+
+def test_expand_sources(output_cfg, tmp_path):
     paths = [
         tmp_path.joinpath("dst1.tif"),
         tmp_path.joinpath("dst2.dm3"),
         tmp_path.joinpath("dst3.dm4"),
     ]
-    actual = expand_sources(paths, None, OutputFileFormats.JPEG, True)
+    actual = expand_sources(
+        paths,
+        output_cfg(),
+        True,
+    )
     assert len(actual) == 3
     assert actual[0] == Configuration(
-        dst=None,
-        output_format=OutputFileFormats.JPEG,
+        output=output_cfg(),
         silent=True,
         src=paths[0],
     )
     assert actual[1] == Configuration(
-        dst=None,
-        output_format=OutputFileFormats.JPEG,
+        output=output_cfg(),
         silent=True,
         src=paths[1],
     )
     assert actual[2] == Configuration(
-        dst=None,
-        output_format=OutputFileFormats.JPEG,
+        output=output_cfg(),
         silent=True,
         src=paths[2],
     )
 
 
-def test_expand_sources_with_directories(tmp_path):
+def test_expand_sources_with_directories(output_cfg, tmp_path):
     dir1 = tmp_path.joinpath("dst1")
     os.makedirs(dir1, exist_ok=True)
     file1 = dir1.joinpath("1.tif")
@@ -553,7 +736,11 @@ def test_expand_sources_with_directories(tmp_path):
     file5 = tmp_path.joinpath("dst3.dm4")
     paths = [dir1, file4, file5]
     expected = [file1, file2, file3, file4, file5]
-    actual = expand_sources(paths, None, OutputFileFormats.JPEG, True)
+    actual = expand_sources(
+        paths,
+        output_cfg(),
+        True,
+    )
     assert len(actual) == 5
     assert actual[0].src in expected
     assert actual[1].src in expected
@@ -562,7 +749,7 @@ def test_expand_sources_with_directories(tmp_path):
     assert actual[4].src in expected
 
 
-def test_run_with_darwin(dm4, mocker):
+def test_run_with_darwin(dm4, mocker, output_cfg):
     def mock_platform_system() -> str:
         return "Darwin"
 
@@ -578,8 +765,7 @@ def test_run_with_darwin(dm4, mocker):
         mock_write,
         [
             Configuration(
-                dst=None,
-                output_format=OutputFileFormats.JPEG,
+                output=output_cfg(),
                 silent=True,
                 src=dm4,
             )
@@ -587,7 +773,7 @@ def test_run_with_darwin(dm4, mocker):
     )
 
 
-def test_run_with_linux(dm4, mocker):
+def test_run_with_linux(dm4, mocker, output_cfg):
     def mock_platform_system() -> str:
         return "Linux"
 
@@ -603,8 +789,7 @@ def test_run_with_linux(dm4, mocker):
         mock_write,
         [
             Configuration(
-                dst=None,
-                output_format=OutputFileFormats.JPEG,
+                output=output_cfg(),
                 silent=True,
                 src=dm4,
             )
@@ -631,11 +816,25 @@ def test_app_dcm(dcm, tmp_path):
     assert dst.exists()
 
 
+def test_app_dcm_fails(dcm, tmp_path):
+    result = runner.invoke(
+        app, ["dcm", "-o", str(tmp_path), "-S", "-b", "16", "jpeg", str(dcm)]
+    )
+    assert result.exit_code == 1
+
+
 def test_app_dm(dm4, tmp_path):
     dst = tmp_path.joinpath(dm4.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(app, ["dm", "-o", str(tmp_path), "-S", "jpeg", str(dm4)])
     assert result.exit_code == 0
     assert dst.exists()
+
+
+def test_app_dm_fails(dm4, tmp_path):
+    result = runner.invoke(
+        app, ["dm", "-o", str(tmp_path), "-S", "-b", "16", "jpeg", str(dm4)]
+    )
+    assert result.exit_code == 1
 
 
 def test_app_all_dm_as_files(dm3, dm4, tmp_path):
@@ -673,6 +872,21 @@ def test_app_emd(mocker, emd_single_image, tmp_path):
     assert result.exit_code == 0
 
 
+def test_app_emd_fails(mocker, emd_single_image, tmp_path):
+    src = emd_single_image
+
+    def mock_write_emd(*args, **kwargs):
+        _ = args
+        _ = kwargs
+
+    mocker.patch("tsio.cli.write_emd", mock_write_emd)
+
+    result = runner.invoke(
+        app, ["emd", "-o", str(tmp_path), "-S", "-b", "16", "jpeg", str(src)]
+    )
+    assert result.exit_code == 1
+
+
 def test_app_png(blank_8bit_png, tmp_path):
     dst = tmp_path.joinpath(blank_8bit_png.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(
@@ -680,6 +894,13 @@ def test_app_png(blank_8bit_png, tmp_path):
     )
     assert result.exit_code == 0
     assert dst.exists()
+
+
+def test_app_png_fails(blank_8bit_png, tmp_path):
+    result = runner.invoke(
+        app, ["png", "-o", str(tmp_path), "-S", "-b", "16", "jpeg", str(blank_8bit_png)]
+    )
+    assert result.exit_code == 1
 
 
 def test_app_tiff(blank_16bit_single_page_tiff, tmp_path):
@@ -692,3 +913,20 @@ def test_app_tiff(blank_16bit_single_page_tiff, tmp_path):
     )
     assert result.exit_code == 0
     assert dst.exists()
+
+
+def test_app_tiff_fails(blank_16bit_single_page_tiff, tmp_path):
+    result = runner.invoke(
+        app,
+        [
+            "tiff",
+            "-o",
+            str(tmp_path),
+            "-S",
+            "-b",
+            "16",
+            "jpeg",
+            str(blank_16bit_single_page_tiff),
+        ],
+    )
+    assert result.exit_code == 1
