@@ -129,7 +129,7 @@ class Output(BaseModel):
             return self
         else:
             raise ValueError(
-                f"The {self.bit_depth.value} bit depth is not supported for the {self.format.value.upper()} output format."
+                f"The {self.bit_depth.value}-bit depth is not supported for the {self.format.value.upper()} output format."
             )
 
 
