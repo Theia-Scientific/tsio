@@ -12,8 +12,9 @@ import typer
 from enum import Enum
 from multiprocess.pool import Pool
 from pathlib import Path
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, ValidationError
 from pydicom import dcmread, iter_pixels
+from rich import print
 from rsciio import digitalmicrograph, emd
 from rsciio.image import (
     file_reader as image_file_reader,
@@ -139,6 +140,11 @@ class Configuration(BaseModel):
     output: Output
     silent: bool
     src: Path
+
+
+def print_validation_error(err: ValidationError):
+    for e in err.errors():
+        print(f"[bold red]ERROR![/bold red] {e['msg'].removeprefix('Value error, ')}")
 
 
 def map_verbosity(count: int) -> str:
@@ -424,18 +430,23 @@ def dcm(
     LOGGER.debug(f"{output_bit_depth=}")
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
-    run(
-        write_dcm,
-        expand_sources(
-            paths,
-            Output(
-                bit_depth=BitDepths(output_bit_depth), format=output_format, path=output
+    try:
+        run(
+            write_dcm,
+            expand_sources(
+                paths,
+                Output(
+                    bit_depth=BitDepths(output_bit_depth),
+                    format=output_format,
+                    path=output,
+                ),
+                silent,
+                delete_original=delete_original,
             ),
-            silent,
-            delete_original=delete_original,
-        ),
-        num_cpus,
-    )
+            num_cpus,
+        )
+    except ValidationError as err:
+        print_validation_error(err)
 
 
 @app.command(help="Handle Input/Output (IO) of DigitalMicrograph (DM) files.")
@@ -455,18 +466,23 @@ def dm(
     LOGGER.debug(f"{output_bit_depth=}")
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
-    run(
-        write_dm,
-        expand_sources(
-            paths,
-            Output(
-                bit_depth=BitDepths(output_bit_depth), format=output_format, path=output
+    try:
+        run(
+            write_dm,
+            expand_sources(
+                paths,
+                Output(
+                    bit_depth=BitDepths(output_bit_depth),
+                    format=output_format,
+                    path=output,
+                ),
+                silent,
+                delete_original=delete_original,
             ),
-            silent,
-            delete_original=delete_original,
-        ),
-        num_cpus,
-    )
+            num_cpus,
+        )
+    except ValidationError as err:
+        print_validation_error(err)
 
 
 @app.command(help="Handle Input/Output (IO) of Velox (EMD) files.", name="emd")
@@ -490,19 +506,24 @@ def app_emd(
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{paths=}")
     LOGGER.debug(f"{silent=}")
-    run(
-        write_emd,
-        expand_sources(
-            paths,
-            Output(
-                bit_depth=BitDepths(output_bit_depth), format=output_format, path=output
+    try:
+        run(
+            write_emd,
+            expand_sources(
+                paths,
+                Output(
+                    bit_depth=BitDepths(output_bit_depth),
+                    format=output_format,
+                    path=output,
+                ),
+                silent,
+                delete_original=delete_original,
+                extras={"detector": detector},
             ),
-            silent,
-            delete_original=delete_original,
-            extras={"detector": detector},
-        ),
-        num_cpus,
-    )
+            num_cpus,
+        )
+    except ValidationError as err:
+        print_validation_error(err)
 
 
 @app.command(help="Handle Input/Output (IO) of PNG files.")
@@ -522,18 +543,23 @@ def png(
     LOGGER.debug(f"{output_bit_depth=}")
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
-    run(
-        write_png,
-        expand_sources(
-            paths,
-            Output(
-                bit_depth=BitDepths(output_bit_depth), format=output_format, path=output
+    try:
+        run(
+            write_png,
+            expand_sources(
+                paths,
+                Output(
+                    bit_depth=BitDepths(output_bit_depth),
+                    format=output_format,
+                    path=output,
+                ),
+                silent,
+                delete_original=delete_original,
             ),
-            silent,
-            delete_original=delete_original,
-        ),
-        num_cpus,
-    )
+            num_cpus,
+        )
+    except ValidationError as err:
+        print_validation_error(err)
 
 
 @app.command(help="Handle Input/Output (IO) of TIFF files.")
@@ -553,18 +579,23 @@ def tiff(
     LOGGER.debug(f"{output_bit_depth=}")
     LOGGER.debug(f"{output_format=}")
     LOGGER.debug(f"{silent=}")
-    run(
-        write_tiff,
-        expand_sources(
-            paths,
-            Output(
-                bit_depth=BitDepths(output_bit_depth), format=output_format, path=output
+    try:
+        run(
+            write_tiff,
+            expand_sources(
+                paths,
+                Output(
+                    bit_depth=BitDepths(output_bit_depth),
+                    format=output_format,
+                    path=output,
+                ),
+                silent,
+                delete_original=delete_original,
             ),
-            silent,
-            delete_original=delete_original,
-        ),
-        num_cpus,
-    )
+            num_cpus,
+        )
+    except ValidationError as err:
+        print_validation_error(err)
 
 
 @app.callback()
