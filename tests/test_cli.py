@@ -11,6 +11,7 @@ import os
 import pytest
 
 from pathlib import Path
+from pydantic import ValidationError
 from pydicom import Dataset, FileMetaDataset
 from pydicom.uid import UID, ExplicitVRLittleEndian
 from rsciio.digitalmicrograph import file_reader as dm_file_reader
@@ -23,7 +24,6 @@ from tsio.cli import (
     Configuration,
     expand_sources,
     map_verbosity,
-    normalize_image,
     JPEG_FILE_EXT,
     JPEG_MIME_TYPE,
     Output,
@@ -234,12 +234,17 @@ def test_output_cast_eight_bgr(blank_16bit_bgr_image, output_cfg, tmp_path):
 
 
 def test_output_cast_sixteen(blank_16bit_grayscale_image, output_cfg, tmp_path):
-    img = output_cfg(bit_depth=BitDepths.SIXTEEN, path=tmp_path).cast(
-        blank_16bit_grayscale_image
-    )
+    img = output_cfg(
+        bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.PNG, path=tmp_path
+    ).cast(blank_16bit_grayscale_image)
     assert img.dtype.name == "uint16"
     assert img.shape == (256, 256, 3)
     assert not np.any(img)
+
+
+def test_output_validation():
+    with pytest.raises(ValidationError):
+        Output(bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.JPEG, path=None)
 
 
 def test_map_verbosity_none():
