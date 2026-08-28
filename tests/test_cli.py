@@ -34,6 +34,7 @@ from tsio.cli import (
     Output,
     PNG_FILE_EXT,
     PNG_MIME_TYPE,
+    run,
     run_dcm,
     run_dm,
     run_emd,
@@ -931,6 +932,21 @@ def test_run_emd_fails_with_exception(mocker, run_cfg, tmp_path):
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
     run_emd(run_cfg(src))
     assert not dst.exists()
+
+
+def test_run(black_8bit_gray_png, output_cfg, run_cfg, tmp_path):
+    src = black_8bit_gray_png
+    dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
+    run(run_cfg(src, from_format=FromFormats.PNG, output=output_cfg(path=tmp_path)))
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
 def test_run_png_8bit_gray(black_8bit_gray_png, run_cfg):
