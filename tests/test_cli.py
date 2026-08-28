@@ -47,41 +47,66 @@ runner = CliRunner()
 
 
 @pytest.fixture
-def blank_8bit_grayscale_image() -> np.ndarray:
+def black_8bit_gray_image() -> np.ndarray:
     return np.zeros((256, 256), dtype=np.uint8)
 
 
 @pytest.fixture
-def white_8bit_rgba_image() -> np.ndarray:
-    return np.ones((256, 256, 4), dtype=np.uint8)
+def black_8bit_rgb_image() -> np.ndarray:
+    return np.zeros((256, 256, 3), dtype=np.uint8)
 
 
 @pytest.fixture
-def blank_8bit_png(blank_8bit_grayscale_image, tmp_path) -> Path:
+def black_8bit_rgba_image() -> np.ndarray:
+    return np.zeros((256, 256, 4), dtype=np.uint8)
+
+
+@pytest.fixture
+def black_16bit_gray_image() -> np.ndarray:
+    return np.zeros((256, 256), dtype=np.uint16)
+
+
+@pytest.fixture
+def black_16bit_rgb_image() -> np.ndarray:
+    return np.zeros((256, 256, 3), dtype=np.uint16)
+
+
+@pytest.fixture
+def black_16bit_rgba_image() -> np.ndarray:
+    return np.zeros((256, 256, 4), dtype=np.uint16)
+
+
+@pytest.fixture
+def black_8bit_gray_png(black_8bit_gray_image, tmp_path) -> Path:
     png_file = tmp_path.joinpath("image.png")
-    signal = {"data": blank_8bit_grayscale_image, "axes": {}}
+    signal = {"data": black_8bit_gray_image, "axes": {}}
     image_file_writer(str(png_file), signal)
-    return png_file
-
-
-@pytest.fixture
-def blank_16bit_grayscale_png(blank_16bit_grayscale_image, tmp_path) -> Path:
-    png_file = tmp_path.joinpath("image.png")
-    write_result = cv2.imwrite(str(png_file), blank_16bit_grayscale_image)
-    assert write_result
     assert png_file.exists()
     png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
     assert png_img is not None
-    assert png_img.dtype.name == "uint16"
+    assert png_img.dtype.name == "uint8"
     assert png_img.shape == (256, 256)
     return png_file
 
 
 @pytest.fixture
-def white_8bit_rgba_png(white_8bit_rgba_image, tmp_path) -> Path:
+def black_8bit_rgb_png(black_8bit_rgb_image, tmp_path) -> Path:
     png_file = tmp_path.joinpath("image.png")
-    write_result = cv2.imwrite(str(png_file), white_8bit_rgba_image)
-    assert write_result
+    signal = {"data": black_8bit_rgb_image, "axes": {}}
+    image_file_writer(str(png_file), signal)
+    assert png_file.exists()
+    png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint8"
+    assert png_img.shape == (256, 256, 3)
+    return png_file
+
+
+@pytest.fixture
+def black_8bit_rgba_png(black_8bit_rgba_image, tmp_path) -> Path:
+    png_file = tmp_path.joinpath("image.png")
+    signal = {"data": black_8bit_rgb_image, "axes": {}}
+    image_file_writer(str(png_file), signal)
     assert png_file.exists()
     png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
     assert png_img is not None
@@ -91,13 +116,150 @@ def white_8bit_rgba_png(white_8bit_rgba_image, tmp_path) -> Path:
 
 
 @pytest.fixture
-def blank_16bit_grayscale_image() -> np.ndarray:
-    return np.zeros((256, 256), dtype=np.uint16)
+def black_16bit_gray_png(black_16bit_gray_image, tmp_path) -> Path:
+    png_file = tmp_path.joinpath("image.png")
+    signal = {"data": black_16bit_gray_image, "axes": {}}
+    image_file_writer(str(png_file), signal)
+    assert png_file.exists()
+    png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint16"
+    assert png_img.shape == (256, 256)
+    return png_file
 
 
 @pytest.fixture
-def blank_16bit_bgr_image() -> np.ndarray:
-    return np.zeros((256, 256, 3), dtype=np.uint16)
+def black_16bit_rgb_png(black_16bit_rgb_image, tmp_path) -> Path:
+    png_file = tmp_path.joinpath("image.png")
+    signal = {"data": black_16bit_rgb_image, "axes": {}}
+    image_file_writer(str(png_file), signal)
+    assert png_file.exists()
+    png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint16"
+    assert png_img.shape == (256, 256, 3)
+    return png_file
+
+
+@pytest.fixture
+def black_16bit_rgba_png(black_16bit_rgba_image, tmp_path) -> Path:
+    png_file = tmp_path.joinpath("image.png")
+    signal = {"data": black_16bit_rgba_image, "axes": {}}
+    image_file_writer(str(png_file), signal)
+    assert png_file.exists()
+    png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint16"
+    assert png_img.shape == (256, 256, 4)
+    return png_file
+
+
+@pytest.fixture
+def white_8bit_gray_image() -> np.ndarray:
+    return np.ones((256, 256), dtype=np.uint8)
+
+
+@pytest.fixture
+def white_8bit_rgb_image() -> np.ndarray:
+    return np.ones((256, 256, 3), dtype=np.uint8)
+
+
+@pytest.fixture
+def white_8bit_rgba_image() -> np.ndarray:
+    return np.ones((256, 256, 4), dtype=np.uint8)
+
+
+@pytest.fixture
+def white_8bit_gray_png(white_8bit_gray_image, tmp_path) -> Path:
+    png_file = tmp_path.joinpath("image.png")
+    signal = {"data": white_8bit_gray_image, "axes": {}}
+    image_file_writer(str(png_file), signal)
+    assert png_file.exists()
+    png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint8"
+    assert png_img.shape == (256, 256, 4)
+    return png_file
+
+
+@pytest.fixture
+def white_8bit_rgb_png(white_8bit_rgb_image, tmp_path) -> Path:
+    png_file = tmp_path.joinpath("image.png")
+    signal = {"data": white_8bit_rgb_image, "axes": {}}
+    image_file_writer(str(png_file), signal)
+    assert png_file.exists()
+    png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint8"
+    assert png_img.shape == (256, 256, 3)
+    return png_file
+
+
+@pytest.fixture
+def white_8bit_rgba_png(white_8bit_rgba_image, tmp_path) -> Path:
+    png_file = tmp_path.joinpath("image.png")
+    signal = {"data": white_8bit_gray_image, "axes": {}}
+    image_file_writer(str(png_file), signal)
+    assert png_file.exists()
+    png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint8"
+    assert png_img.shape == (256, 256, 4)
+    return png_file
+
+
+@pytest.fixture
+def white_16bit_gray_image() -> np.ndarray:
+    return np.ones((256, 256), dtype=np.uint16)
+
+
+@pytest.fixture
+def white_16bit_rgb_image() -> np.ndarray:
+    return np.ones((256, 256, 3), dtype=np.uint16)
+
+
+@pytest.fixture
+def white_16bit_rgba_image() -> np.ndarray:
+    return np.ones((256, 256, 4), dtype=np.uint16)
+
+
+@pytest.fixture
+def white_16bit_gray_png(white_16bit_gray_image, tmp_path) -> Path:
+    png_file = tmp_path.joinpath("image.png")
+    signal = {"data": white_16bit_gray_image, "axes": {}}
+    image_file_writer(str(png_file), signal)
+    assert png_file.exists()
+    png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint8"
+    assert png_img.shape == (256, 256, 4)
+    return png_file
+
+
+@pytest.fixture
+def white_16bit_rgb_png(white_16bit_rgb_image, tmp_path) -> Path:
+    png_file = tmp_path.joinpath("image.png")
+    signal = {"data": white_16bit_rgb_image, "axes": {}}
+    image_file_writer(str(png_file), signal)
+    assert png_file.exists()
+    png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint8"
+    assert png_img.shape == (256, 256, 3)
+    return png_file
+
+
+@pytest.fixture
+def white_16bit_rgba_png(white_16bit_rgba_image, tmp_path) -> Path:
+    png_file = tmp_path.joinpath("image.png")
+    signal = {"data": white_16bit_gray_image, "axes": {}}
+    image_file_writer(str(png_file), signal)
+    assert png_file.exists()
+    png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint8"
+    assert png_img.shape == (256, 256, 4)
+    return png_file
 
 
 @pytest.fixture
@@ -106,10 +268,60 @@ def random_16bit_multipage_image() -> np.ndarray:
 
 
 @pytest.fixture
-def blank_16bit_single_page_tiff(blank_16bit_grayscale_image, tmp_path) -> Path:
+def black_8bit_gray_single_page_tiff(black_8bit_gray_image, tmp_path) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {
-        "data": blank_16bit_grayscale_image,
+        "data": black_8bit_gray_image,
+    }
+    tiff_file_writer(str(tif_file), signal)
+    return tif_file
+
+
+@pytest.fixture
+def black_8bit_rgb_single_page_tiff(black_8bit_rgb_image, tmp_path) -> Path:
+    tif_file = tmp_path.joinpath("image.tif")
+    signal = {
+        "data": black_8bit_rgb_image,
+    }
+    tiff_file_writer(str(tif_file), signal)
+    return tif_file
+
+
+@pytest.fixture
+def black_8bit_rgba_single_page_tiff(black_8bit_rgba_image, tmp_path) -> Path:
+    tif_file = tmp_path.joinpath("image.tif")
+    signal = {
+        "data": black_8bit_rgba_image,
+    }
+    tiff_file_writer(str(tif_file), signal)
+    return tif_file
+
+
+@pytest.fixture
+def black_16bit_gray_single_page_tiff(black_16bit_gray_image, tmp_path) -> Path:
+    tif_file = tmp_path.joinpath("image.tif")
+    signal = {
+        "data": black_16bit_gray_image,
+    }
+    tiff_file_writer(str(tif_file), signal)
+    return tif_file
+
+
+@pytest.fixture
+def black_16bit_rgb_single_page_tiff(black_16bit_rgb_image, tmp_path) -> Path:
+    tif_file = tmp_path.joinpath("image.tif")
+    signal = {
+        "data": black_16bit_rgb_image,
+    }
+    tiff_file_writer(str(tif_file), signal)
+    return tif_file
+
+
+@pytest.fixture
+def black_16bit_rgba_single_page_tiff(black_16bit_rgba_image, tmp_path) -> Path:
+    tif_file = tmp_path.joinpath("image.tif")
+    signal = {
+        "data": black_16bit_rgba_image,
     }
     tiff_file_writer(str(tif_file), signal)
     return tif_file
@@ -240,6 +452,18 @@ def test_bit_depths_max_pixel_intensity():
     assert BitDepths.SIXTEEN.max_pixel_intensity == 65535
 
 
+def test_output_file_formats_is_alpha_supported():
+    assert not OutputFileFormats.JPEG.is_alpha_supported
+    assert OutputFileFormats.PNG.is_alpha_supported
+    assert OutputFileFormats.TIFF.is_alpha_supported
+
+
+def test_output_file_formats_is_gray_supported():
+    assert not OutputFileFormats.JPEG.is_gray_supported
+    assert OutputFileFormats.PNG.is_gray_supported
+    assert OutputFileFormats.TIFF.is_gray_supported
+
+
 def test_output_file_formats_mime_type():
     assert OutputFileFormats.JPEG.mime_type == JPEG_MIME_TYPE
     assert OutputFileFormats.PNG.mime_type == PNG_MIME_TYPE
@@ -260,26 +484,67 @@ def test_output_destination_with_path(tmp_path, output_cfg):
     assert output_cfg(path=tmp_path).destination(tmp_path) == tmp_path
 
 
-def test_output_cast_eight_gray(blank_16bit_grayscale_image, output_cfg, tmp_path):
-    img = output_cfg(path=tmp_path).cast(blank_16bit_grayscale_image)
+def test_output_is_gray(
+    black_8bit_gray_image,
+    black_16bit_gray_image,
+    black_8bit_rgb_image,
+    black_16bit_rgb_image,
+    black_8bit_rgba_image,
+    black_16bit_rgba_image,
+):
+    assert Output.is_gray(black_8bit_gray_image)
+    assert Output.is_gray(black_16bit_gray_image)
+    assert not Output.is_gray(black_8bit_rgb_image)
+    assert not Output.is_gray(black_16bit_rgb_image)
+    assert not Output.is_gray(black_8bit_rgba_image)
+    assert not Output.is_gray(black_16bit_rgba_image)
+
+
+def test_output_cast_eight_gray(black_16bit_gray_image, output_cfg, tmp_path):
+    img = output_cfg(path=tmp_path).cast(black_16bit_gray_image)
     assert img.dtype.name == "uint8"
     assert img.shape == (256, 256, 3)
     assert not np.any(img)
 
 
-def test_output_cast_eight_bgr(blank_16bit_bgr_image, output_cfg, tmp_path):
-    img = output_cfg(path=tmp_path).cast(blank_16bit_bgr_image)
+def test_output_cast_eight_rgb(black_16bit_rgb_image, output_cfg, tmp_path):
+    img = output_cfg(path=tmp_path).cast(black_16bit_rgb_image)
     assert img.dtype.name == "uint8"
     assert img.shape == (256, 256, 3)
     assert not np.any(img)
 
 
-def test_output_cast_sixteen(blank_16bit_grayscale_image, output_cfg, tmp_path):
+def test_output_cast_eight_rgba(black_16bit_rgba_image, output_cfg, tmp_path):
+    img = output_cfg(path=tmp_path).cast(black_16bit_rgba_image)
+    assert img.dtype.name == "uint8"
+    assert img.shape == (256, 256, 3)
+    assert not np.any(img)
+
+
+def test_output_cast_sixteen_gray(black_16bit_gray_image, output_cfg, tmp_path):
     img = output_cfg(
         bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.PNG, path=tmp_path
-    ).cast(blank_16bit_grayscale_image)
+    ).cast(black_16bit_gray_image)
+    assert img.dtype.name == "uint16"
+    assert img.shape == (256, 256)
+    assert not np.any(img)
+
+
+def test_output_cast_sixteen_rgb(black_16bit_rgb_image, output_cfg, tmp_path):
+    img = output_cfg(
+        bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.PNG, path=tmp_path
+    ).cast(black_16bit_rgb_image)
     assert img.dtype.name == "uint16"
     assert img.shape == (256, 256, 3)
+    assert not np.any(img)
+
+
+def test_output_cast_sixteen_rgba(black_16bit_rgba_image, output_cfg, tmp_path):
+    img = output_cfg(
+        bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.PNG, path=tmp_path
+    ).cast(black_16bit_rgba_image)
+    assert img.dtype.name == "uint16"
+    assert img.shape == (256, 256, 4)
     assert not np.any(img)
 
 
@@ -322,7 +587,6 @@ def test_write_with_single_tiff(blank_16bit_single_page_tiff, output_cfg):
         src,
         output_cfg(),
         True,
-        normalize=False,
     )
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -345,7 +609,6 @@ def test_write_with_single_tiff_output(
         src,
         output_cfg(path=tmp_path),
         True,
-        normalize=False,
     )
     assert dst.exists()
     assert src.exists()
@@ -370,7 +633,6 @@ def test_write_with_single_tiff_delete_original(
         output_cfg(),
         True,
         delete_original=True,
-        normalize=False,
     )
     assert dst.exists()
     assert not src.exists()
@@ -396,7 +658,6 @@ def test_write_with_multipages_tiff(
         src,
         output_cfg(),
         True,
-        normalize=False,
     )
     assert dst.exists()
     assert (
@@ -423,7 +684,6 @@ def test_write_with_dm3(dm3, output_cfg, tmp_path):
         src,
         output_cfg(path=tmp_path),
         True,
-        normalize=True,
     )
     assert dst.exists()
 
@@ -436,7 +696,6 @@ def test_write_with_dm4(dm4, output_cfg, tmp_path):
         src,
         output_cfg(path=tmp_path),
         True,
-        normalize=True,
     )
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -647,17 +906,8 @@ def test_write_png(blank_8bit_png, output_cfg):
     assert not np.any(jpeg_img)
 
 
-def test_write_8bit_grayscale_png_to_8bit_tiff(
-    blank_8bit_grayscale_image, output_cfg, tmp_path
-):
-    src = tmp_path.joinpath("src.png")
-    write_result = cv2.imwrite(str(src), blank_8bit_grayscale_image)
-    assert write_result
-    assert src.exists()
-    png_img = cv2.imread(str(src), cv2.IMREAD_UNCHANGED)
-    assert png_img is not None
-    assert png_img.dtype.name == "uint8"
-    assert png_img.shape == (256, 256)
+def test_write_8bit_grayscale_png_to_8bit_tiff(blank_8bit_png, output_cfg, tmp_path):
+    src = blank_8bit_png
     dst = src.with_suffix(TIFF_FILE_EXT)
     write_png(
         Configuration(
@@ -673,7 +923,8 @@ def test_write_8bit_grayscale_png_to_8bit_tiff(
     tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
     assert tiff_img is not None
     assert tiff_img.dtype.name == "uint8"
-    assert tiff_img.shape == (256, 256, 3)
+    assert tiff_img.shape == (256, 256)
+    assert not np.any(tiff_img)
 
 
 def test_write_8bit_grayscale_png_to_16bit_tiff(
