@@ -364,17 +364,13 @@ def run_png(cfg: Configuration):
 
 def run_tiff(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
-    try:
-        write(
-            tiff_file_reader(cfg.src, multipage_as_list=True),
-            cfg.src,
-            cfg.output,
-            cfg.silent,
-            delete_original=cfg.delete_original,
-        )
-    except TiffFileError:
-        if not cfg.silent:
-            LOGGER.warning(f"The '{cfg.src}' file is not a TIFF, skipped.")
+    write(
+        tiff_file_reader(cfg.src, multipage_as_list=True),
+        cfg.src,
+        cfg.output,
+        cfg.silent,
+        delete_original=cfg.delete_original,
+    )
 
 
 def expand_sources(
