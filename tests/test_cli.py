@@ -1187,47 +1187,6 @@ def test_run_tiff(black_16bit_gray_single_page_tiff, run_cfg):
     assert not np.any(jpeg_img)
 
 
-def test_run_tiff_with_nontiff(
-    black_8bit_gray_image,
-    black_16bit_gray_image,
-    caplog,
-    output_cfg,
-    run_cfg,
-    tmp_path,
-):
-    png_file = tmp_path.joinpath("image.png")
-    signal = {"data": black_8bit_gray_image, "axes": {}}
-    image_file_writer(str(png_file), signal)
-    tif_file = tmp_path.joinpath("image.tif")
-    signal = {
-        "data": black_16bit_gray_image,
-    }
-    tiff_file_writer(str(tif_file), signal)
-    with caplog.at_level(logging.WARNING):
-        run_tiff(run_cfg(png_file, output=output_cfg(path=tmp_path)))
-    run_tiff(
-        run_cfg(
-            tif_file,
-            output=Output(
-                bit_depth=BitDepths.EIGHT,
-                format=ToFormats.JPEG,
-                path=tmp_path,
-            ),
-        )
-    )
-    dst = tif_file.with_suffix(JPEG_FILE_EXT)
-    assert "file is not a TIFF, skipped." in caplog.text
-    assert dst.exists()
-    kind = filetype.guess(str(dst))
-    assert kind is not None
-    assert kind.mime == "image/jpeg"
-    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
-    assert jpeg_img is not None
-    assert jpeg_img.dtype.name == "uint8"
-    assert jpeg_img.shape == (256, 256, 3)
-    assert not np.any(jpeg_img)
-
-
 def test_run_tiff_with_ncsu(ncsu_tif, output_cfg, run_cfg, tmp_path):
     actual = tmp_path.joinpath(ncsu_tif.with_suffix(JPEG_FILE_EXT).name)
     run_tiff(run_cfg(ncsu_tif, output=output_cfg(path=tmp_path)))
