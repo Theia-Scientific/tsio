@@ -5,7 +5,6 @@ import datetime
 import filetype
 import gdown
 import importlib.metadata
-import logging
 import numpy as np
 import os
 import pytest
