@@ -1630,26 +1630,43 @@ def test_app_png_white_8bit_rgba(white_8bit_rgba_png, tmp_path):
     assert np.all(jpeg_img, where=1)
 
 
-def test_app_png_fails(blank_8bit_png, tmp_path):
+def test_app_png_fails(black_8bit_gray_png, tmp_path):
     result = runner.invoke(
-        app, ["png", "-o", str(tmp_path), "-S", "-b", "16", "jpeg", str(blank_8bit_png)]
+        app,
+        [
+            "png",
+            "-o",
+            str(tmp_path),
+            "-S",
+            "-b",
+            "16",
+            "jpeg",
+            str(black_8bit_gray_png),
+        ],
     )
     assert result.exit_code == 1
 
 
-def test_app_tiff(blank_16bit_single_page_tiff, tmp_path):
-    dst = tmp_path.joinpath(blank_16bit_single_page_tiff.name).with_suffix(
+def test_app_tiff(black_16bit_gray_single_page_tiff, tmp_path):
+    dst = tmp_path.joinpath(black_16bit_gray_single_page_tiff.name).with_suffix(
         JPEG_FILE_EXT
     )
     result = runner.invoke(
         app,
-        ["tiff", "-o", str(tmp_path), "-S", "jpeg", str(blank_16bit_single_page_tiff)],
+        [
+            "tiff",
+            "-o",
+            str(tmp_path),
+            "-S",
+            "jpeg",
+            str(black_16bit_gray_single_page_tiff),
+        ],
     )
     assert result.exit_code == 0
     assert dst.exists()
 
 
-def test_app_tiff_fails(blank_16bit_single_page_tiff, tmp_path):
+def test_app_tiff_fails(black_16bit_gray_single_page_tiff, tmp_path):
     result = runner.invoke(
         app,
         [
@@ -1660,7 +1677,7 @@ def test_app_tiff_fails(blank_16bit_single_page_tiff, tmp_path):
             "-b",
             "16",
             "jpeg",
-            str(blank_16bit_single_page_tiff),
+            str(black_16bit_gray_single_page_tiff),
         ],
     )
     assert result.exit_code == 1
