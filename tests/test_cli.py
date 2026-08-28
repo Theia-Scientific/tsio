@@ -106,7 +106,7 @@ def black_8bit_rgb_png(black_8bit_rgb_image, tmp_path) -> Path:
 @pytest.fixture
 def black_8bit_rgba_png(black_8bit_rgba_image, tmp_path) -> Path:
     png_file = tmp_path.joinpath("image.png")
-    signal = {"data": black_8bit_rgb_image, "axes": {}}
+    signal = {"data": black_8bit_rgba_image, "axes": {}}
     image_file_writer(str(png_file), signal)
     assert png_file.exists()
     png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
@@ -386,9 +386,9 @@ def v09_loaded_confusion_matrix_png(assets) -> Path:
 
 
 @pytest.fixture
-def dcm(tmp_path, blank_8bit_grayscale_image) -> Path:
-    height, width = blank_8bit_grayscale_image.shape
-    grey_img = blank_8bit_grayscale_image
+def dcm(tmp_path, black_8bit_gray_image) -> Path:
+    height, width = black_8bit_gray_image.shape
+    grey_img = black_8bit_gray_image
     dcm_file = tmp_path.joinpath("test.dcm")
     ds = Dataset()
     ds.Rows = height
@@ -681,9 +681,9 @@ def test_write_tiff_with_black_16bit_gray(
 
 
 def test_write_with_single_tiff_delete_original(
-    blank_16bit_single_page_tiff, output_cfg
+    black_16bit_gray_single_page_tiff, output_cfg
 ):
-    src = blank_16bit_single_page_tiff
+    src = black_16bit_gray_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     write(
         tiff_file_reader(src, multipage_as_list=True),
@@ -943,8 +943,50 @@ def test_write_emd_fails_with_exception(mocker, output_cfg, tmp_path):
     assert not dst.exists()
 
 
-def test_write_png(blank_8bit_png, output_cfg):
-    src = blank_8bit_png
+def test_write_png_8bit_gray(black_8bit_gray_png, output_cfg):
+    src = black_8bit_gray_png
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
+
+
+def test_write_png_8bit_rgb(black_8bit_rgb_png, output_cfg):
+    src = black_8bit_rgb_png
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
+
+
+def test_write_png_8bit_rgba(black_8bit_rgba_png, output_cfg):
+    src = black_8bit_rgba_png
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_png(
         Configuration(
