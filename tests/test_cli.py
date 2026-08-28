@@ -1430,6 +1430,7 @@ def test_run_with_darwin(dm4, mocker, output_cfg):
                 src=dm4,
             )
         ],
+        silent=True,
     )
 
 
@@ -1454,6 +1455,7 @@ def test_run_with_linux(dm4, mocker, output_cfg):
                 src=dm4,
             )
         ],
+        silent=True,
     )
 
 
