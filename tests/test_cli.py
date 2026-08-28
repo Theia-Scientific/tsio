@@ -1579,10 +1579,10 @@ def test_app_emd_fails(mocker, emd_single_image, tmp_path):
     assert result.exit_code == 1
 
 
-def test_app_png_8bit(blank_8bit_png, tmp_path):
-    dst = tmp_path.joinpath(blank_8bit_png.name).with_suffix(JPEG_FILE_EXT)
+def test_app_png_8bit_gray(black_8bit_gray_png, tmp_path):
+    dst = tmp_path.joinpath(black_8bit_gray_png.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(
-        app, ["png", "-o", str(tmp_path), "-S", "jpeg", str(blank_8bit_png)]
+        app, ["png", "-o", str(tmp_path), "-S", "jpeg", str(black_8bit_gray_png)]
     )
     assert result.exit_code == 0
     assert dst.exists()
@@ -1596,10 +1596,10 @@ def test_app_png_8bit(blank_8bit_png, tmp_path):
     assert not np.any(jpeg_img)
 
 
-def test_app_png_16bit(blank_16bit_grayscale_png, tmp_path):
-    dst = tmp_path.joinpath(blank_16bit_grayscale_png.name).with_suffix(JPEG_FILE_EXT)
+def test_app_png_16bit(black_16bit_gray_png, tmp_path):
+    dst = tmp_path.joinpath(black_16bit_gray_png.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(
-        app, ["png", "-o", str(tmp_path), "-S", "jpeg", str(blank_16bit_grayscale_png)]
+        app, ["png", "-o", str(tmp_path), "-S", "jpeg", str(black_16bit_gray_png)]
     )
     assert result.exit_code == 0
     assert dst.exists()
