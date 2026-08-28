@@ -21,6 +21,7 @@ from rsciio.image import (
     file_writer as image_file_writer,
 )
 from rsciio.tiff import file_reader as tiff_file_reader
+from rsciio.utils import rgb
 from tifffile import TiffFileError
 from tqdm import tqdm
 from tsio import __app_name__
@@ -79,20 +80,28 @@ class OutputFileFormats(Enum):
     @property
     def mime_type(self) -> str:
         MIME_TYPES = {
-            OutputFileFormats.JPEG: JPEG_MIME_TYPE,
-            OutputFileFormats.PNG: PNG_MIME_TYPE,
-            OutputFileFormats.TIFF: TIFF_MIME_TYPE,
+            Self.JPEG: JPEG_MIME_TYPE,
+            Self.PNG: PNG_MIME_TYPE,
+            Self.TIFF: TIFF_MIME_TYPE,
         }
         return MIME_TYPES[self]
 
     @property
     def file_ext(self) -> str:
         FILE_EXTS = {
-            OutputFileFormats.JPEG: JPEG_FILE_EXT,
-            OutputFileFormats.PNG: PNG_FILE_EXT,
-            OutputFileFormats.TIFF: TIFF_FILE_EXT,
+            Self.JPEG: JPEG_FILE_EXT,
+            Self.PNG: PNG_FILE_EXT,
+            Self.TIFF: TIFF_FILE_EXT,
         }
         return FILE_EXTS[self]
+
+    @property
+    def is_alpha_supported(self) -> bool:
+        return self != Self.JPEG
+
+    @property
+    def is_gray_supported(self) -> bool:
+        return self != Self.JPEG
 
 
 class Output(BaseModel):
@@ -100,24 +109,52 @@ class Output(BaseModel):
     format: OutputFileFormats
     path: Optional[Path]
 
+    @staticmethod
+    def is_gray(img: np.ndarray) -> bool:
+        return len(img.shape) == 2
+
+    @staticmethod
+    def normalize(img: np.ndarray) -> np.ndarray:
+        max_pixel_intensity = np.max(img)
+        LOGGER.debug(f"{max_pixel_intensity=}")
+        min_pixel_intensity = np.min(img)
+        LOGGER.debug(f"{min_pixel_intensity=}")
+        normalization_factor = abs(max_pixel_intensity - min_pixel_intensity)
+        LOGGER.debug(f"{normalization_factor=}")
+        if normalization_factor > 0:
+            return ((img - min_pixel_intensity) / normalization_factor).astype(
+                np.float32
+            )
+        else:
+            return img.astype(np.float32)
+
+    def convert(self, img: np.ndarray) -> np.ndarray:
+        if Self.is_gray(img) and not self.format.is_gray_supported:
+            return cv2.cvtColor(
+                img,
+                cv2.COLOR_GRAY2RGB,
+            )
+        elif rgb.is_rgba(img) and not self.format.is_alpha_supported:
+            return cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
+        else:
+            return img
+
+    def cast(self, img: np.ndarray) -> np.ndarray:
+        rgbx_or_gray_img = rgb.rgbx2regular_array(img, show_progressbar=False)
+        rgbx_or_gray_float_img = Self.normalize(rgbx_or_gray_img)
+        rgbx_or_gray_int_img = self.scale(rgbx_or_gray_float_img)
+        return Self.convert(rgbx_or_gray_int_img)
+
     def destination(self, src: Path) -> Path:
         return src.resolve().parent if self.path is None else self.path
 
-    def cast(self, img: np.ndarray) -> np.ndarray:
+    def scale(self, img: np.ndarray) -> np.ndarray:
         LOGGER.debug(f"{img.dtype.name=}")
         if img.dtype.name != "float32":
-            img = normalize_image(img)
-        casted_img = np.round(img * self.bit_depth.max_pixel_intensity).astype(
+            img = Self.normalize(img)
+        return np.round(img * self.bit_depth.max_pixel_intensity).astype(
             self.bit_depth.type
         )
-        LOGGER.debug(f"{len(casted_img.shape)=}")
-        if len(casted_img.shape) == 2:
-            return cv2.cvtColor(
-                casted_img,
-                cv2.COLOR_GRAY2BGR,
-            )
-        else:
-            return casted_img
 
     @model_validator(mode="after")
     def check_supported_bit_depth(self) -> Self:
@@ -169,19 +206,6 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
-def normalize_image(img: np.ndarray) -> np.ndarray:
-    max_pixel_intensity = np.max(img)
-    LOGGER.debug(f"{max_pixel_intensity=}")
-    min_pixel_intensity = np.min(img)
-    LOGGER.debug(f"{min_pixel_intensity=}")
-    normalization_factor = abs(max_pixel_intensity - min_pixel_intensity)
-    LOGGER.debug(f"{normalization_factor=}")
-    if normalization_factor > 0:
-        return ((img - min_pixel_intensity) / normalization_factor).astype(np.float32)
-    else:
-        return img.astype(np.float32)
-
-
 def write(
     pages: List[Dict],
     src: Path,
@@ -222,12 +246,7 @@ def write(
                 output.format.file_ext
             )
         LOGGER.debug(f"{output_file=}")
-        original_img = page["data"]
-        if normalize:
-            img = normalize_image(original_img)
-        else:
-            img = original_img
-        page["data"] = output.cast(img)
+        page["data"] = output.cast(page["data"])
         for axis in page["axes"]:
             if "navigate" not in axis:
                 axis["navigate"] = None
