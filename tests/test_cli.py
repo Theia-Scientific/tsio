@@ -1099,10 +1099,10 @@ def test_write_8bit_grayscale_png_to_8bit_tiff(
 
 
 def test_write_8bit_grayscale_png_to_16bit_tiff(
-    blank_8bit_grayscale_image, output_cfg, tmp_path
+    black_8bit_gray_image, output_cfg, tmp_path
 ):
     src = tmp_path.joinpath("tmp.png")
-    write_result = cv2.imwrite(str(src), blank_8bit_grayscale_image)
+    write_result = cv2.imwrite(str(src), black_8bit_gray_image)
     assert write_result
     assert src.exists()
     png_img = cv2.imread(str(src), cv2.IMREAD_UNCHANGED)
@@ -1126,7 +1126,7 @@ def test_write_8bit_grayscale_png_to_16bit_tiff(
     tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
     assert tiff_img is not None
     assert tiff_img.dtype.name == "uint16"
-    assert tiff_img.shape == (256, 256, 3)
+    assert tiff_img.shape == (256, 256)
 
 
 def test_write_16bit_grayscale_png_to_8bit_tiff(blank_16bit_grayscale_png, output_cfg):
