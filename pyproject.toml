@@ -74,3 +74,8 @@ omit = [ "__main__.py" ]
 filterwarnings = [
     "ignore::DeprecationWarning",
 ]
+
+[tool.flake8]
+ignore = ['E203', 'W503']
+max-line-length = 127
+max-complexity = 15
