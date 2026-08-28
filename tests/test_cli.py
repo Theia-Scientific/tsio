@@ -150,7 +150,7 @@ def black_16bit_rgb_png(black_16bit_rgb_image, tmp_path) -> Path:
 def black_16bit_rgba_png(black_16bit_rgba_image, tmp_path) -> Path:
     png_file = tmp_path.joinpath("image.png")
     write_result = cv2.imwrite(
-        str(png_file), cv2.cvtColor(black_16bit_rgba_image, cv2.COLOR_RGBA2BGR)
+        str(png_file), cv2.cvtColor(black_16bit_rgba_image, cv2.COLOR_RGBA2BGRA)
     )
     assert write_result
     assert png_file.exists()
