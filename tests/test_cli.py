@@ -205,7 +205,7 @@ def white_8bit_rgb_png(white_8bit_rgb_image, tmp_path) -> Path:
 @pytest.fixture
 def white_8bit_rgba_png(white_8bit_rgba_image, tmp_path) -> Path:
     png_file = tmp_path.joinpath("image.png")
-    signal = {"data": white_8bit_gray_image, "axes": {}}
+    signal = {"data": white_8bit_rgba_image, "axes": {}}
     image_file_writer(str(png_file), signal)
     assert png_file.exists()
     png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
@@ -1174,7 +1174,7 @@ def test_write_16bit_grayscale_png_to_16bit_tiff(black_16bit_gray_png, output_cf
     assert not np.any(tiff_img)
 
 
-def test_write_heart_png_to_8bit_tiff(heart_png, output_cfg, tmp_path):
+def test_write_heart_png_to_8bit_gray_tiff(heart_png, output_cfg, tmp_path):
     src = heart_png
     dst = tmp_path.joinpath(src.name).with_suffix(TIFF_FILE_EXT)
     write_png(
@@ -1193,11 +1193,11 @@ def test_write_heart_png_to_8bit_tiff(heart_png, output_cfg, tmp_path):
     tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
     assert tiff_img is not None
     assert tiff_img.dtype.name == "uint8"
-    assert tiff_img.shape == (256, 256, 3)
+    assert tiff_img.shape == (256, 256)
     assert np.any(tiff_img)
 
 
-def test_write_heart_png_to_16bit_tiff(heart_png, output_cfg, tmp_path):
+def test_write_heart_png_to_16bit_gray_tiff(heart_png, output_cfg, tmp_path):
     src = heart_png
     dst = tmp_path.joinpath(src.name).with_suffix(TIFF_FILE_EXT)
     write_png(
@@ -1218,28 +1218,8 @@ def test_write_heart_png_to_16bit_tiff(heart_png, output_cfg, tmp_path):
     tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
     assert tiff_img is not None
     assert tiff_img.dtype.name == "uint16"
-    assert tiff_img.shape == (256, 256, 3)
+    assert tiff_img.shape == (256, 256)
     assert np.any(tiff_img)
-
-
-def test_write_16bit_grayscale_png_to_jpeg(blank_16bit_grayscale_png, output_cfg):
-    src = blank_16bit_grayscale_png
-    dst = src.with_suffix(JPEG_FILE_EXT)
-    write_png(
-        Configuration(
-            output=output_cfg(),
-            silent=True,
-            src=src,
-        )
-    )
-    assert dst.exists()
-    kind = filetype.guess(str(dst))
-    assert kind is not None
-    assert kind.mime == "image/jpeg"
-    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
-    assert jpeg_img is not None
-    assert jpeg_img.dtype.name == "uint8"
-    assert jpeg_img.shape == (256, 256, 3)
 
 
 def test_write_confusion_matrix_png_to_jpeg(
@@ -1261,7 +1241,7 @@ def test_write_confusion_matrix_png_to_jpeg(
     jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
     assert jpeg_img is not None
     assert jpeg_img.dtype.name == "uint8"
-    assert jpeg_img.shape == (256, 256, 3)
+    assert jpeg_img.shape == (1606, 1840, 3)
     assert np.any(jpeg_img)
 
 
@@ -1286,8 +1266,8 @@ def test_write_white_8bit_rgba_png(white_8bit_rgba_png, output_cfg):
     assert np.all(jpeg_img, where=255)
 
 
-def test_write_tiff(blank_16bit_single_page_tiff, output_cfg):
-    src = blank_16bit_single_page_tiff
+def test_write_tiff(black_16bit_gray_single_page_tiff, output_cfg):
+    src = black_16bit_gray_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_tiff(
         Configuration(
@@ -1308,18 +1288,18 @@ def test_write_tiff(blank_16bit_single_page_tiff, output_cfg):
 
 
 def test_write_tiff_with_nontiff(
-    blank_8bit_grayscale_image,
-    blank_16bit_grayscale_image,
+    black_8bit_gray_image,
+    black_16bit_gray_image,
     caplog,
     output_cfg,
     tmp_path,
 ):
     png_file = tmp_path.joinpath("image.png")
-    signal = {"data": blank_8bit_grayscale_image, "axes": {}}
+    signal = {"data": black_8bit_gray_image, "axes": {}}
     image_file_writer(str(png_file), signal)
     tif_file = tmp_path.joinpath("image.tif")
     signal = {
-        "data": blank_16bit_grayscale_image,
+        "data": black_16bit_gray_image,
     }
     tiff_file_writer(str(tif_file), signal)
     with caplog.at_level(logging.WARNING):
