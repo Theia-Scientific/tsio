@@ -21,6 +21,7 @@ from rsciio.image import (
     file_writer as image_file_writer,
 )
 from rsciio.tiff import file_reader as tiff_file_reader
+from rsciio.utils import rgb
 from tifffile import TiffFileError
 from tqdm import tqdm
 from tsio import __app_name__
@@ -94,30 +95,71 @@ class OutputFileFormats(Enum):
         }
         return FILE_EXTS[self]
 
+    @property
+    def is_alpha_supported(self) -> bool:
+        return self != OutputFileFormats.JPEG
+
+    @property
+    def is_gray_supported(self) -> bool:
+        return self != OutputFileFormats.JPEG
+
 
 class Output(BaseModel):
     bit_depth: BitDepths
     format: OutputFileFormats
     path: Optional[Path]
 
+    @staticmethod
+    def is_gray(img: np.ndarray) -> bool:
+        return len(img.shape) == 2
+
+    @staticmethod
+    def is_rgb(img: np.ndarray) -> bool:
+        return len(img.shape) == 3
+
+    @staticmethod
+    def is_rgba(img: np.ndarray) -> bool:
+        return Output.is_rgb(img) and img.shape[2] == 4
+
+    @staticmethod
+    def normalize(img: np.ndarray) -> np.ndarray:
+        max_pixel_intensity = np.max(img)
+        LOGGER.debug(f"{max_pixel_intensity=}")
+        min_pixel_intensity = np.min(img)
+        LOGGER.debug(f"{min_pixel_intensity=}")
+        normalization_factor = abs(max_pixel_intensity - min_pixel_intensity)
+        LOGGER.debug(f"{normalization_factor=}")
+        if normalization_factor > 0:
+            return ((img - min_pixel_intensity) / normalization_factor).astype(
+                np.float32
+            )
+        else:
+            return img.astype(np.float32)
+
+    def convert(self, img: np.ndarray) -> np.ndarray:
+        if Output.is_gray(img) and not self.format.is_gray_supported:
+            return cv2.cvtColor(
+                img,
+                cv2.COLOR_GRAY2RGB,
+            )
+        elif Output.is_rgba(img) and not self.format.is_alpha_supported:
+            return cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
+        else:
+            return img
+
+    def cast(self, img: np.ndarray) -> np.ndarray:
+        rgbx_or_gray_img = rgb.rgbx2regular_array(img, show_progressbar=False)
+        rgbx_or_gray_float_img = Output.normalize(rgbx_or_gray_img)
+        rgbx_or_gray_int_img = self.scale(rgbx_or_gray_float_img)
+        return self.convert(rgbx_or_gray_int_img)
+
     def destination(self, src: Path) -> Path:
         return src.resolve().parent if self.path is None else self.path
 
-    def cast(self, img: np.ndarray) -> np.ndarray:
-        LOGGER.debug(f"{img.dtype.name=}")
-        if img.dtype.name != "float32":
-            img = normalize_image(img)
-        casted_img = np.round(img * self.bit_depth.max_pixel_intensity).astype(
+    def scale(self, img: np.ndarray) -> np.ndarray:
+        return np.round(img * self.bit_depth.max_pixel_intensity).astype(
             self.bit_depth.type
         )
-        LOGGER.debug(f"{len(casted_img.shape)=}")
-        if len(casted_img.shape) == 2:
-            return cv2.cvtColor(
-                casted_img,
-                cv2.COLOR_GRAY2BGR,
-            )
-        else:
-            return casted_img
 
     @model_validator(mode="after")
     def check_supported_bit_depth(self) -> Self:
@@ -130,7 +172,10 @@ class Output(BaseModel):
             return self
         else:
             raise ValueError(
-                f"The {self.bit_depth.value}-bit depth is not supported for the {self.format.value.upper()} output format."
+                (
+                    f"The {self.bit_depth.value}-bit depth is not supported "
+                    f"for the {self.format.value.upper()} output format."
+                )
             )
 
 
@@ -144,7 +189,8 @@ class Configuration(BaseModel):
 
 def print_validation_error(err: ValidationError):
     for e in err.errors():
-        print(f"\n[bold red]ERROR![/bold red] {e['msg'].removeprefix('Value error, ')}")
+        msg = e["msg"].removeprefix("Value ")
+        print(f"\n[bold red]ERROR![/bold red] {msg}")
 
 
 def map_verbosity(count: int) -> str:
@@ -165,32 +211,17 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
-def normalize_image(img: np.ndarray) -> np.ndarray:
-    max_pixel_intensity = np.max(img)
-    LOGGER.debug(f"{max_pixel_intensity=}")
-    min_pixel_intensity = np.min(img)
-    LOGGER.debug(f"{min_pixel_intensity=}")
-    normalization_factor = abs(max_pixel_intensity - min_pixel_intensity)
-    LOGGER.debug(f"{normalization_factor=}")
-    if normalization_factor > 0:
-        return ((img - min_pixel_intensity) / normalization_factor).astype(np.float32)
-    else:
-        return img.astype(np.float32)
-
-
 def write(
     pages: List[Dict],
     src: Path,
     output: Output,
     silent: bool,
     delete_original: bool = False,
-    normalize: bool = True,
 ):
     LOGGER.debug(f"{src=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{silent=}")
     LOGGER.debug(f"{delete_original=}")
-    LOGGER.debug(f"{normalize=}")
     destination = output.destination(src)
     pages_count = len(pages)
     LOGGER.debug(f"{pages_count=}")
@@ -200,7 +231,13 @@ def write(
     os.makedirs(destination, exist_ok=True)
     LOGGER.debug(f"{src_file_stem=}")
     for page_index, page in enumerate(
-        tqdm(pages, total=pages_count, desc=src.name, disable=silent)
+        tqdm(
+            pages,
+            total=pages_count,
+            desc=src.name,
+            disable=silent or pages_count == 1,
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
+        )
     ):
         LOGGER.debug(f"{page_index=}")
         if pages_count > 1:
@@ -212,12 +249,7 @@ def write(
                 output.format.file_ext
             )
         LOGGER.debug(f"{output_file=}")
-        original_img = page["data"]
-        if normalize:
-            img = normalize_image(original_img)
-        else:
-            img = original_img
-        page["data"] = output.cast(img)
+        page["data"] = output.cast(page["data"])
         for axis in page["axes"]:
             if "navigate" not in axis:
                 axis["navigate"] = None
@@ -243,7 +275,6 @@ def write_dcm(cfg: Configuration):
         cfg.output,
         cfg.silent,
         delete_original=cfg.delete_original,
-        normalize=True,
     )
 
 
@@ -256,7 +287,6 @@ def write_dm(cfg: Configuration):
             cfg.output,
             cfg.silent,
             delete_original=cfg.delete_original,
-            normalize=True,
         )
     except NotImplementedError as error:
         LOGGER.warning(f"Skipped '{cfg.src}' because: '{str(error)}'")
@@ -296,7 +326,6 @@ def write_emd(cfg: Configuration):
             cfg.output,
             cfg.silent,
             delete_original=cfg.delete_original,
-            normalize=True,
         )
     except Exception as error:
         LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
@@ -310,7 +339,6 @@ def write_png(cfg: Configuration):
         cfg.output,
         cfg.silent,
         delete_original=cfg.delete_original,
-        normalize=True,
     )
 
 
@@ -323,7 +351,6 @@ def write_tiff(cfg: Configuration):
             cfg.output,
             cfg.silent,
             delete_original=cfg.delete_original,
-            normalize=True,
         )
     except TiffFileError:
         if not cfg.silent:
@@ -375,15 +402,25 @@ def run(
     write_func: Callable,
     sources: List[Configuration],
     num_cpus: Optional[int] = None,
+    silent: bool = False,
 ):
     LOGGER.debug(f"{sources=}")
     LOGGER.debug(f"{num_cpus=}")
+    LOGGER.debug(f"{silent=}")
+    LOGGER.debug(f"{len(sources)=}")
     if platform.system().lower() == "darwin":
         for src in sources:
             write_func(src)
     else:
         with Pool(num_cpus) as pool:
-            list(pool.imap(write_func, sources))
+            list(
+                tqdm(
+                    pool.imap(write_func, sources),
+                    bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
+                    disable=silent,
+                    total=len(sources),
+                )
+            )
 
 
 DELETE_ORIGINAL_OPT: bool = typer.Option(
@@ -443,7 +480,8 @@ def dcm(
                 silent,
                 delete_original=delete_original,
             ),
-            num_cpus,
+            num_cpus=num_cpus,
+            silent=silent,
         )
     except ValidationError as err:
         print_validation_error(err)
@@ -480,7 +518,8 @@ def dm(
                 silent,
                 delete_original=delete_original,
             ),
-            num_cpus,
+            num_cpus=num_cpus,
+            silent=silent,
         )
     except ValidationError as err:
         print_validation_error(err)
@@ -522,7 +561,8 @@ def app_emd(
                 delete_original=delete_original,
                 extras={"detector": detector},
             ),
-            num_cpus,
+            num_cpus=num_cpus,
+            silent=silent,
         )
     except ValidationError as err:
         print_validation_error(err)
@@ -559,7 +599,8 @@ def png(
                 silent,
                 delete_original=delete_original,
             ),
-            num_cpus,
+            num_cpus=num_cpus,
+            silent=silent,
         )
     except ValidationError as err:
         print_validation_error(err)
@@ -596,7 +637,8 @@ def tiff(
                 silent,
                 delete_original=delete_original,
             ),
-            num_cpus,
+            num_cpus=num_cpus,
+            silent=silent,
         )
     except ValidationError as err:
         print_validation_error(err)
