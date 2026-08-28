@@ -25,7 +25,7 @@ from rsciio.utils import rgb
 from tifffile import TiffFileError
 from tqdm import tqdm
 from tsio import __app_name__
-from typing import Any, Callable, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 from typing_extensions import Self
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
@@ -70,6 +70,27 @@ class BitDepths(Enum):
     def max_pixel_intensity(self) -> int:
         MAX_MAP = {BitDepths.EIGHT: 255, BitDepths.SIXTEEN: 65535}
         return MAX_MAP[self]
+
+
+class FromFormats(Enum):
+    DCM = "dcm"
+    DM3 = "dm3"
+    DM4 = "dm4"
+    EMD = "emd"
+    PNG = "png"
+    TIFF = "tiff"
+
+    @property
+    def ext(self) -> str:
+        EXT_MAP = {
+            FromFormats.DCM: ".dcm",
+            FromFormats.DM3: ".dm3",
+            FromFormats.DM4: ".dm4",
+            FromFormats.EMD: ".emd",
+            FromFormats.PNG: ".png",
+            FromFormats.TIFF: ".tif",
+        }
+        return EXT_MAP[self]
 
 
 class OutputFileFormats(Enum):
@@ -180,8 +201,9 @@ class Output(BaseModel):
 
 
 class Configuration(BaseModel):
-    delete_original: bool = False
-    extras: Dict[str, Any] = {}
+    delete_original: bool
+    extras: Dict[str, Any]
+    from_format: Optional[FromFormats]
     output: Output
     silent: bool
     src: Path
@@ -258,7 +280,7 @@ def write(
             src.unlink(missing_ok=True)
 
 
-def write_dcm(cfg: Configuration):
+def run_dcm(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
     write(
         [
@@ -278,7 +300,7 @@ def write_dcm(cfg: Configuration):
     )
 
 
-def write_dm(cfg: Configuration):
+def run_dm(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
     try:
         write(
@@ -294,7 +316,7 @@ def write_dm(cfg: Configuration):
         LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
 
 
-def write_emd(cfg: Configuration):
+def run_emd(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
     detector = cfg.extras.get("detector", 0)
     LOGGER.debug(f"{detector=}")
@@ -331,7 +353,7 @@ def write_emd(cfg: Configuration):
         LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
 
 
-def write_png(cfg: Configuration):
+def run_png(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
     write(
         image_file_reader(cfg.src),
@@ -342,7 +364,7 @@ def write_png(cfg: Configuration):
     )
 
 
-def write_tiff(cfg: Configuration):
+def run_tiff(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
     try:
         write(
@@ -363,12 +385,14 @@ def expand_sources(
     silent: bool,
     delete_original: bool = False,
     extras: Dict[str, Any] = {},
+    from_format: Optional[FromFormats] = None,
 ) -> List[Configuration]:
     LOGGER.debug(f"{paths=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{silent=}")
     LOGGER.debug(f"{delete_original=}")
     LOGGER.debug(f"{extras=}")
+    LOGGER.debug(f"{from_format=}")
     sources = []
     for path in paths:
         if path.is_dir():
@@ -377,6 +401,7 @@ def expand_sources(
                     Configuration(
                         delete_original=delete_original,
                         extras=extras,
+                        from_format=from_format,
                         output=output,
                         silent=silent,
                         src=path.joinpath(p),
@@ -390,6 +415,7 @@ def expand_sources(
                 Configuration(
                     delete_original=delete_original,
                     extras=extras,
+                    from_format=from_format,
                     output=output,
                     silent=silent,
                     src=path,
@@ -398,255 +424,112 @@ def expand_sources(
     return sources
 
 
-def run(
-    write_func: Callable,
-    sources: List[Configuration],
-    num_cpus: Optional[int] = None,
-    silent: bool = False,
-):
-    LOGGER.debug(f"{sources=}")
-    LOGGER.debug(f"{num_cpus=}")
-    LOGGER.debug(f"{silent=}")
-    LOGGER.debug(f"{len(sources)=}")
-    if platform.system().lower() == "darwin":
-        for src in sources:
-            write_func(src)
+def run(cfg: Configuration):
+    LOGGER.debug(f"{cfg=}")
+    RUN_MAP = {
+        ".dcm": run_dcm,
+        ".dm3": run_dm,
+        ".dm4": run_dm,
+        ".emd": run_emd,
+        ".png": run_png,
+        ".tif": run_tiff,
+        ".tiff": run_tiff,
+    }
+    if cfg.from_format is None:
+        RUN_MAP[cfg.src.suffix](cfg)
     else:
-        with Pool(num_cpus) as pool:
+        RUN_MAP[cfg.from_format.ext](cfg)
+
+
+PROGRESS_BAR_FORMAT: str = "{l_bar}{bar}| {n_fmt}/{total_fmt}"
+
+
+@app.command()
+def main(
+    paths: List[Path] = typer.Argument(help="The original source files."),
+    delete_original: bool = typer.Option(
+        False,
+        "-D",
+        "--delete-original",
+        help="Deletes the original file after conversion.",
+    ),
+    from_format: Optional[FromFormats] = typer.Option(
+        None,
+        "--from",
+        help=(
+            "The original source format for all files. If not specified, then "
+            "the file extension will be used. Use this option when there are "
+            "no file extensions or a non-standard file extension is used."
+        ),
+    ),
+    num_cpus: Optional[int] = typer.Option(
+        None,
+        "-n",
+        "--num-cpus",
+        help="The number of CPU cores to use for parallel execution.",
+    ),
+    output: Optional[Path] = typer.Option(
+        None, "-o", "--output", help="Destination for output file(s)."
+    ),
+    silent: bool = typer.Option(
+        False, "-S", "--silent", help="Disables the progress bars."
+    ),
+    to_bit_depth: Literal[8, 16] = typer.Option(
+        8,
+        "-b",
+        "--to-bit-depth",
+        help="The bit depth for the output file.",
+    ),
+    to_format: OutputFileFormats = typer.Option(
+        OutputFileFormats.JPEG, "--to", help="The output file format."
+    ),
+):
+    LOGGER.debug(f"{delete_original=}")
+    LOGGER.debug(f"{from_format=}")
+    LOGGER.debug(f"{paths=}")
+    LOGGER.debug(f"{num_cpus=}")
+    LOGGER.debug(f"{output=}")
+    LOGGER.debug(f"{silent=}")
+    LOGGER.debug(f"{to_bit_depth=}")
+    LOGGER.debug(f"{to_format=}")
+    try:
+        sources = expand_sources(
+            paths,
+            Output(
+                bit_depth=BitDepths(to_bit_depth),
+                format=to_format,
+                path=output,
+            ),
+            silent,
+            delete_original=delete_original,
+            from_format=from_format,
+        )
+        if platform.system().lower() == "darwin":
             list(
                 tqdm(
-                    pool.imap(write_func, sources),
-                    bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
+                    map(run, sources),
+                    bar_format=PROGRESS_BAR_FORMAT,
                     disable=silent,
                     total=len(sources),
                 )
             )
-
-
-DELETE_ORIGINAL_OPT: bool = typer.Option(
-    False,
-    "-D",
-    "--delete-original",
-    help="Deletes the original file after conversion.",
-)
-NUM_CPUS_OPT: Optional[int] = typer.Option(
-    None,
-    "-n",
-    "--num-cpus",
-    help="The number of CPU cores to use for parallel execution.",
-)
-OUTPUT_FORMAT_ARG: OutputFileFormats = typer.Argument(help="The output file format.")
-OUTPUT_OPT: Optional[Path] = typer.Option(
-    None, "-o", "--output", help="Destination for output file(s)."
-)
-OUTPUT_BIT_DEPTH_OPT: Literal[8, 16] = typer.Option(
-    8,
-    "-b",
-    "--output-bit-depth",
-    help="The bit depth for the output file.",
-)
-SILENT_OPT: bool = typer.Option(
-    False, "-S", "--silent", help="Disables the progress bars."
-)
-
-
-@app.command(help="Handle Input/Output (IO) of DICOM (DCM) files.")
-def dcm(
-    output_format: OutputFileFormats = OUTPUT_FORMAT_ARG,
-    paths: List[Path] = typer.Argument(help="The original DCM source files."),
-    delete_original: bool = DELETE_ORIGINAL_OPT,
-    num_cpus: Optional[int] = NUM_CPUS_OPT,
-    output: Optional[Path] = OUTPUT_OPT,
-    output_bit_depth: int = OUTPUT_BIT_DEPTH_OPT,
-    silent: bool = SILENT_OPT,
-):
-    LOGGER.debug(f"{delete_original=}")
-    LOGGER.debug(f"{paths=}")
-    LOGGER.debug(f"{num_cpus=}")
-    LOGGER.debug(f"{output=}")
-    LOGGER.debug(f"{output_bit_depth=}")
-    LOGGER.debug(f"{output_format=}")
-    LOGGER.debug(f"{silent=}")
-    try:
-        run(
-            write_dcm,
-            expand_sources(
-                paths,
-                Output(
-                    bit_depth=BitDepths(output_bit_depth),
-                    format=output_format,
-                    path=output,
-                ),
-                silent,
-                delete_original=delete_original,
-            ),
-            num_cpus=num_cpus,
-            silent=silent,
-        )
-    except ValidationError as err:
-        print_validation_error(err)
-        raise typer.Exit(code=1)
-
-
-@app.command(help="Handle Input/Output (IO) of DigitalMicrograph (DM) files.")
-def dm(
-    output_format: OutputFileFormats = OUTPUT_FORMAT_ARG,
-    paths: List[Path] = typer.Argument(help="The original DM source files."),
-    delete_original: bool = DELETE_ORIGINAL_OPT,
-    num_cpus: Optional[int] = NUM_CPUS_OPT,
-    output: Optional[Path] = OUTPUT_OPT,
-    output_bit_depth: int = OUTPUT_BIT_DEPTH_OPT,
-    silent: bool = SILENT_OPT,
-):
-    LOGGER.debug(f"{paths=}")
-    LOGGER.debug(f"{delete_original=}")
-    LOGGER.debug(f"{num_cpus=}")
-    LOGGER.debug(f"{output=}")
-    LOGGER.debug(f"{output_bit_depth=}")
-    LOGGER.debug(f"{output_format=}")
-    LOGGER.debug(f"{silent=}")
-    try:
-        run(
-            write_dm,
-            expand_sources(
-                paths,
-                Output(
-                    bit_depth=BitDepths(output_bit_depth),
-                    format=output_format,
-                    path=output,
-                ),
-                silent,
-                delete_original=delete_original,
-            ),
-            num_cpus=num_cpus,
-            silent=silent,
-        )
-    except ValidationError as err:
-        print_validation_error(err)
-        raise typer.Exit(code=1)
-
-
-@app.command(help="Handle Input/Output (IO) of Velox (EMD) files.", name="emd")
-def app_emd(
-    output_format: OutputFileFormats = OUTPUT_FORMAT_ARG,
-    paths: List[Path] = typer.Argument(help="The original EMD source files."),
-    delete_original: bool = DELETE_ORIGINAL_OPT,
-    detector: int = typer.Option(
-        0, "-d", "--detector", help="The index of the detector to export images."
-    ),
-    num_cpus: Optional[int] = NUM_CPUS_OPT,
-    output: Optional[Path] = OUTPUT_OPT,
-    output_bit_depth: int = OUTPUT_BIT_DEPTH_OPT,
-    silent: bool = SILENT_OPT,
-):
-    LOGGER.debug(f"{detector=}")
-    LOGGER.debug(f"{delete_original=}")
-    LOGGER.debug(f"{num_cpus=}")
-    LOGGER.debug(f"{output=}")
-    LOGGER.debug(f"{output_bit_depth=}")
-    LOGGER.debug(f"{output_format=}")
-    LOGGER.debug(f"{paths=}")
-    LOGGER.debug(f"{silent=}")
-    try:
-        run(
-            write_emd,
-            expand_sources(
-                paths,
-                Output(
-                    bit_depth=BitDepths(output_bit_depth),
-                    format=output_format,
-                    path=output,
-                ),
-                silent,
-                delete_original=delete_original,
-                extras={"detector": detector},
-            ),
-            num_cpus=num_cpus,
-            silent=silent,
-        )
-    except ValidationError as err:
-        print_validation_error(err)
-        raise typer.Exit(code=1)
-
-
-@app.command(help="Handle Input/Output (IO) of PNG files.")
-def png(
-    output_format: OutputFileFormats = OUTPUT_FORMAT_ARG,
-    paths: List[Path] = typer.Argument(help="The original PNG source files."),
-    delete_original: bool = DELETE_ORIGINAL_OPT,
-    num_cpus: Optional[int] = NUM_CPUS_OPT,
-    output: Optional[Path] = OUTPUT_OPT,
-    output_bit_depth: int = OUTPUT_BIT_DEPTH_OPT,
-    silent: bool = SILENT_OPT,
-):
-    LOGGER.debug(f"{paths=}")
-    LOGGER.debug(f"{delete_original=}")
-    LOGGER.debug(f"{num_cpus=}")
-    LOGGER.debug(f"{output=}")
-    LOGGER.debug(f"{output_bit_depth=}")
-    LOGGER.debug(f"{output_format=}")
-    LOGGER.debug(f"{silent=}")
-    try:
-        run(
-            write_png,
-            expand_sources(
-                paths,
-                Output(
-                    bit_depth=BitDepths(output_bit_depth),
-                    format=output_format,
-                    path=output,
-                ),
-                silent,
-                delete_original=delete_original,
-            ),
-            num_cpus=num_cpus,
-            silent=silent,
-        )
-    except ValidationError as err:
-        print_validation_error(err)
-        raise typer.Exit(code=1)
-
-
-@app.command(help="Handle Input/Output (IO) of TIFF files.")
-def tiff(
-    output_format: OutputFileFormats = OUTPUT_FORMAT_ARG,
-    paths: List[Path] = typer.Argument(help="The original TIFF source files."),
-    delete_original: bool = DELETE_ORIGINAL_OPT,
-    num_cpus: Optional[int] = NUM_CPUS_OPT,
-    output: Optional[Path] = OUTPUT_OPT,
-    output_bit_depth: int = OUTPUT_BIT_DEPTH_OPT,
-    silent: bool = SILENT_OPT,
-):
-    LOGGER.debug(f"{paths=}")
-    LOGGER.debug(f"{delete_original=}")
-    LOGGER.debug(f"{num_cpus=}")
-    LOGGER.debug(f"{output=}")
-    LOGGER.debug(f"{output_bit_depth=}")
-    LOGGER.debug(f"{output_format=}")
-    LOGGER.debug(f"{silent=}")
-    try:
-        run(
-            write_tiff,
-            expand_sources(
-                paths,
-                Output(
-                    bit_depth=BitDepths(output_bit_depth),
-                    format=output_format,
-                    path=output,
-                ),
-                silent,
-                delete_original=delete_original,
-            ),
-            num_cpus=num_cpus,
-            silent=silent,
-        )
+        else:
+            with Pool(num_cpus) as pool:
+                list(
+                    tqdm(
+                        pool.imap(run, sources),
+                        bar_format=PROGRESS_BAR_FORMAT,
+                        disable=silent,
+                        total=len(sources),
+                    )
+                )
     except ValidationError as err:
         print_validation_error(err)
         raise typer.Exit(code=1)
 
 
 @app.callback()
-def main(
+def main_callback(
     verbose: int = typer.Option(
         0,
         "--verbose",
