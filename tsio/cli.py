@@ -80,18 +80,18 @@ class OutputFileFormats(Enum):
     @property
     def mime_type(self) -> str:
         MIME_TYPES = {
-            Self.JPEG: JPEG_MIME_TYPE,
-            Self.PNG: PNG_MIME_TYPE,
-            Self.TIFF: TIFF_MIME_TYPE,
+            OutputFileFormats.JPEG: JPEG_MIME_TYPE,
+            OutputFileFormats.PNG: PNG_MIME_TYPE,
+            OutputFileFormats.TIFF: TIFF_MIME_TYPE,
         }
         return MIME_TYPES[self]
 
     @property
     def file_ext(self) -> str:
         FILE_EXTS = {
-            Self.JPEG: JPEG_FILE_EXT,
-            Self.PNG: PNG_FILE_EXT,
-            Self.TIFF: TIFF_FILE_EXT,
+            OutputFileFormats.JPEG: JPEG_FILE_EXT,
+            OutputFileFormats.PNG: PNG_FILE_EXT,
+            OutputFileFormats.TIFF: TIFF_FILE_EXT,
         }
         return FILE_EXTS[self]
 
@@ -129,7 +129,7 @@ class Output(BaseModel):
             return img.astype(np.float32)
 
     def convert(self, img: np.ndarray) -> np.ndarray:
-        if Self.is_gray(img) and not self.format.is_gray_supported:
+        if Output.is_gray(img) and not self.format.is_gray_supported:
             return cv2.cvtColor(
                 img,
                 cv2.COLOR_GRAY2RGB,
@@ -141,9 +141,9 @@ class Output(BaseModel):
 
     def cast(self, img: np.ndarray) -> np.ndarray:
         rgbx_or_gray_img = rgb.rgbx2regular_array(img, show_progressbar=False)
-        rgbx_or_gray_float_img = Self.normalize(rgbx_or_gray_img)
+        rgbx_or_gray_float_img = Output.normalize(rgbx_or_gray_img)
         rgbx_or_gray_int_img = self.scale(rgbx_or_gray_float_img)
-        return Self.convert(rgbx_or_gray_int_img)
+        return Output.convert(rgbx_or_gray_int_img)
 
     def destination(self, src: Path) -> Path:
         return src.resolve().parent if self.path is None else self.path
