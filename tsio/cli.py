@@ -31,7 +31,6 @@ from typing_extensions import Self
 LOGGER: logging.Logger = logging.getLogger(__name__)
 PREFIX: str = f"{__app_name__.upper()}"
 
-BIT_DEPTH_DTYPE: str = "uint8"
 DCM_FILE_EXT: str = ".dcm"
 DCM_MIME_TYPE: str = "application/dicom"
 DM4_FILE_EXT: str = ".dm4"
@@ -467,7 +466,7 @@ def main(
         help=(
             "The original source format for all files. If not specified, then "
             "the file extension will be used. Use this option when there are "
-            "no file extensions or a non-standard file extension is used."
+            "no file extensions or a non-standard file extension is exists."
         ),
     ),
     num_cpus: Optional[int] = typer.Option(
