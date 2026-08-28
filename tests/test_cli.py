@@ -638,6 +638,26 @@ def test_write_tiff_with_black_8bit_rgb(black_8bit_rgb_single_page_tiff, output_
     assert not np.any(jpeg_img)
 
 
+def test_write_tiff_with_black_8bit_rgba(black_8bit_rgba_single_page_tiff, output_cfg):
+    src = black_8bit_rgba_single_page_tiff
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write(
+        tiff_file_reader(src, multipage_as_list=True),
+        src,
+        output_cfg(),
+        True,
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
+
+
 def test_write_tiff_with_black_16bit_gray(
     black_16bit_gray_single_page_tiff, output_cfg
 ):
