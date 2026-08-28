@@ -463,6 +463,7 @@ def main(
         None,
         "-f",
         "--from",
+        case_sensitive=False,
         help=(
             "The original source format for all files. If not specified, then "
             "the file extension will be used. Use this option when there are "
@@ -483,7 +484,11 @@ def main(
     ),
     to_bit_depth: int = TO_BIT_DEPTH_OPT,
     to_format: ToFormats = typer.Option(
-        ToFormats.JPEG.value, "-t", "--to", help="The output file format."
+        ToFormats.JPEG.value,
+        "-t",
+        "--to",
+        case_sensitive=False,
+        help="The output file format.",
     ),
     verbose: int = typer.Option(
         0,
