@@ -310,7 +310,7 @@ def black_8bit_rgba_single_page_tiff(black_8bit_rgba_image, tmp_path) -> Path:
 @pytest.fixture
 def black_16bit_gray_single_page_tiff(black_16bit_gray_image, tmp_path) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
-    signal = {"data": rgb.regular_array2rgbx(black_16bit_gray_image)}
+    signal = {"data": black_16bit_gray_image}
     tiff_file_writer(str(tif_file), signal)
     assert tif_file.exists()
     tif_img = cv2.imread(str(tif_file), cv2.IMREAD_UNCHANGED)
