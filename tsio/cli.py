@@ -149,9 +149,6 @@ class Output(BaseModel):
         return src.resolve().parent if self.path is None else self.path
 
     def scale(self, img: np.ndarray) -> np.ndarray:
-        LOGGER.debug(f"{img.dtype.name=}")
-        if img.dtype.name != "float32":
-            img = Self.normalize(img)
         return np.round(img * self.bit_depth.max_pixel_intensity).astype(
             self.bit_depth.type
         )
@@ -212,13 +209,11 @@ def write(
     output: Output,
     silent: bool,
     delete_original: bool = False,
-    normalize: bool = True,
 ):
     LOGGER.debug(f"{src=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{silent=}")
     LOGGER.debug(f"{delete_original=}")
-    LOGGER.debug(f"{normalize=}")
     destination = output.destination(src)
     pages_count = len(pages)
     LOGGER.debug(f"{pages_count=}")
@@ -272,7 +267,6 @@ def write_dcm(cfg: Configuration):
         cfg.output,
         cfg.silent,
         delete_original=cfg.delete_original,
-        normalize=True,
     )
 
 
@@ -285,7 +279,6 @@ def write_dm(cfg: Configuration):
             cfg.output,
             cfg.silent,
             delete_original=cfg.delete_original,
-            normalize=True,
         )
     except NotImplementedError as error:
         LOGGER.warning(f"Skipped '{cfg.src}' because: '{str(error)}'")
@@ -325,7 +318,6 @@ def write_emd(cfg: Configuration):
             cfg.output,
             cfg.silent,
             delete_original=cfg.delete_original,
-            normalize=True,
         )
     except Exception as error:
         LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
@@ -339,7 +331,6 @@ def write_png(cfg: Configuration):
         cfg.output,
         cfg.silent,
         delete_original=cfg.delete_original,
-        normalize=True,
     )
 
 
@@ -352,7 +343,6 @@ def write_tiff(cfg: Configuration):
             cfg.output,
             cfg.silent,
             delete_original=cfg.delete_original,
-            normalize=True,
         )
     except TiffFileError:
         if not cfg.silent:
