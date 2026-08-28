@@ -442,6 +442,12 @@ def run(cfg: Configuration):
 
 
 PROGRESS_BAR_FORMAT: str = "{l_bar}{bar}| {n_fmt}/{total_fmt}"
+TO_BIT_DEPTH_OPT: Literal[8, 16] = typer.Option(
+    8,
+    "-b",
+    "--to-bit-depth",
+    help="The bit depth for the output file.",
+)
 
 
 @app.command()
@@ -474,12 +480,7 @@ def main(
     silent: bool = typer.Option(
         False, "-S", "--silent", help="Disables the progress bars."
     ),
-    to_bit_depth: Literal[8, 16] = typer.Option(
-        8,
-        "-b",
-        "--to-bit-depth",
-        help="The bit depth for the output file.",
-    ),
+    to_bit_depth: int = TO_BIT_DEPTH_OPT,
     to_format: OutputFileFormats = typer.Option(
         OutputFileFormats.JPEG, "--to", help="The output file format."
     ),
