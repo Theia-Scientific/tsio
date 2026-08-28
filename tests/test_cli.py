@@ -24,25 +24,25 @@ from tsio.cli import (
     BitDepths,
     Configuration,
     expand_sources,
+    FromFormats,
     map_verbosity,
     JPEG_FILE_EXT,
     JPEG_MIME_TYPE,
     Output,
-    OutputFileFormats,
     PNG_FILE_EXT,
     PNG_MIME_TYPE,
-    run,
+    run_dcm,
+    run_dm,
+    run_emd,
+    run_png,
+    run_tiff,
     TIFF_FILE_EXT,
     TIFF_MIME_TYPE,
+    ToFormats,
     write,
-    write_dcm,
-    write_dm,
-    write_emd,
-    write_png,
-    write_tiff,
 )
 from typer.testing import CliRunner
-from typing import Callable
+from typing import Any, Dict, Callable, Optional
 
 runner = CliRunner()
 
@@ -458,9 +458,35 @@ def emd_multiple_images(tmp_assets) -> Path:
 
 
 @pytest.fixture
-def output_cfg() -> Callable[[BitDepths, OutputFileFormats, Path], Output]:
+def run_cfg(
+    output_cfg,
+) -> Callable[
+    [Path, bool, Dict[str, Any], Optional[FromFormats], Output, bool], Output
+]:
+    def _make_run_cfg(
+        src: Path,
+        delete_original: bool = False,
+        extras: Dict[str, Any] = {},
+        from_format: Optional[FromFormats] = None,
+        output: Output = output_cfg(),
+        silent: bool = True,
+    ) -> Output:
+        return Configuration(
+            delete_original=delete_original,
+            extras=extras,
+            from_format=from_format,
+            output=output,
+            silent=silent,
+            src=src,
+        )
+
+    return _make_run_cfg
+
+
+@pytest.fixture
+def output_cfg() -> Callable[[BitDepths, ToFormats, Path], Output]:
     def _make_output_cfg(
-        bit_depth=BitDepths.EIGHT, format=OutputFileFormats.JPEG, path=None
+        bit_depth=BitDepths.EIGHT, format=ToFormats.JPEG, path=None
     ) -> Output:
         return Output(bit_depth=bit_depth, format=format, path=path)
 
@@ -477,28 +503,28 @@ def test_bit_depths_max_pixel_intensity():
     assert BitDepths.SIXTEEN.max_pixel_intensity == 65535
 
 
-def test_output_file_formats_is_alpha_supported():
-    assert not OutputFileFormats.JPEG.is_alpha_supported
-    assert OutputFileFormats.PNG.is_alpha_supported
-    assert OutputFileFormats.TIFF.is_alpha_supported
+def test_to_formats_is_alpha_supported():
+    assert not ToFormats.JPEG.is_alpha_supported
+    assert ToFormats.PNG.is_alpha_supported
+    assert ToFormats.TIFF.is_alpha_supported
 
 
-def test_output_file_formats_is_gray_supported():
-    assert not OutputFileFormats.JPEG.is_gray_supported
-    assert OutputFileFormats.PNG.is_gray_supported
-    assert OutputFileFormats.TIFF.is_gray_supported
+def test_to_formats_is_gray_supported():
+    assert not ToFormats.JPEG.is_gray_supported
+    assert ToFormats.PNG.is_gray_supported
+    assert ToFormats.TIFF.is_gray_supported
 
 
-def test_output_file_formats_mime_type():
-    assert OutputFileFormats.JPEG.mime_type == JPEG_MIME_TYPE
-    assert OutputFileFormats.PNG.mime_type == PNG_MIME_TYPE
-    assert OutputFileFormats.TIFF.mime_type == TIFF_MIME_TYPE
+def test_to_formats_mime_type():
+    assert ToFormats.JPEG.mime_type == JPEG_MIME_TYPE
+    assert ToFormats.PNG.mime_type == PNG_MIME_TYPE
+    assert ToFormats.TIFF.mime_type == TIFF_MIME_TYPE
 
 
-def test_output_file_formats_file_ext():
-    assert OutputFileFormats.JPEG.file_ext == JPEG_FILE_EXT
-    assert OutputFileFormats.PNG.file_ext == PNG_FILE_EXT
-    assert OutputFileFormats.TIFF.file_ext == TIFF_FILE_EXT
+def test_to_formats_file_ext():
+    assert ToFormats.JPEG.file_ext == JPEG_FILE_EXT
+    assert ToFormats.PNG.file_ext == PNG_FILE_EXT
+    assert ToFormats.TIFF.file_ext == TIFF_FILE_EXT
 
 
 def test_output_destination_with_none_path(tmp_path, output_cfg):
@@ -548,7 +574,7 @@ def test_output_cast_eight_rgba(black_16bit_rgba_image, output_cfg, tmp_path):
 
 def test_output_cast_sixteen_gray(black_16bit_gray_image, output_cfg, tmp_path):
     img = output_cfg(
-        bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.PNG, path=tmp_path
+        bit_depth=BitDepths.SIXTEEN, format=ToFormats.PNG, path=tmp_path
     ).cast(black_16bit_gray_image)
     assert img.dtype.name == "uint16"
     assert img.shape == (256, 256)
@@ -557,7 +583,7 @@ def test_output_cast_sixteen_gray(black_16bit_gray_image, output_cfg, tmp_path):
 
 def test_output_cast_sixteen_rgb(black_16bit_rgb_image, output_cfg, tmp_path):
     img = output_cfg(
-        bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.PNG, path=tmp_path
+        bit_depth=BitDepths.SIXTEEN, format=ToFormats.PNG, path=tmp_path
     ).cast(black_16bit_rgb_image)
     assert img.dtype.name == "uint16"
     assert img.shape == (256, 256, 3)
@@ -566,7 +592,7 @@ def test_output_cast_sixteen_rgb(black_16bit_rgb_image, output_cfg, tmp_path):
 
 def test_output_cast_sixteen_rgba(black_16bit_rgba_image, output_cfg, tmp_path):
     img = output_cfg(
-        bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.PNG, path=tmp_path
+        bit_depth=BitDepths.SIXTEEN, format=ToFormats.PNG, path=tmp_path
     ).cast(black_16bit_rgba_image)
     assert img.dtype.name == "uint16"
     assert img.shape == (256, 256, 4)
@@ -575,7 +601,7 @@ def test_output_cast_sixteen_rgba(black_16bit_rgba_image, output_cfg, tmp_path):
 
 def test_output_validation():
     with pytest.raises(ValidationError):
-        Output(bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.JPEG, path=None)
+        Output(bit_depth=BitDepths.SIXTEEN, format=ToFormats.JPEG, path=None)
 
 
 def test_map_verbosity_none():
@@ -772,16 +798,10 @@ def test_write_with_dm4(dm4, output_cfg, tmp_path):
     assert np.any(jpeg_img)
 
 
-def test_write_dcm(dcm, output_cfg, tmp_path):
+def test_run_dcm(dcm, output_cfg, run_cfg, tmp_path):
     src = dcm
     dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
-    write_dcm(
-        Configuration(
-            output=output_cfg(path=tmp_path),
-            silent=True,
-            src=src,
-        )
-    )
+    run_dcm(run_cfg(src, output=output_cfg(path=tmp_path)))
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -793,20 +813,14 @@ def test_write_dcm(dcm, output_cfg, tmp_path):
     assert not np.any(jpeg_img)
 
 
-def test_write_dm(dm4, output_cfg, tmp_path):
+def test_run_dm(dm4, output_cfg, run_cfg, tmp_path):
     src = dm4
     dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
-    write_dm(
-        Configuration(
-            output=output_cfg(path=dst),
-            silent=True,
-            src=src,
-        )
-    )
+    run_dm(run_cfg(src, output=output_cfg(path=dst)))
     assert dst.exists()
 
 
-def test_write_dm_fails_with_not_implemented(mocker, output_cfg, tmp_path):
+def test_run_dm_fails_with_not_implemented(mocker, run_cfg, tmp_path):
     src = tmp_path.joinpath("test.dm4")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
@@ -817,39 +831,21 @@ def test_write_dm_fails_with_not_implemented(mocker, output_cfg, tmp_path):
         raise NotImplementedError("Not supported version")
 
     mocker.patch("rsciio.digitalmicrograph.file_reader", mock_file_reader)
-    write_dm(
-        Configuration(
-            output=output_cfg(),
-            silent=True,
-            src=src,
-        )
-    )
+    run_dm(run_cfg(src))
     assert not dst.exists()
 
 
-def test_write_dm_fails_with_exception(output_cfg, tmp_path):
+def test_run_dm_fails_with_exception(run_cfg, tmp_path):
     src = tmp_path.joinpath("test.dm4")
     dst = src.with_suffix(JPEG_FILE_EXT)
-    write_dm(
-        Configuration(
-            output=output_cfg(),
-            silent=True,
-            src=src,
-        )
-    )
+    run_dm(run_cfg(src))
     assert not dst.exists()
 
 
-def test_write_emd_single_image(emd_single_image, output_cfg):
+def test_run_emd_single_image(emd_single_image, output_cfg, run_cfg, tmp_path):
     src = emd_single_image
-    dst = src.with_suffix(JPEG_FILE_EXT)
-    write_emd(
-        Configuration(
-            output=output_cfg(),
-            silent=True,
-            src=src,
-        )
-    )
+    dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
+    run_emd(run_cfg(src, output=output_cfg(path=tmp_path)))
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -861,16 +857,10 @@ def test_write_emd_single_image(emd_single_image, output_cfg):
     assert np.any(jpeg_img)
 
 
-def test_write_emd_multiple_images(emd_multiple_images, output_cfg, tmp_path):
+def test_run_emd_multiple_images(emd_multiple_images, output_cfg, run_cfg, tmp_path):
     src = emd_multiple_images
     dst = tmp_path.joinpath(src.stem)
-    write_emd(
-        Configuration(
-            output=output_cfg(path=tmp_path),
-            silent=True,
-            src=src,
-        )
-    )
+    run_emd(run_cfg(src, output=output_cfg(path=tmp_path)))
     assert dst.exists()
     assert os.path.isdir(dst)
     assert len(os.listdir(dst)) == 37
@@ -886,7 +876,7 @@ def test_write_emd_multiple_images(emd_multiple_images, output_cfg, tmp_path):
         assert len(jpeg_img.shape) == 3
 
 
-def test_write_emd_with_no_image_data(mocker, output_cfg, tmp_path):
+def test_run_emd_with_no_image_data(mocker, run_cfg, tmp_path):
     src = tmp_path.joinpath("test.emd")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
@@ -897,17 +887,11 @@ def test_write_emd_with_no_image_data(mocker, output_cfg, tmp_path):
         return []
 
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
-    write_emd(
-        Configuration(
-            output=output_cfg(),
-            silent=True,
-            src=src,
-        )
-    )
+    run_emd(run_cfg(src))
     assert not dst.exists()
 
 
-def test_write_emd_with_no_data_field(mocker, output_cfg, tmp_path):
+def test_run_emd_with_no_data_field(mocker, run_cfg, tmp_path):
     src = tmp_path.joinpath("test.emd")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
@@ -918,17 +902,11 @@ def test_write_emd_with_no_data_field(mocker, output_cfg, tmp_path):
         return [{"axes": []}]
 
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
-    write_emd(
-        Configuration(
-            output=output_cfg(),
-            silent=True,
-            src=src,
-        )
-    )
+    run_emd(run_cfg(src))
     assert not dst.exists()
 
 
-def test_write_emd_fails_with_exception(mocker, output_cfg, tmp_path):
+def test_run_emd_fails_with_exception(mocker, run_cfg, tmp_path):
     src = tmp_path.joinpath("test.emd")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
@@ -939,26 +917,14 @@ def test_write_emd_fails_with_exception(mocker, output_cfg, tmp_path):
         raise Exception("Test Exception")
 
     mocker.patch("rsciio.emd.file_reader", mock_file_reader)
-    write_emd(
-        Configuration(
-            output=output_cfg(),
-            silent=True,
-            src=src,
-        )
-    )
+    run_emd(run_cfg(src))
     assert not dst.exists()
 
 
-def test_write_png_8bit_gray(black_8bit_gray_png, output_cfg):
+def test_run_png_8bit_gray(black_8bit_gray_png, run_cfg):
     src = black_8bit_gray_png
     dst = src.with_suffix(JPEG_FILE_EXT)
-    write_png(
-        Configuration(
-            output=output_cfg(),
-            silent=True,
-            src=src,
-        )
-    )
+    run_png(run_cfg(src))
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -970,16 +936,10 @@ def test_write_png_8bit_gray(black_8bit_gray_png, output_cfg):
     assert not np.any(jpeg_img)
 
 
-def test_write_png_8bit_rgb(black_8bit_rgb_png, output_cfg):
+def test_run_png_8bit_rgb(black_8bit_rgb_png, run_cfg):
     src = black_8bit_rgb_png
     dst = src.with_suffix(JPEG_FILE_EXT)
-    write_png(
-        Configuration(
-            output=output_cfg(),
-            silent=True,
-            src=src,
-        )
-    )
+    run_png(run_cfg(src))
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -991,16 +951,10 @@ def test_write_png_8bit_rgb(black_8bit_rgb_png, output_cfg):
     assert not np.any(jpeg_img)
 
 
-def test_write_png_8bit_rgba(black_8bit_rgba_png, output_cfg):
+def test_run_png_8bit_rgba(black_8bit_rgba_png, run_cfg):
     src = black_8bit_rgba_png
     dst = src.with_suffix(JPEG_FILE_EXT)
-    write_png(
-        Configuration(
-            output=output_cfg(),
-            silent=True,
-            src=src,
-        )
-    )
+    run_png(run_cfg(src))
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -1012,16 +966,10 @@ def test_write_png_8bit_rgba(black_8bit_rgba_png, output_cfg):
     assert not np.any(jpeg_img)
 
 
-def test_write_png_16bit_gray(black_16bit_gray_png, output_cfg):
+def test_run_png_16bit_gray(black_16bit_gray_png, run_cfg):
     src = black_16bit_gray_png
     dst = src.with_suffix(JPEG_FILE_EXT)
-    write_png(
-        Configuration(
-            output=output_cfg(),
-            silent=True,
-            src=src,
-        )
-    )
+    run_png(run_cfg(src))
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -1033,16 +981,10 @@ def test_write_png_16bit_gray(black_16bit_gray_png, output_cfg):
     assert not np.any(jpeg_img)
 
 
-def test_write_png_16bit_rgb(black_16bit_rgb_png, output_cfg):
+def test_run_png_16bit_rgb(black_16bit_rgb_png, run_cfg):
     src = black_16bit_rgb_png
     dst = src.with_suffix(JPEG_FILE_EXT)
-    write_png(
-        Configuration(
-            output=output_cfg(),
-            silent=True,
-            src=src,
-        )
-    )
+    run_png(run_cfg(src))
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -1054,16 +996,10 @@ def test_write_png_16bit_rgb(black_16bit_rgb_png, output_cfg):
     assert not np.any(jpeg_img)
 
 
-def test_write_png_16bit_rgba(black_16bit_rgba_png, output_cfg):
+def test_run_png_16bit_rgba(black_16bit_rgba_png, run_cfg):
     src = black_16bit_rgba_png
     dst = src.with_suffix(JPEG_FILE_EXT)
-    write_png(
-        Configuration(
-            output=output_cfg(),
-            silent=True,
-            src=src,
-        )
-    )
+    run_png(run_cfg(src))
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -1075,18 +1011,12 @@ def test_write_png_16bit_rgba(black_16bit_rgba_png, output_cfg):
     assert not np.any(jpeg_img)
 
 
-def test_write_8bit_grayscale_png_to_8bit_tiff(
-    black_8bit_gray_png, output_cfg, tmp_path
+def test_run_8bit_grayscale_png_to_8bit_tiff(
+    black_8bit_gray_png, output_cfg, run_cfg, tmp_path
 ):
     src = black_8bit_gray_png
     dst = src.with_suffix(TIFF_FILE_EXT)
-    write_png(
-        Configuration(
-            output=output_cfg(format=OutputFileFormats.TIFF),
-            silent=True,
-            src=src,
-        )
-    )
+    run_png(run_cfg(src, output=output_cfg(format=ToFormats.TIFF)))
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -1098,8 +1028,8 @@ def test_write_8bit_grayscale_png_to_8bit_tiff(
     assert not np.any(tiff_img)
 
 
-def test_write_8bit_grayscale_png_to_16bit_tiff(
-    black_8bit_gray_image, output_cfg, tmp_path
+def test_run_8bit_grayscale_png_to_16bit_tiff(
+    black_8bit_gray_image, output_cfg, run_cfg, tmp_path
 ):
     src = tmp_path.joinpath("tmp.png")
     write_result = cv2.imwrite(str(src), black_8bit_gray_image)
@@ -1110,13 +1040,9 @@ def test_write_8bit_grayscale_png_to_16bit_tiff(
     assert png_img.dtype.name == "uint8"
     assert png_img.shape == (256, 256)
     dst = src.with_suffix(TIFF_FILE_EXT)
-    write_png(
-        Configuration(
-            output=output_cfg(
-                bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.TIFF
-            ),
-            silent=True,
-            src=src,
+    run_png(
+        run_cfg(
+            src, output=output_cfg(bit_depth=BitDepths.SIXTEEN, format=ToFormats.TIFF)
         )
     )
     assert dst.exists()
@@ -1130,16 +1056,12 @@ def test_write_8bit_grayscale_png_to_16bit_tiff(
     assert not np.any(tiff_img)
 
 
-def test_write_16bit_grayscale_png_to_8bit_tiff(black_16bit_gray_png, output_cfg):
+def test_run_16bit_grayscale_png_to_8bit_tiff(
+    black_16bit_gray_png, output_cfg, run_cfg
+):
     src = black_16bit_gray_png
     dst = src.with_suffix(TIFF_FILE_EXT)
-    write_png(
-        Configuration(
-            output=output_cfg(format=OutputFileFormats.TIFF),
-            silent=True,
-            src=src,
-        )
-    )
+    run_png(run_cfg(src, output=output_cfg(format=ToFormats.TIFF)))
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -1151,16 +1073,14 @@ def test_write_16bit_grayscale_png_to_8bit_tiff(black_16bit_gray_png, output_cfg
     assert not np.any(tiff_img)
 
 
-def test_write_16bit_grayscale_png_to_16bit_tiff(black_16bit_gray_png, output_cfg):
+def test_run_16bit_grayscale_png_to_16bit_tiff(
+    black_16bit_gray_png, output_cfg, run_cfg
+):
     src = black_16bit_gray_png
     dst = src.with_suffix(TIFF_FILE_EXT)
-    write_png(
-        Configuration(
-            output=output_cfg(
-                bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.TIFF
-            ),
-            silent=True,
-            src=src,
+    run_png(
+        run_cfg(
+            src, output=output_cfg(bit_depth=BitDepths.SIXTEEN, format=ToFormats.TIFF)
         )
     )
     assert dst.exists()
@@ -1174,16 +1094,15 @@ def test_write_16bit_grayscale_png_to_16bit_tiff(black_16bit_gray_png, output_cf
     assert not np.any(tiff_img)
 
 
-def test_write_heart_png_to_8bit_gray_tiff(heart_png, output_cfg, tmp_path):
+def test_run_heart_png_to_8bit_gray_tiff(heart_png, output_cfg, run_cfg, tmp_path):
     src = heart_png
     dst = tmp_path.joinpath(src.name).with_suffix(TIFF_FILE_EXT)
-    write_png(
-        Configuration(
+    run_png(
+        run_cfg(
+            src,
             output=output_cfg(
-                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.TIFF, path=tmp_path
+                bit_depth=BitDepths.EIGHT, format=ToFormats.TIFF, path=tmp_path
             ),
-            silent=True,
-            src=src,
         )
     )
     assert dst.exists()
@@ -1197,18 +1116,17 @@ def test_write_heart_png_to_8bit_gray_tiff(heart_png, output_cfg, tmp_path):
     assert np.any(tiff_img)
 
 
-def test_write_heart_png_to_16bit_gray_tiff(heart_png, output_cfg, tmp_path):
+def test_run_heart_png_to_16bit_gray_tiff(heart_png, output_cfg, run_cfg, tmp_path):
     src = heart_png
     dst = tmp_path.joinpath(src.name).with_suffix(TIFF_FILE_EXT)
-    write_png(
-        Configuration(
+    run_png(
+        run_cfg(
+            src,
             output=output_cfg(
                 bit_depth=BitDepths.SIXTEEN,
-                format=OutputFileFormats.TIFF,
+                format=ToFormats.TIFF,
                 path=tmp_path,
             ),
-            silent=True,
-            src=src,
         )
     )
     assert dst.exists()
@@ -1222,18 +1140,12 @@ def test_write_heart_png_to_16bit_gray_tiff(heart_png, output_cfg, tmp_path):
     assert np.any(tiff_img)
 
 
-def test_write_confusion_matrix_png_to_jpeg(
-    v09_loaded_confusion_matrix_png, output_cfg, tmp_path
+def test_run_confusion_matrix_png_to_jpeg(
+    v09_loaded_confusion_matrix_png, output_cfg, run_cfg, tmp_path
 ):
     src = v09_loaded_confusion_matrix_png
     dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
-    write_png(
-        Configuration(
-            output=output_cfg(path=tmp_path),
-            silent=True,
-            src=src,
-        )
-    )
+    run_png(run_cfg(src, output=output_cfg(path=tmp_path)))
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -1245,16 +1157,10 @@ def test_write_confusion_matrix_png_to_jpeg(
     assert np.any(jpeg_img)
 
 
-def test_write_white_8bit_rgba_png(white_8bit_rgba_png, output_cfg):
+def test_run_white_8bit_rgba_png(white_8bit_rgba_png, run_cfg):
     src = white_8bit_rgba_png
     dst = src.with_suffix(JPEG_FILE_EXT)
-    write_png(
-        Configuration(
-            output=output_cfg(),
-            silent=True,
-            src=src,
-        )
-    )
+    run_png(run_cfg(src))
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -1266,16 +1172,10 @@ def test_write_white_8bit_rgba_png(white_8bit_rgba_png, output_cfg):
     assert np.all(jpeg_img, where=255)
 
 
-def test_write_tiff(black_16bit_gray_single_page_tiff, output_cfg):
+def test_run_tiff(black_16bit_gray_single_page_tiff, run_cfg):
     src = black_16bit_gray_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
-    write_tiff(
-        Configuration(
-            output=output_cfg(),
-            silent=True,
-            src=src,
-        )
-    )
+    run_tiff(run_cfg(src))
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -1287,11 +1187,12 @@ def test_write_tiff(black_16bit_gray_single_page_tiff, output_cfg):
     assert not np.any(jpeg_img)
 
 
-def test_write_tiff_with_nontiff(
+def test_run_tiff_with_nontiff(
     black_8bit_gray_image,
     black_16bit_gray_image,
     caplog,
     output_cfg,
+    run_cfg,
     tmp_path,
 ):
     png_file = tmp_path.joinpath("image.png")
@@ -1303,22 +1204,15 @@ def test_write_tiff_with_nontiff(
     }
     tiff_file_writer(str(tif_file), signal)
     with caplog.at_level(logging.WARNING):
-        write_tiff(
-            Configuration(
-                output=output_cfg(path=tmp_path),
-                silent=False,
-                src=png_file,
-            )
-        )
-    write_tiff(
-        Configuration(
+        run_tiff(run_cfg(png_file, output=output_cfg(path=tmp_path)))
+    run_tiff(
+        run_cfg(
+            tif_file,
             output=Output(
                 bit_depth=BitDepths.EIGHT,
-                format=OutputFileFormats.JPEG,
+                format=ToFormats.JPEG,
                 path=tmp_path,
             ),
-            silent=True,
-            src=tif_file,
         )
     )
     dst = tif_file.with_suffix(JPEG_FILE_EXT)
@@ -1334,15 +1228,9 @@ def test_write_tiff_with_nontiff(
     assert not np.any(jpeg_img)
 
 
-def test_write_tiff_with_ncsu(ncsu_tif, output_cfg, tmp_path):
+def test_run_tiff_with_ncsu(ncsu_tif, output_cfg, run_cfg, tmp_path):
     actual = tmp_path.joinpath(ncsu_tif.with_suffix(JPEG_FILE_EXT).name)
-    write_tiff(
-        Configuration(
-            output=output_cfg(path=tmp_path),
-            silent=True,
-            src=ncsu_tif,
-        )
-    )
+    run_tiff(run_cfg(ncsu_tif, output=output_cfg(path=tmp_path)))
     assert actual.exists()
     kind = filetype.guess(str(actual))
     assert kind is not None
@@ -1354,7 +1242,7 @@ def test_write_tiff_with_ncsu(ncsu_tif, output_cfg, tmp_path):
     assert np.any(jpeg_img)
 
 
-def test_expand_sources(output_cfg, tmp_path):
+def test_expand_sources(output_cfg, run_cfg, tmp_path):
     paths = [
         tmp_path.joinpath("dst1.tif"),
         tmp_path.joinpath("dst2.dm3"),
@@ -1366,21 +1254,9 @@ def test_expand_sources(output_cfg, tmp_path):
         True,
     )
     assert len(actual) == 3
-    assert actual[0] == Configuration(
-        output=output_cfg(),
-        silent=True,
-        src=paths[0],
-    )
-    assert actual[1] == Configuration(
-        output=output_cfg(),
-        silent=True,
-        src=paths[1],
-    )
-    assert actual[2] == Configuration(
-        output=output_cfg(),
-        silent=True,
-        src=paths[2],
-    )
+    assert actual[0] == run_cfg(paths[0])
+    assert actual[1] == run_cfg(paths[1])
+    assert actual[2] == run_cfg(paths[2])
 
 
 def test_expand_sources_with_directories(output_cfg, tmp_path):
@@ -1442,7 +1318,7 @@ def test_expand_sources_with_multiple_folders(output_cfg, tmp_path):
     assert actual[5].src in expected
 
 
-def test_run_with_darwin(dm4, mocker, output_cfg):
+def test_run_with_darwin(dm4, mocker, tmp_path):
     def mock_platform_system() -> str:
         return "Darwin"
 
@@ -1454,20 +1330,11 @@ def test_run_with_darwin(dm4, mocker, output_cfg):
 
         return None
 
-    run(
-        mock_write,
-        [
-            Configuration(
-                output=output_cfg(),
-                silent=True,
-                src=dm4,
-            )
-        ],
-        silent=True,
-    )
+    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm4)])
+    assert result.exit_code == 0
 
 
-def test_run_with_linux(dm4, mocker, output_cfg):
+def test_run_with_linux(dm4, mocker, tmp_path):
     def mock_platform_system() -> str:
         return "Linux"
 
@@ -1479,17 +1346,8 @@ def test_run_with_linux(dm4, mocker, output_cfg):
 
         return None
 
-    run(
-        mock_write,
-        [
-            Configuration(
-                output=output_cfg(),
-                silent=True,
-                src=dm4,
-            )
-        ],
-        silent=True,
-    )
+    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm4)])
+    assert result.exit_code == 0
 
 
 def test_app_help():
@@ -1506,7 +1364,7 @@ def test_app_version():
 
 def test_app_dcm(dcm, tmp_path):
     dst = tmp_path.joinpath(dcm.name).with_suffix(JPEG_FILE_EXT)
-    result = runner.invoke(app, ["dcm", "-o", str(tmp_path), "-S", "jpeg", str(dcm)])
+    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dcm)])
     assert result.exit_code == 0
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1520,15 +1378,13 @@ def test_app_dcm(dcm, tmp_path):
 
 
 def test_app_dcm_fails(dcm, tmp_path):
-    result = runner.invoke(
-        app, ["dcm", "-o", str(tmp_path), "-S", "-b", "16", "jpeg", str(dcm)]
-    )
+    result = runner.invoke(app, ["-o", str(tmp_path), "-S", "-b", "16", str(dcm)])
     assert result.exit_code == 1
 
 
 def test_app_dm(dm4, tmp_path):
     dst = tmp_path.joinpath(dm4.name).with_suffix(JPEG_FILE_EXT)
-    result = runner.invoke(app, ["dm", "-o", str(tmp_path), "-S", "jpeg", str(dm4)])
+    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm4)])
     assert result.exit_code == 0
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1542,18 +1398,14 @@ def test_app_dm(dm4, tmp_path):
 
 
 def test_app_dm_fails(dm4, tmp_path):
-    result = runner.invoke(
-        app, ["dm", "-o", str(tmp_path), "-S", "-b", "16", "jpeg", str(dm4)]
-    )
+    result = runner.invoke(app, ["-o", str(tmp_path), "-S", "-b", "16", str(dm4)])
     assert result.exit_code == 1
 
 
 def test_app_all_dm_as_files(dm3, dm4, tmp_path):
     dst_dm3 = tmp_path.joinpath(dm3.name).with_suffix(JPEG_FILE_EXT)
     dst_dm4 = tmp_path.joinpath(dm4.name).with_suffix(JPEG_FILE_EXT)
-    result = runner.invoke(
-        app, ["dm", "-o", str(tmp_path), "-S", "jpeg", str(dm3), str(dm4)]
-    )
+    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm3), str(dm4)])
     assert result.exit_code == 0
     assert dst_dm3.exists()
     kind = filetype.guess(str(dst_dm3))
@@ -1575,17 +1427,6 @@ def test_app_all_dm_as_files(dm3, dm4, tmp_path):
     assert np.any(jpeg_img)
 
 
-def test_app_all_dm_as_directory(dm3, dm4, tmp_assets, tmp_path):
-    dst_dm3 = tmp_path.joinpath(dm3.name).with_suffix(JPEG_FILE_EXT)
-    dst_dm4 = tmp_path.joinpath(dm4.name).with_suffix(JPEG_FILE_EXT)
-    result = runner.invoke(
-        app, ["dm", "-o", str(tmp_path), "-S", "jpeg", str(tmp_assets)]
-    )
-    assert result.exit_code == 0
-    assert dst_dm3.exists()
-    assert dst_dm4.exists()
-
-
 def test_app_emd(mocker, emd_single_image, tmp_path):
     src = emd_single_image
 
@@ -1593,9 +1434,9 @@ def test_app_emd(mocker, emd_single_image, tmp_path):
         _ = args
         _ = kwargs
 
-    mocker.patch("tsio.cli.write_emd", mock_write_emd)
+    mocker.patch("tsio.cli.run_emd", mock_write_emd)
 
-    result = runner.invoke(app, ["emd", "-o", str(tmp_path), "-S", "jpeg", str(src)])
+    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(src)])
     assert result.exit_code == 0
 
 
@@ -1606,19 +1447,15 @@ def test_app_emd_fails(mocker, emd_single_image, tmp_path):
         _ = args
         _ = kwargs
 
-    mocker.patch("tsio.cli.write_emd", mock_write_emd)
+    mocker.patch("tsio.cli.run_emd", mock_write_emd)
 
-    result = runner.invoke(
-        app, ["emd", "-o", str(tmp_path), "-S", "-b", "16", "jpeg", str(src)]
-    )
+    result = runner.invoke(app, ["-o", str(tmp_path), "-S", "-b", "16", str(src)])
     assert result.exit_code == 1
 
 
 def test_app_png_8bit_gray(black_8bit_gray_png, tmp_path):
     dst = tmp_path.joinpath(black_8bit_gray_png.name).with_suffix(JPEG_FILE_EXT)
-    result = runner.invoke(
-        app, ["png", "-o", str(tmp_path), "-S", "jpeg", str(black_8bit_gray_png)]
-    )
+    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(black_8bit_gray_png)])
     assert result.exit_code == 0
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1633,9 +1470,7 @@ def test_app_png_8bit_gray(black_8bit_gray_png, tmp_path):
 
 def test_app_png_16bit(black_16bit_gray_png, tmp_path):
     dst = tmp_path.joinpath(black_16bit_gray_png.name).with_suffix(JPEG_FILE_EXT)
-    result = runner.invoke(
-        app, ["png", "-o", str(tmp_path), "-S", "jpeg", str(black_16bit_gray_png)]
-    )
+    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(black_16bit_gray_png)])
     assert result.exit_code == 0
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1650,9 +1485,7 @@ def test_app_png_16bit(black_16bit_gray_png, tmp_path):
 
 def test_app_png_white_8bit_rgba(white_8bit_rgba_png, tmp_path):
     dst = tmp_path.joinpath(white_8bit_rgba_png.name).with_suffix(JPEG_FILE_EXT)
-    result = runner.invoke(
-        app, ["png", "-o", str(tmp_path), "-S", "jpeg", str(white_8bit_rgba_png)]
-    )
+    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(white_8bit_rgba_png)])
     assert result.exit_code == 0
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1669,13 +1502,11 @@ def test_app_png_fails(black_8bit_gray_png, tmp_path):
     result = runner.invoke(
         app,
         [
-            "png",
             "-o",
             str(tmp_path),
             "-S",
             "-b",
             "16",
-            "jpeg",
             str(black_8bit_gray_png),
         ],
     )
@@ -1689,11 +1520,9 @@ def test_app_tiff(black_16bit_gray_single_page_tiff, tmp_path):
     result = runner.invoke(
         app,
         [
-            "tiff",
             "-o",
             str(tmp_path),
             "-S",
-            "jpeg",
             str(black_16bit_gray_single_page_tiff),
         ],
     )
@@ -1705,13 +1534,11 @@ def test_app_tiff_fails(black_16bit_gray_single_page_tiff, tmp_path):
     result = runner.invoke(
         app,
         [
-            "tiff",
             "-o",
             str(tmp_path),
             "-S",
             "-b",
             "16",
-            "jpeg",
             str(black_16bit_gray_single_page_tiff),
         ],
     )
