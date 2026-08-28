@@ -82,12 +82,12 @@ class FromFormats(Enum):
     @property
     def ext(self) -> str:
         EXT_MAP = {
-            FromFormats.DCM: ".dcm",
-            FromFormats.DM3: ".dm3",
-            FromFormats.DM4: ".dm4",
-            FromFormats.EMD: ".emd",
-            FromFormats.PNG: ".png",
-            FromFormats.TIFF: ".tif",
+            FromFormats.DCM: DCM_FILE_EXT,
+            FromFormats.DM3: DM3_FILE_EXT,
+            FromFormats.DM4: DM4_FILE_EXT,
+            FromFormats.EMD: EMD_FILE_EXT,
+            FromFormats.PNG: PNG_FILE_EXT,
+            FromFormats.TIFF: TIFF_FILE_EXT,
         }
         return EXT_MAP[self]
 
@@ -426,12 +426,12 @@ def expand_sources(
 def run(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
     RUN_MAP = {
-        ".dcm": run_dcm,
-        ".dm3": run_dm,
-        ".dm4": run_dm,
-        ".emd": run_emd,
-        ".png": run_png,
-        ".tif": run_tiff,
+        DCM_FILE_EXT: run_dcm,
+        DM3_FILE_EXT: run_dm,
+        DM4_FILE_EXT: run_dm,
+        EMD_FILE_EXT: run_emd,
+        PNG_FILE_EXT: run_png,
+        TIFF_FILE_EXT: run_tiff,
         ".tiff": run_tiff,
     }
     if cfg.from_format is None:
