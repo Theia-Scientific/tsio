@@ -235,7 +235,7 @@ def write(
             pages,
             total=pages_count,
             desc=src.name,
-            disable=silent,
+            disable=silent or pages_count == 1,
             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
         )
     ):
