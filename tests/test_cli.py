@@ -132,8 +132,12 @@ def black_16bit_gray_png(black_16bit_gray_image, tmp_path) -> Path:
 @pytest.fixture
 def black_16bit_rgb_png(black_16bit_rgb_image, tmp_path) -> Path:
     png_file = tmp_path.joinpath("image.png")
-    signal = {"data": black_16bit_rgb_image, "axes": {}}
-    image_file_writer(str(png_file), signal)
+    # Pillow does not support RGB 16-bit, but the PNG specification does
+    # support it. Pillow is used by rosettasciio's `image_file_writer`.
+    write_result = cv2.imwrite(
+        str(png_file), cv2.cvtColor(black_16bit_rgb_image, cv2.COLOR_RGB2BGR)
+    )
+    assert write_result
     assert png_file.exists()
     png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
     assert png_img is not None
@@ -145,8 +149,10 @@ def black_16bit_rgb_png(black_16bit_rgb_image, tmp_path) -> Path:
 @pytest.fixture
 def black_16bit_rgba_png(black_16bit_rgba_image, tmp_path) -> Path:
     png_file = tmp_path.joinpath("image.png")
-    signal = {"data": black_16bit_rgba_image, "axes": {}}
-    image_file_writer(str(png_file), signal)
+    write_result = cv2.imwrite(
+        str(png_file), cv2.cvtColor(black_16bit_rgba_image, cv2.COLOR_RGBA2BGR)
+    )
+    assert write_result
     assert png_file.exists()
     png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
     assert png_img is not None
@@ -987,6 +993,69 @@ def test_write_png_8bit_rgb(black_8bit_rgb_png, output_cfg):
 
 def test_write_png_8bit_rgba(black_8bit_rgba_png, output_cfg):
     src = black_8bit_rgba_png
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
+
+
+def test_write_png_16bit_gray(black_16bit_gray_png, output_cfg):
+    src = black_16bit_gray_png
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
+
+
+def test_write_png_16bit_rgb(black_16bit_rgb_png, output_cfg):
+    src = black_16bit_rgb_png
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
+
+
+def test_write_png_16bit_rgba(black_16bit_rgba_png, output_cfg):
+    src = black_16bit_rgba_png
     dst = src.with_suffix(JPEG_FILE_EXT)
     write_png(
         Configuration(
