@@ -119,7 +119,7 @@ class Output(BaseModel):
 
     @staticmethod
     def is_rgba(img: np.ndarray) -> bool:
-        return Output.is_rgb and img.shape[2] == 4
+        return Output.is_rgb(img) and img.shape[2] == 4
 
     @staticmethod
     def normalize(img: np.ndarray) -> np.ndarray:
