@@ -402,15 +402,24 @@ def run(
     write_func: Callable,
     sources: List[Configuration],
     num_cpus: Optional[int] = None,
+    silent: bool = False,
 ):
     LOGGER.debug(f"{sources=}")
     LOGGER.debug(f"{num_cpus=}")
+    LOGGER.debug(f"{silent=}")
     if platform.system().lower() == "darwin":
         for src in sources:
             write_func(src)
     else:
         with Pool(num_cpus) as pool:
-            list(pool.imap(write_func, sources))
+            list(
+                tqdm(
+                    pool.imap(write_func, sources),
+                    bar_format="{l_bar}{bar| {n_fmt}/{total_fmt}}",
+                    disable=silent,
+                    total=len(sources),
+                )
+            )
 
 
 DELETE_ORIGINAL_OPT: bool = typer.Option(
@@ -470,7 +479,8 @@ def dcm(
                 silent,
                 delete_original=delete_original,
             ),
-            num_cpus,
+            num_cpus=num_cpus,
+            silent=silent,
         )
     except ValidationError as err:
         print_validation_error(err)
@@ -507,7 +517,8 @@ def dm(
                 silent,
                 delete_original=delete_original,
             ),
-            num_cpus,
+            num_cpus=num_cpus,
+            silent=silent,
         )
     except ValidationError as err:
         print_validation_error(err)
@@ -549,7 +560,8 @@ def app_emd(
                 delete_original=delete_original,
                 extras={"detector": detector},
             ),
-            num_cpus,
+            num_cpus=num_cpus,
+            silent=silent,
         )
     except ValidationError as err:
         print_validation_error(err)
@@ -586,7 +598,8 @@ def png(
                 silent,
                 delete_original=delete_original,
             ),
-            num_cpus,
+            num_cpus=num_cpus,
+            silent=silent,
         )
     except ValidationError as err:
         print_validation_error(err)
@@ -623,7 +636,8 @@ def tiff(
                 silent,
                 delete_original=delete_original,
             ),
-            num_cpus,
+            num_cpus=num_cpus,
+            silent=silent,
         )
     except ValidationError as err:
         print_validation_error(err)
