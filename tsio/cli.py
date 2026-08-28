@@ -93,7 +93,7 @@ class FromFormats(Enum):
         return EXT_MAP[self]
 
 
-class OutputFileFormats(Enum):
+class ToFormats(Enum):
     JPEG = "jpeg"
     PNG = "png"
     TIFF = "tiff"
@@ -101,34 +101,34 @@ class OutputFileFormats(Enum):
     @property
     def mime_type(self) -> str:
         MIME_TYPES = {
-            OutputFileFormats.JPEG: JPEG_MIME_TYPE,
-            OutputFileFormats.PNG: PNG_MIME_TYPE,
-            OutputFileFormats.TIFF: TIFF_MIME_TYPE,
+            ToFormats.JPEG: JPEG_MIME_TYPE,
+            ToFormats.PNG: PNG_MIME_TYPE,
+            ToFormats.TIFF: TIFF_MIME_TYPE,
         }
         return MIME_TYPES[self]
 
     @property
     def file_ext(self) -> str:
         FILE_EXTS = {
-            OutputFileFormats.JPEG: JPEG_FILE_EXT,
-            OutputFileFormats.PNG: PNG_FILE_EXT,
-            OutputFileFormats.TIFF: TIFF_FILE_EXT,
+            ToFormats.JPEG: JPEG_FILE_EXT,
+            ToFormats.PNG: PNG_FILE_EXT,
+            ToFormats.TIFF: TIFF_FILE_EXT,
         }
         return FILE_EXTS[self]
 
     @property
     def is_alpha_supported(self) -> bool:
-        return self != OutputFileFormats.JPEG
+        return self != ToFormats.JPEG
 
     @property
     def is_gray_supported(self) -> bool:
-        return self != OutputFileFormats.JPEG
+        return self != ToFormats.JPEG
 
 
 class Output(BaseModel):
     bit_depth: BitDepths
-    format: OutputFileFormats
     path: Optional[Path]
+    format: ToFormats
 
     @staticmethod
     def is_gray(img: np.ndarray) -> bool:
@@ -185,9 +185,9 @@ class Output(BaseModel):
     @model_validator(mode="after")
     def check_supported_bit_depth(self) -> Self:
         SUPPORTED_MAP = {
-            OutputFileFormats.JPEG: [BitDepths.EIGHT],
-            OutputFileFormats.PNG: [BitDepths.EIGHT, BitDepths.SIXTEEN],
-            OutputFileFormats.TIFF: [BitDepths.EIGHT, BitDepths.SIXTEEN],
+            ToFormats.JPEG: [BitDepths.EIGHT],
+            ToFormats.PNG: [BitDepths.EIGHT, BitDepths.SIXTEEN],
+            ToFormats.TIFF: [BitDepths.EIGHT, BitDepths.SIXTEEN],
         }
         if self.bit_depth in SUPPORTED_MAP[self.format]:
             return self
@@ -481,8 +481,8 @@ def main(
         False, "-S", "--silent", help="Disables the progress bars."
     ),
     to_bit_depth: int = TO_BIT_DEPTH_OPT,
-    to_format: OutputFileFormats = typer.Option(
-        OutputFileFormats.JPEG, "--to", help="The output file format."
+    to_format: ToFormats = typer.Option(
+        ToFormats.JPEG.value, "--to", help="The output file format."
     ),
     verbose: int = typer.Option(
         0,
