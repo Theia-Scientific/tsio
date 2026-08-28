@@ -150,6 +150,11 @@ def ncsu_tif(assets) -> Path:
 
 
 @pytest.fixture
+def v09_loaded_confusion_matrix_png(assets) -> Path:
+    return assets.joinpath("v09_loaded_confusion_matrix.png")
+
+
+@pytest.fixture
 def dcm(tmp_path, blank_8bit_grayscale_image) -> Path:
     height, width = blank_8bit_grayscale_image.shape
     grey_img = blank_8bit_grayscale_image
@@ -813,6 +818,29 @@ def test_write_16bit_grayscale_png_to_jpeg(blank_16bit_grayscale_png, output_cfg
     assert jpeg_img.shape == (256, 256, 3)
 
 
+def test_write_confusion_matrix_png_to_jpeg(
+    v09_loaded_confusion_matrix_png, output_cfg, tmp_path
+):
+    src = v09_loaded_confusion_matrix_png
+    dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(path=tmp_path),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert np.any(jpeg_img)
+
+
 def test_write_white_8bit_rgba_png(white_8bit_rgba_png, output_cfg):
     src = white_8bit_rgba_png
     dst = src.with_suffix(JPEG_FILE_EXT)
@@ -1179,6 +1207,23 @@ def test_app_png_16bit(blank_16bit_grayscale_png, tmp_path):
     assert jpeg_img.dtype.name == "uint8"
     assert jpeg_img.shape == (256, 256, 3)
     assert not np.any(jpeg_img)
+
+
+def test_app_png_white_8bit_rgba(white_8bit_rgba_png, tmp_path):
+    dst = tmp_path.joinpath(white_8bit_rgba_png.name).with_suffix(JPEG_FILE_EXT)
+    result = runner.invoke(
+        app, ["png", "-o", str(tmp_path), "-S", "jpeg", str(white_8bit_rgba_png)]
+    )
+    assert result.exit_code == 0
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert np.all(jpeg_img, where=1)
 
 
 def test_app_png_fails(blank_8bit_png, tmp_path):
