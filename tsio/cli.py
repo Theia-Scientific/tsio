@@ -461,6 +461,7 @@ def main(
     ),
     from_format: Optional[FromFormats] = typer.Option(
         None,
+        "-f",
         "--from",
         help=(
             "The original source format for all files. If not specified, then "
@@ -482,7 +483,7 @@ def main(
     ),
     to_bit_depth: int = TO_BIT_DEPTH_OPT,
     to_format: ToFormats = typer.Option(
-        ToFormats.JPEG.value, "--to", help="The output file format."
+        ToFormats.JPEG.value, "-t", "--to", help="The output file format."
     ),
     verbose: int = typer.Option(
         0,
