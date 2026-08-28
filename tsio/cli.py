@@ -97,11 +97,11 @@ class OutputFileFormats(Enum):
 
     @property
     def is_alpha_supported(self) -> bool:
-        return self != Self.JPEG
+        return self != OutputFileFormats.JPEG
 
     @property
     def is_gray_supported(self) -> bool:
-        return self != Self.JPEG
+        return self != OutputFileFormats.JPEG
 
 
 class Output(BaseModel):
@@ -143,7 +143,7 @@ class Output(BaseModel):
         rgbx_or_gray_img = rgb.rgbx2regular_array(img, show_progressbar=False)
         rgbx_or_gray_float_img = Output.normalize(rgbx_or_gray_img)
         rgbx_or_gray_int_img = self.scale(rgbx_or_gray_float_img)
-        return Output.convert(rgbx_or_gray_int_img)
+        return self.convert(rgbx_or_gray_int_img)
 
     def destination(self, src: Path) -> Path:
         return src.resolve().parent if self.path is None else self.path
