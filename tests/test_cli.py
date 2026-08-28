@@ -52,6 +52,11 @@ def blank_8bit_grayscale_image() -> np.ndarray:
 
 
 @pytest.fixture
+def white_8bit_rgba_image() -> np.ndarray:
+    return np.ones((256, 256, 4), dtype=np.uint8)
+
+
+@pytest.fixture
 def blank_8bit_png(blank_8bit_grayscale_image, tmp_path) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": blank_8bit_grayscale_image, "axes": {}}
@@ -61,7 +66,7 @@ def blank_8bit_png(blank_8bit_grayscale_image, tmp_path) -> Path:
 
 @pytest.fixture
 def blank_16bit_grayscale_png(blank_16bit_grayscale_image, tmp_path) -> Path:
-    png_file = tmp_path.joinpath("tmp.png")
+    png_file = tmp_path.joinpath("image.png")
     write_result = cv2.imwrite(str(png_file), blank_16bit_grayscale_image)
     assert write_result
     assert png_file.exists()
@@ -69,6 +74,19 @@ def blank_16bit_grayscale_png(blank_16bit_grayscale_image, tmp_path) -> Path:
     assert png_img is not None
     assert png_img.dtype.name == "uint16"
     assert png_img.shape == (256, 256)
+    return png_file
+
+
+@pytest.fixture
+def white_8bit_rgba_png(white_8bit_rgba_image, tmp_path) -> Path:
+    png_file = tmp_path.joinpath("image.png")
+    write_result = cv2.imwrite(str(png_file), white_8bit_rgba_image)
+    assert write_result
+    assert png_file.exists()
+    png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint8"
+    assert png_img.shape == (256, 256, 4)
     return png_file
 
 
@@ -793,6 +811,27 @@ def test_write_16bit_grayscale_png_to_jpeg(blank_16bit_grayscale_png, output_cfg
     assert jpeg_img is not None
     assert jpeg_img.dtype.name == "uint8"
     assert jpeg_img.shape == (256, 256, 3)
+
+
+def test_write_white_8bit_rgba_png(white_8bit_rgba_png, output_cfg):
+    src = white_8bit_rgba_png
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert np.all(jpeg_img, where=255)
 
 
 def test_write_tiff(blank_16bit_single_page_tiff, output_cfg):
