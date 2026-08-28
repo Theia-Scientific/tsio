@@ -147,7 +147,8 @@ class Configuration(BaseModel):
 
 def print_validation_error(err: ValidationError):
     for e in err.errors():
-        print(f"\n[bold red]ERROR![/bold red] {e['msg'].removeprefix('Value error, ')}")
+        msg = e["msg"].removeprefix("Value ")
+        print(f"\n[bold red]ERROR![/bold red] {msg}")
 
 
 def map_verbosity(count: int) -> str:
