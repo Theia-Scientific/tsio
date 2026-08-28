@@ -28,6 +28,7 @@ htmlcov
 .cache
 .tox
 .nox
+.flake8
 
 .direnv
 .envrc
