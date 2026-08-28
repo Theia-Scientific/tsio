@@ -484,7 +484,23 @@ def main(
     to_format: OutputFileFormats = typer.Option(
         OutputFileFormats.JPEG, "--to", help="The output file format."
     ),
+    verbose: int = typer.Option(
+        0,
+        "--verbose",
+        "-v",
+        help="Print debugging statements.",
+        envvar=f"{PREFIX}_VERBOSE",
+        count=True,
+    ),
+    version: Optional[bool] = typer.Option(
+        None,
+        "--version",
+        help="Prints the version.",
+        callback=version_callback,
+        is_eager=True,
+    ),
 ):
+    logging.basicConfig(level=map_verbosity(verbose))
     LOGGER.debug(f"{delete_original=}")
     LOGGER.debug(f"{from_format=}")
     LOGGER.debug(f"{paths=}")
@@ -493,6 +509,8 @@ def main(
     LOGGER.debug(f"{silent=}")
     LOGGER.debug(f"{to_bit_depth=}")
     LOGGER.debug(f"{to_format=}")
+    LOGGER.debug(f"{verbose=}")
+    LOGGER.debug(f"{version=}")
     try:
         sources = expand_sources(
             paths,
@@ -527,29 +545,6 @@ def main(
     except ValidationError as err:
         print_validation_error(err)
         raise typer.Exit(code=1)
-
-
-@app.callback()
-def main_callback(
-    verbose: int = typer.Option(
-        0,
-        "--verbose",
-        "-v",
-        help="Print debugging statements.",
-        envvar=f"{PREFIX}_VERBOSE",
-        count=True,
-    ),
-    version: Optional[bool] = typer.Option(
-        None,
-        "--version",
-        help="Prints the version.",
-        callback=version_callback,
-        is_eager=True,
-    ),
-):
-    logging.basicConfig(level=map_verbosity(verbose))
-    LOGGER.debug(f"{verbose=}")
-    LOGGER.debug(f"{version=}")
 
 
 if __name__ == "__main__":
