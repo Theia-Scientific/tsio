@@ -407,6 +407,7 @@ def run(
     LOGGER.debug(f"{sources=}")
     LOGGER.debug(f"{num_cpus=}")
     LOGGER.debug(f"{silent=}")
+    LOGGER.debug(f"{len(sources)=}")
     if platform.system().lower() == "darwin":
         for src in sources:
             write_func(src)
@@ -415,7 +416,7 @@ def run(
             list(
                 tqdm(
                     pool.imap(write_func, sources),
-                    bar_format="{l_bar}{bar| {n_fmt}/{total_fmt}}",
+                    bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
                     disable=silent,
                     total=len(sources),
                 )

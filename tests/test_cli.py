@@ -1409,6 +1409,39 @@ def test_expand_sources_with_directories(output_cfg, tmp_path):
     assert actual[4].src in expected
 
 
+def test_expand_sources_with_multiple_folders(output_cfg, tmp_path):
+    dir1 = tmp_path.joinpath("dst1")
+    os.makedirs(dir1, exist_ok=True)
+    file1 = dir1.joinpath("1.tif")
+    file2 = dir1.joinpath("2.dm3")
+    file3 = dir1.joinpath("3.dm4")
+    open(file1, "a").close()
+    open(file2, "a").close()
+    open(file3, "a").close()
+    dir2 = tmp_path.joinpath("dst2")
+    os.makedirs(dir2, exist_ok=True)
+    file4 = dir2.joinpath("4.tif")
+    file5 = dir2.joinpath("5.dm3")
+    file6 = dir2.joinpath("6.dm4")
+    open(file4, "a").close()
+    open(file5, "a").close()
+    open(file6, "a").close()
+    paths = [dir1, dir2]
+    expected = [file1, file2, file3, file4, file5, file6]
+    actual = expand_sources(
+        paths,
+        output_cfg(),
+        True,
+    )
+    assert len(actual) == 6
+    assert actual[0].src in expected
+    assert actual[1].src in expected
+    assert actual[2].src in expected
+    assert actual[3].src in expected
+    assert actual[4].src in expected
+    assert actual[5].src in expected
+
+
 def test_run_with_darwin(dm4, mocker, output_cfg):
     def mock_platform_system() -> str:
         return "Darwin"
