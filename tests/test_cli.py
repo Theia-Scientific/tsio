@@ -22,6 +22,10 @@ from tsio.cli import (
     app,
     BitDepths,
     Configuration,
+    DCM_FILE_EXT,
+    DM3_FILE_EXT,
+    DM4_FILE_EXT,
+    EMD_FILE_EXT,
     expand_sources,
     FromFormats,
     map_verbosity,
@@ -500,6 +504,15 @@ def test_bit_depths_type():
 def test_bit_depths_max_pixel_intensity():
     assert BitDepths.EIGHT.max_pixel_intensity == 255
     assert BitDepths.SIXTEEN.max_pixel_intensity == 65535
+
+
+def test_from_formats_ext():
+    assert FromFormats.DCM.ext == DCM_FILE_EXT
+    assert FromFormats.DM3.ext == DM3_FILE_EXT
+    assert FromFormats.DM4.ext == DM4_FILE_EXT
+    assert FromFormats.EMD.ext == EMD_FILE_EXT
+    assert FromFormats.PNG.ext == PNG_FILE_EXT
+    assert FromFormats.TIFF.ext == TIFF_FILE_EXT
 
 
 def test_to_formats_is_alpha_supported():
