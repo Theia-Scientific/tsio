@@ -60,6 +60,19 @@ def blank_8bit_png(blank_8bit_grayscale_image, tmp_path) -> Path:
 
 
 @pytest.fixture
+def blank_16bit_grayscale_png(blank_16bit_grayscale_image, tmp_path) -> Path:
+    png_file = tmp_path.joinpath("tmp.png")
+    write_result = cv2.imwrite(str(png_file), blank_16bit_grayscale_image)
+    assert write_result
+    assert png_file.exists()
+    png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint16"
+    assert png_img.shape == (256, 256)
+    return png_file
+
+
+@pytest.fixture
 def blank_16bit_grayscale_image() -> np.ndarray:
     return np.zeros((256, 256), dtype=np.uint16)
 
@@ -106,6 +119,11 @@ def tmp_assets() -> Path:
 @pytest.fixture
 def assets() -> Path:
     return Path(os.getcwd()).joinpath("tests", "assets")
+
+
+@pytest.fixture
+def heart_png(assets) -> Path:
+    return assets.joinpath("heart16.png")
 
 
 @pytest.fixture
@@ -195,8 +213,8 @@ def test_bit_depths_type():
 
 
 def test_bit_depths_max_pixel_intensity():
-    assert BitDepths.EIGHT.max_pixel_intensity == 256
-    assert BitDepths.SIXTEEN.max_pixel_intensity == 65536
+    assert BitDepths.EIGHT.max_pixel_intensity == 255
+    assert BitDepths.SIXTEEN.max_pixel_intensity == 65535
 
 
 def test_output_file_formats_mime_type():
@@ -606,6 +624,177 @@ def test_write_png(blank_8bit_png, output_cfg):
     assert not np.any(jpeg_img)
 
 
+def test_write_8bit_grayscale_png_to_8bit_tiff(
+    blank_8bit_grayscale_image, output_cfg, tmp_path
+):
+    src = tmp_path.joinpath("src.png")
+    write_result = cv2.imwrite(str(src), blank_8bit_grayscale_image)
+    assert write_result
+    assert src.exists()
+    png_img = cv2.imread(str(src), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint8"
+    assert png_img.shape == (256, 256)
+    dst = src.with_suffix(TIFF_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(format=OutputFileFormats.TIFF),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/tiff"
+    tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert tiff_img is not None
+    assert tiff_img.dtype.name == "uint8"
+    assert tiff_img.shape == (256, 256, 3)
+
+
+def test_write_8bit_grayscale_png_to_16bit_tiff(
+    blank_8bit_grayscale_image, output_cfg, tmp_path
+):
+    src = tmp_path.joinpath("tmp.png")
+    write_result = cv2.imwrite(str(src), blank_8bit_grayscale_image)
+    assert write_result
+    assert src.exists()
+    png_img = cv2.imread(str(src), cv2.IMREAD_UNCHANGED)
+    assert png_img is not None
+    assert png_img.dtype.name == "uint8"
+    assert png_img.shape == (256, 256)
+    dst = src.with_suffix(TIFF_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(
+                bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.TIFF
+            ),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/tiff"
+    tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert tiff_img is not None
+    assert tiff_img.dtype.name == "uint16"
+    assert tiff_img.shape == (256, 256, 3)
+
+
+def test_write_16bit_grayscale_png_to_8bit_tiff(blank_16bit_grayscale_png, output_cfg):
+    src = blank_16bit_grayscale_png
+    dst = src.with_suffix(TIFF_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(format=OutputFileFormats.TIFF),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/tiff"
+    tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert tiff_img is not None
+    assert tiff_img.dtype.name == "uint8"
+    assert tiff_img.shape == (256, 256, 3)
+
+
+def test_write_16bit_grayscale_png_to_16bit_tiff(blank_16bit_grayscale_png, output_cfg):
+    src = blank_16bit_grayscale_png
+    dst = src.with_suffix(TIFF_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(
+                bit_depth=BitDepths.SIXTEEN, format=OutputFileFormats.TIFF
+            ),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/tiff"
+    tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert tiff_img is not None
+    assert tiff_img.dtype.name == "uint16"
+    assert tiff_img.shape == (256, 256, 3)
+    assert not np.any(tiff_img)
+
+
+def test_write_heart_png_to_8bit_tiff(heart_png, output_cfg, tmp_path):
+    src = heart_png
+    dst = tmp_path.joinpath(src.name).with_suffix(TIFF_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(
+                bit_depth=BitDepths.EIGHT, format=OutputFileFormats.TIFF, path=tmp_path
+            ),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/tiff"
+    tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert tiff_img is not None
+    assert tiff_img.dtype.name == "uint8"
+    assert tiff_img.shape == (256, 256, 3)
+    assert np.any(tiff_img)
+
+
+def test_write_heart_png_to_16bit_tiff(heart_png, output_cfg, tmp_path):
+    src = heart_png
+    dst = tmp_path.joinpath(src.name).with_suffix(TIFF_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(
+                bit_depth=BitDepths.SIXTEEN,
+                format=OutputFileFormats.TIFF,
+                path=tmp_path,
+            ),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/tiff"
+    tiff_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert tiff_img is not None
+    assert tiff_img.dtype.name == "uint16"
+    assert tiff_img.shape == (256, 256, 3)
+    assert np.any(tiff_img)
+
+
+def test_write_16bit_grayscale_png_to_jpeg(blank_16bit_grayscale_png, output_cfg):
+    src = blank_16bit_grayscale_png
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write_png(
+        Configuration(
+            output=output_cfg(),
+            silent=True,
+            src=src,
+        )
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+
+
 def test_write_tiff(blank_16bit_single_page_tiff, output_cfg):
     src = blank_16bit_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
@@ -814,6 +1003,14 @@ def test_app_dcm(dcm, tmp_path):
     result = runner.invoke(app, ["dcm", "-o", str(tmp_path), "-S", "jpeg", str(dcm)])
     assert result.exit_code == 0
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
 def test_app_dcm_fails(dcm, tmp_path):
@@ -828,6 +1025,14 @@ def test_app_dm(dm4, tmp_path):
     result = runner.invoke(app, ["dm", "-o", str(tmp_path), "-S", "jpeg", str(dm4)])
     assert result.exit_code == 0
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (1024, 1024, 3)
+    assert np.any(jpeg_img)
 
 
 def test_app_dm_fails(dm4, tmp_path):
@@ -845,7 +1050,23 @@ def test_app_all_dm_as_files(dm3, dm4, tmp_path):
     )
     assert result.exit_code == 0
     assert dst_dm3.exists()
+    kind = filetype.guess(str(dst_dm3))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst_dm3))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (1024, 1024, 3)
+    assert np.any(jpeg_img)
     assert dst_dm4.exists()
+    kind = filetype.guess(str(dst_dm4))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst_dm4))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (1024, 1024, 3)
+    assert np.any(jpeg_img)
 
 
 def test_app_all_dm_as_directory(dm3, dm4, tmp_assets, tmp_path):
@@ -887,13 +1108,38 @@ def test_app_emd_fails(mocker, emd_single_image, tmp_path):
     assert result.exit_code == 1
 
 
-def test_app_png(blank_8bit_png, tmp_path):
+def test_app_png_8bit(blank_8bit_png, tmp_path):
     dst = tmp_path.joinpath(blank_8bit_png.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(
         app, ["png", "-o", str(tmp_path), "-S", "jpeg", str(blank_8bit_png)]
     )
     assert result.exit_code == 0
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
+
+
+def test_app_png_16bit(blank_16bit_grayscale_png, tmp_path):
+    dst = tmp_path.joinpath(blank_16bit_grayscale_png.name).with_suffix(JPEG_FILE_EXT)
+    result = runner.invoke(
+        app, ["png", "-o", str(tmp_path), "-S", "jpeg", str(blank_16bit_grayscale_png)]
+    )
+    assert result.exit_code == 0
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
 def test_app_png_fails(blank_8bit_png, tmp_path):

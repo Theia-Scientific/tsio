@@ -67,7 +67,7 @@ class BitDepths(Enum):
 
     @property
     def max_pixel_intensity(self) -> int:
-        MAX_MAP = {BitDepths.EIGHT: 256, BitDepths.SIXTEEN: 65536}
+        MAX_MAP = {BitDepths.EIGHT: 255, BitDepths.SIXTEEN: 65535}
         return MAX_MAP[self]
 
 
@@ -110,8 +110,8 @@ class Output(BaseModel):
         casted_img = np.round(img * self.bit_depth.max_pixel_intensity).astype(
             self.bit_depth.type
         )
-        LOGGER.debug(f"{len(img.shape)=}")
-        if len(img.shape) == 2:
+        LOGGER.debug(f"{len(casted_img.shape)=}")
+        if len(casted_img.shape) == 2:
             return cv2.cvtColor(
                 casted_img,
                 cv2.COLOR_GRAY2BGR,
