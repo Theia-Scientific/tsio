@@ -200,7 +200,13 @@ def write(
     os.makedirs(destination, exist_ok=True)
     LOGGER.debug(f"{src_file_stem=}")
     for page_index, page in enumerate(
-        tqdm(pages, total=pages_count, desc=src.name, disable=silent)
+        tqdm(
+            pages,
+            total=pages_count,
+            desc=src.name,
+            disable=silent,
+            bar_format="{l_bar}{bar}",
+        )
     ):
         LOGGER.debug(f"{page_index=}")
         if pages_count > 1:
