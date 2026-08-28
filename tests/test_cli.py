@@ -17,6 +17,7 @@ from pydicom.uid import UID, ExplicitVRLittleEndian
 from rsciio.digitalmicrograph import file_reader as dm_file_reader
 from rsciio.image import file_writer as image_file_writer
 from rsciio.tiff import file_reader as tiff_file_reader, file_writer as tiff_file_writer
+from rsciio.utils import rgb
 from tsio import __app_name__
 from tsio.cli import (
     app,
@@ -270,60 +271,78 @@ def random_16bit_multipage_image() -> np.ndarray:
 @pytest.fixture
 def black_8bit_gray_single_page_tiff(black_8bit_gray_image, tmp_path) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
-    signal = {
-        "data": black_8bit_gray_image,
-    }
+    signal = {"data": black_8bit_gray_image}
     tiff_file_writer(str(tif_file), signal)
+    assert tif_file.exists()
+    tif_img = cv2.imread(str(tif_file), cv2.IMREAD_UNCHANGED)
+    assert tif_img is not None
+    assert tif_img.dtype.name == "uint8"
+    assert tif_img.shape == (256, 256)
     return tif_file
 
 
 @pytest.fixture
 def black_8bit_rgb_single_page_tiff(black_8bit_rgb_image, tmp_path) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
-    signal = {
-        "data": black_8bit_rgb_image,
-    }
+    signal = {"data": rgb.regular_array2rgbx(black_8bit_rgb_image)}
     tiff_file_writer(str(tif_file), signal)
+    assert tif_file.exists()
+    tif_img = cv2.imread(str(tif_file), cv2.IMREAD_UNCHANGED)
+    assert tif_img is not None
+    assert tif_img.dtype.name == "uint8"
+    assert tif_img.shape == (256, 256, 3)
     return tif_file
 
 
 @pytest.fixture
 def black_8bit_rgba_single_page_tiff(black_8bit_rgba_image, tmp_path) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
-    signal = {
-        "data": black_8bit_rgba_image,
-    }
+    signal = {"data": rgb.regular_array2rgbx(black_8bit_rgba_image)}
     tiff_file_writer(str(tif_file), signal)
+    assert tif_file.exists()
+    tif_img = cv2.imread(str(tif_file), cv2.IMREAD_UNCHANGED)
+    assert tif_img is not None
+    assert tif_img.dtype.name == "uint8"
+    assert tif_img.shape == (256, 256, 4)
     return tif_file
 
 
 @pytest.fixture
 def black_16bit_gray_single_page_tiff(black_16bit_gray_image, tmp_path) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
-    signal = {
-        "data": black_16bit_gray_image,
-    }
+    signal = {"data": rgb.regular_array2rgbx(black_16bit_gray_image)}
     tiff_file_writer(str(tif_file), signal)
+    assert tif_file.exists()
+    tif_img = cv2.imread(str(tif_file), cv2.IMREAD_UNCHANGED)
+    assert tif_img is not None
+    assert tif_img.dtype.name == "uint16"
+    assert tif_img.shape == (256, 256)
     return tif_file
 
 
 @pytest.fixture
 def black_16bit_rgb_single_page_tiff(black_16bit_rgb_image, tmp_path) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
-    signal = {
-        "data": black_16bit_rgb_image,
-    }
+    signal = {"data": rgb.regular_array2rgbx(black_16bit_rgb_image)}
     tiff_file_writer(str(tif_file), signal)
+    assert tif_file.exists()
+    tif_img = cv2.imread(str(tif_file), cv2.IMREAD_UNCHANGED)
+    assert tif_img is not None
+    assert tif_img.dtype.name == "uint16"
+    assert tif_img.shape == (256, 256, 3)
     return tif_file
 
 
 @pytest.fixture
 def black_16bit_rgba_single_page_tiff(black_16bit_rgba_image, tmp_path) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
-    signal = {
-        "data": black_16bit_rgba_image,
-    }
+    signal = {"data": rgb.regular_array2rgbx(black_16bit_rgba_image)}
     tiff_file_writer(str(tif_file), signal)
+    assert tif_file.exists()
+    tif_img = cv2.imread(str(tif_file), cv2.IMREAD_UNCHANGED)
+    assert tif_img is not None
+    assert tif_img.dtype.name == "uint16"
+    assert tif_img.shape == (256, 256, 3)
     return tif_file
 
 
@@ -579,8 +598,50 @@ def test_map_verbosity_three():
     assert actual == "DEBUG"
 
 
-def test_write_with_single_tiff(blank_16bit_single_page_tiff, output_cfg):
-    src = blank_16bit_single_page_tiff
+def test_write_tiff_with_black_8bit_gray(black_8bit_gray_single_page_tiff, output_cfg):
+    src = black_8bit_gray_single_page_tiff
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write(
+        tiff_file_reader(src, multipage_as_list=True),
+        src,
+        output_cfg(),
+        True,
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
+
+
+def test_write_tiff_with_black_8bit_rgb(black_8bit_rgb_single_page_tiff, output_cfg):
+    src = black_8bit_rgb_single_page_tiff
+    dst = src.with_suffix(JPEG_FILE_EXT)
+    write(
+        tiff_file_reader(src, multipage_as_list=True),
+        src,
+        output_cfg(),
+        True,
+    )
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
+
+
+def test_write_tiff_with_black_16bit_gray(
+    black_16bit_gray_single_page_tiff, output_cfg
+):
+    src = black_16bit_gray_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     write(
         tiff_file_reader(src, multipage_as_list=True),
