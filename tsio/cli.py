@@ -205,7 +205,7 @@ def write(
             total=pages_count,
             desc=src.name,
             disable=silent,
-            bar_format="{l_bar}{bar}",
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
         )
     ):
         LOGGER.debug(f"{page_index=}")
