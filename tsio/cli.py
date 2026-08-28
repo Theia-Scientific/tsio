@@ -114,6 +114,14 @@ class Output(BaseModel):
         return len(img.shape) == 2
 
     @staticmethod
+    def is_rgb(img: np.ndarray) -> bool:
+        return len(img.shape) == 3
+
+    @staticmethod
+    def is_rgba(img: np.ndarray) -> bool:
+        return Output.is_rgb and img.shape[2] == 4
+
+    @staticmethod
     def normalize(img: np.ndarray) -> np.ndarray:
         max_pixel_intensity = np.max(img)
         LOGGER.debug(f"{max_pixel_intensity=}")
@@ -134,7 +142,7 @@ class Output(BaseModel):
                 img,
                 cv2.COLOR_GRAY2RGB,
             )
-        elif rgb.is_rgba(img) and not self.format.is_alpha_supported:
+        elif Output.is_rgba(img) and not self.format.is_alpha_supported:
             return cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
         else:
             return img
