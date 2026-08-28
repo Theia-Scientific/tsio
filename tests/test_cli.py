@@ -1075,8 +1075,10 @@ def test_write_png_16bit_rgba(black_16bit_rgba_png, output_cfg):
     assert not np.any(jpeg_img)
 
 
-def test_write_8bit_grayscale_png_to_8bit_tiff(blank_8bit_png, output_cfg, tmp_path):
-    src = blank_8bit_png
+def test_write_8bit_grayscale_png_to_8bit_tiff(
+    black_8bit_gray_png, output_cfg, tmp_path
+):
+    src = black_8bit_gray_png
     dst = src.with_suffix(TIFF_FILE_EXT)
     write_png(
         Configuration(
