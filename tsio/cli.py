@@ -22,7 +22,6 @@ from rsciio.image import (
 )
 from rsciio.tiff import file_reader as tiff_file_reader
 from rsciio.utils import rgb
-from tifffile import TiffFileError
 from tqdm import tqdm
 from tsio import __app_name__
 from typing import Any, Dict, List, Literal, Optional
