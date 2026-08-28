@@ -29,7 +29,6 @@ from typing import Any, Dict, List, Literal, Optional
 from typing_extensions import Self
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
-PREFIX: str = f"{__app_name__.upper()}"
 
 DCM_FILE_EXT: str = ".dcm"
 DCM_MIME_TYPE: str = "application/dicom"
@@ -494,7 +493,6 @@ def main(
         "--verbose",
         "-v",
         help="Print debugging statements.",
-        envvar=f"{PREFIX}_VERBOSE",
         count=True,
     ),
     version: Optional[bool] = typer.Option(
