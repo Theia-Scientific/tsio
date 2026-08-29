@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 
 import cv2
+import filetype
 import importlib.metadata
 import logging
-import mimetypes
 import numpy as np
 import os
 import platform
 import typer
 
 from enum import Enum
+from filetype.types.image import Dcm, Jpeg, Png, Tiff
 from multiprocess.pool import Pool
 from pathlib import Path
 from pydantic import BaseModel, model_validator, ValidationError
@@ -29,25 +30,68 @@ from typing_extensions import Self
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
 
-DCM_FILE_EXT: str = ".dcm"
-DCM_MIME_TYPE: str = "application/dicom"
-DM4_FILE_EXT: str = ".dm4"
-DM3_FILE_EXT: str = ".dm3"
-DM3_MIME_TYPE: str = "application/vnd.gatan.dm3"
-DM4_MIME_TYPE: str = "application/vnd.gatan.dm4"
-EMD_FILE_EXT: str = ".emd"
-EMD_MIME_TYPE: str = "application/vnd.velox.emd"
-JPEG_FILE_EXT: str = ".jpg"
-JPEG_MIME_TYPE: str = "image/jpeg"
-PNG_FILE_EXT: str = ".png"
-PNG_MIME_TYPE: str = "image/png"
-TIFF_FILE_EXT: str = ".tif"
-TIFF_MIME_TYPE: str = "image/tiff"
 
-mimetypes.add_type(DCM_MIME_TYPE, DCM_FILE_EXT)
-mimetypes.add_type(DM3_MIME_TYPE, DM3_FILE_EXT)
-mimetypes.add_type(DM4_MIME_TYPE, DM4_FILE_EXT)
-mimetypes.add_type(EMD_MIME_TYPE, EMD_FILE_EXT)
+class Dm3(filetype.Type):
+    MIME = "application/vnd.gatan.dm3"
+    EXTENSION = ".dm3"
+
+    def __init__(self):
+        super(Dm3, self).__init__(mime=Dm3.MIME, extension=Dm3.EXTENSION)
+
+    def match(self, buf) -> bool:
+        # First 4 bytes are version number = 3
+        # Next 4 bytes are the file size
+        # Last 4 bytes are "endian"
+        return (
+            len(buf) > 3
+            and buf[0] == 0x00
+            and buf[1] == 0x00
+            and buf[2] == 0x00
+            and buf[3] == 0x03
+        )
+
+
+class Dm4(filetype.Type):
+    MIME = "application/vnd.gatan.dm4"
+    EXTENSION = ".dm4"
+
+    def __init__(self):
+        super(Dm4, self).__init__(mime=Dm4.MIME, extension=Dm4.EXTENSION)
+
+    def match(self, buf) -> bool:
+        # First 4 bytes are version number = 4
+        # Next 8 bytes are the file size
+        # Last 4 bytes are "endian"
+        return (
+            len(buf) > 3
+            and buf[0] == 0x00
+            and buf[1] == 0x00
+            and buf[2] == 0x00
+            and buf[3] == 0x04
+        )
+
+
+class Emd(filetype.Type):
+    MIME = "application/vnd.velox.emd"
+    EXTENSION = ".emd"
+
+    def __init__(self):
+        super(Emd, self).__init__(mime=Emd.MIME, extension=Emd.EXTENSION)
+
+    def match(self, buf) -> bool:
+        return (
+            len(buf) > 3
+            and buf[0] == 0x00
+            and buf[1] == 0x00
+            and buf[2] == 0x00
+            and buf[3] == 0x04
+        )
+
+
+filetype.add_type(Dm3)
+filetype.add_type(Dm4)
+filetype.add_type(Emd)
+
 
 logging.getLogger("PIL.Image").setLevel(logging.WARNING)
 
@@ -69,27 +113,6 @@ class BitDepths(Enum):
         return MAX_MAP[self]
 
 
-class FromFormats(Enum):
-    DCM = "dcm"
-    DM3 = "dm3"
-    DM4 = "dm4"
-    EMD = "emd"
-    PNG = "png"
-    TIFF = "tiff"
-
-    @property
-    def ext(self) -> str:
-        EXT_MAP = {
-            FromFormats.DCM: DCM_FILE_EXT,
-            FromFormats.DM3: DM3_FILE_EXT,
-            FromFormats.DM4: DM4_FILE_EXT,
-            FromFormats.EMD: EMD_FILE_EXT,
-            FromFormats.PNG: PNG_FILE_EXT,
-            FromFormats.TIFF: TIFF_FILE_EXT,
-        }
-        return EXT_MAP[self]
-
-
 class ToFormats(Enum):
     JPEG = "jpeg"
     PNG = "png"
@@ -98,18 +121,18 @@ class ToFormats(Enum):
     @property
     def mime_type(self) -> str:
         MIME_TYPES = {
-            ToFormats.JPEG: JPEG_MIME_TYPE,
-            ToFormats.PNG: PNG_MIME_TYPE,
-            ToFormats.TIFF: TIFF_MIME_TYPE,
+            ToFormats.JPEG: Jpeg.MIME,
+            ToFormats.PNG: Png.MIME,
+            ToFormats.TIFF: Tiff.MIME,
         }
         return MIME_TYPES[self]
 
     @property
     def file_ext(self) -> str:
         FILE_EXTS = {
-            ToFormats.JPEG: JPEG_FILE_EXT,
-            ToFormats.PNG: PNG_FILE_EXT,
-            ToFormats.TIFF: TIFF_FILE_EXT,
+            ToFormats.JPEG: Jpeg.EXTENSION,
+            ToFormats.PNG: Png.EXTENSION,
+            ToFormats.TIFF: Tiff.EXTENSION,
         }
         return FILE_EXTS[self]
 
@@ -200,7 +223,6 @@ class Output(BaseModel):
 class Configuration(BaseModel):
     delete_original: bool
     extras: dict[str, Any] | None
-    from_format: FromFormats | None
     output: Output
     silent: bool
     src: Path
@@ -381,14 +403,12 @@ def expand_sources(
     silent: bool,
     delete_original: bool = False,
     extras: dict[str, Any] | None = None,
-    from_format: FromFormats | None = None,
 ) -> list[Configuration]:
     LOGGER.debug(f"{paths=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{silent=}")
     LOGGER.debug(f"{delete_original=}")
     LOGGER.debug(f"{extras=}")
-    LOGGER.debug(f"{from_format=}")
     sources = []
     for path in paths:
         if path.is_dir():
@@ -397,7 +417,6 @@ def expand_sources(
                     Configuration(
                         delete_original=delete_original,
                         extras=extras,
-                        from_format=from_format,
                         output=output,
                         silent=silent,
                         src=path.joinpath(p),
@@ -411,7 +430,6 @@ def expand_sources(
                 Configuration(
                     delete_original=delete_original,
                     extras=extras,
-                    from_format=from_format,
                     output=output,
                     silent=silent,
                     src=path,
@@ -422,19 +440,26 @@ def expand_sources(
 
 def run(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
-    RUN_MAP = {
-        DCM_FILE_EXT: run_dcm,
-        DM3_FILE_EXT: run_dm,
-        DM4_FILE_EXT: run_dm,
-        EMD_FILE_EXT: run_emd,
-        PNG_FILE_EXT: run_png,
-        TIFF_FILE_EXT: run_tiff,
-        ".tiff": run_tiff,
-    }
-    if cfg.from_format is None:
-        RUN_MAP[cfg.src.suffix](cfg)
+    kind = filetype.guess(cfg.src)
+    LOGGER.debug(f"{kind=}")
+    if kind is None:
+        LOGGER.warning(
+            f"Could not determine file type for the {cfg.src} file. Skipping!"
+        )
     else:
-        RUN_MAP[cfg.from_format.ext](cfg)
+        SUPPORTED_MAP = {
+            Dcm.MIME: run_dcm,
+            Dm3.MIME: run_dm,
+            Dm4.MIME: run_dm,
+            Emd.MIME: run_emd,
+            Png.MIME: run_png,
+            Tiff.MIME: run_tiff,
+        }
+        runner = SUPPORTED_MAP.get(kind.mime)
+        if runner is None:
+            LOGGER.warning(f"The {cfg.src} file is not supported. Skipping!")
+        else:
+            runner(cfg)
 
 
 PROGRESS_BAR_FORMAT: str = "{l_bar}{bar}| {n_fmt}/{total_fmt}"
@@ -444,17 +469,6 @@ DELETE_ORIGINAL_OPT: bool = typer.Option(
     "-D",
     "--delete-original",
     help="Deletes the original file after conversion.",
-)
-FROM_FORMAT_OPT: FromFormats | None = typer.Option(
-    None,
-    "-f",
-    "--from",
-    case_sensitive=False,
-    help=(
-        "The original source format for all files. If not specified, then "
-        "the file extension will be used. Use this option when there are "
-        "no file extensions or a non-standard file extension is exists."
-    ),
 )
 NUM_CPUS_OPT: int | None = typer.Option(
     None,
@@ -502,7 +516,6 @@ VERSION_OPT: bool | None = typer.Option(
 def main(
     paths: list[Path] = PATHS_ARG,
     delete_original: bool = DELETE_ORIGINAL_OPT,
-    from_format: FromFormats | None = FROM_FORMAT_OPT,
     num_cpus: int | None = NUM_CPUS_OPT,
     output: Path | None = OUTPUT_OPT,
     silent: bool = SILENT_OPT,
@@ -513,7 +526,6 @@ def main(
 ):
     logging.basicConfig(level=map_verbosity(verbose))
     LOGGER.debug(f"{delete_original=}")
-    LOGGER.debug(f"{from_format=}")
     LOGGER.debug(f"{paths=}")
     LOGGER.debug(f"{num_cpus=}")
     LOGGER.debug(f"{output=}")
@@ -532,7 +544,6 @@ def main(
             ),
             silent,
             delete_original=delete_original,
-            from_format=from_format,
         )
         if platform.system().lower() == "darwin":
             _ = list(

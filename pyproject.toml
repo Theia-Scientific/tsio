@@ -28,6 +28,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Image Recognition",
 ]
 dependencies = [
+    "filetype",
     "h5py",
     "multiprocess",
     "numpy",
@@ -50,7 +51,6 @@ dev = [
     "black",
     "build",
     "flake8",
-    "filetype",
     "gdown",
     "hatch",
     "isort",
