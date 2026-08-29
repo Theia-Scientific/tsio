@@ -93,9 +93,9 @@ class Emd(filetype.Type):
         )
 
 
-filetype.add_type(Dm3)
-filetype.add_type(Dm4)
-filetype.add_type(Emd)
+filetype.add_type(Dm3())
+filetype.add_type(Dm4())
+filetype.add_type(Emd())
 
 
 logging.getLogger("PIL.Image").setLevel(logging.WARNING)
@@ -135,9 +135,9 @@ class ToFormats(Enum):
     @property
     def file_ext(self) -> str:
         FILE_EXTS = {
-            ToFormats.JPEG: Jpeg.EXTENSION,
-            ToFormats.PNG: Png.EXTENSION,
-            ToFormats.TIFF: Tiff.EXTENSION,
+            ToFormats.JPEG: "." + Jpeg.EXTENSION,
+            ToFormats.PNG: "." + Png.EXTENSION,
+            ToFormats.TIFF: "." + Tiff.EXTENSION,
         }
         return FILE_EXTS[self]
 
