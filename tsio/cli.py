@@ -31,6 +31,16 @@ from typing_extensions import Self
 LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
+class UnknownFileType(Exception):
+    def __init__(self, src: Path):
+        self.src = src
+
+
+class UnsupportedFileType(Exception):
+    def __init__(self, src: Path):
+        self.src = src
+
+
 class Dm3(filetype.Type):
     MIME = "application/vnd.gatan.dm3"
     EXTENSION = ".dm3"
@@ -448,9 +458,7 @@ def run(cfg: Configuration):
     kind = filetype.guess(cfg.src)
     LOGGER.debug(f"{kind=}")
     if kind is None:
-        LOGGER.warning(
-            f"Could not determine file type for the {cfg.src} file. Skipping!"
-        )
+        raise UnknownFileType(cfg.src)
     else:
         SUPPORTED_MAP = {
             Dcm.MIME: run_dcm,
@@ -462,7 +470,7 @@ def run(cfg: Configuration):
         }
         runner = SUPPORTED_MAP.get(kind.mime)
         if runner is None:
-            LOGGER.warning(f"The {cfg.src} file is not supported. Skipping!")
+            raise UnsupportedFileType(cfg.src)
         else:
             runner(cfg)
 
@@ -569,6 +577,12 @@ def main(
                         total=len(sources),
                     )
                 )
+    except UnknownFileType as err:
+        LOGGER.warning(
+            f"Could not determine file type for the {err.src} file. Skipping!"
+        )
+    except UnsupportedFileType as err:
+        LOGGER.warning(f"The {err.src} file is not supported. Skipping!")
     except ValidationError as err:
         print_validation_error(err)
         raise typer.Exit(code=1)
