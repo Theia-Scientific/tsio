@@ -1557,7 +1557,7 @@ def test_app_all_dm_as_files(dm3: Path, dm4: Path, tmp_path: Path):
     assert np.any(jpeg_img)
 
 
-def test_app_emd(mocker: MockerFixture, single_image_emd: Path, tmp_path: Path):
+def test_app_emd(mocker: MockerFixture, single_image_emd: Path):
     src = single_image_emd
 
     def mock_write_emd(*args: Any, **kwargs: Any):
@@ -1566,11 +1566,11 @@ def test_app_emd(mocker: MockerFixture, single_image_emd: Path, tmp_path: Path):
 
     _ = mocker.patch("tsio.cli.run_emd", mock_write_emd)
 
-    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(src)])
+    result = runner.invoke(app, ["-S", str(src)])
     assert result.exit_code == 0
 
 
-def test_app_emd_fails(mocker: MockerFixture, single_image_emd: Path, tmp_path: Path):
+def test_app_emd_fails(mocker: MockerFixture, single_image_emd: Path):
     src = single_image_emd
 
     def mock_write_emd(*args: Any, **kwargs: Any):
@@ -1579,7 +1579,7 @@ def test_app_emd_fails(mocker: MockerFixture, single_image_emd: Path, tmp_path: 
 
     _ = mocker.patch("tsio.cli.run_emd", mock_write_emd)
 
-    result = runner.invoke(app, ["-o", str(tmp_path), "-S", "-b", "16", str(src)])
+    result = runner.invoke(app, ["-S", "-b", "16", str(src)])
     assert result.exit_code == 1
 
 
