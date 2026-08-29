@@ -48,6 +48,7 @@ mimetypes.add_type(DCM_MIME_TYPE, DCM_FILE_EXT)
 mimetypes.add_type(DM3_MIME_TYPE, DM3_FILE_EXT)
 mimetypes.add_type(DM4_MIME_TYPE, DM4_FILE_EXT)
 mimetypes.add_type(EMD_MIME_TYPE, EMD_FILE_EXT)
+
 logging.getLogger("PIL.Image").setLevel(logging.WARNING)
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
