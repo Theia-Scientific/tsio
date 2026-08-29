@@ -13,6 +13,7 @@ from pathlib import Path
 from pydantic import ValidationError
 from pydicom import Dataset, FileMetaDataset
 from pydicom.uid import UID, ExplicitVRLittleEndian
+from pytest_mock import MockerFixture
 from rsciio.digitalmicrograph import file_reader as dm_file_reader
 from rsciio.image import file_writer as image_file_writer
 from rsciio.tiff import file_reader as tiff_file_reader, file_writer as tiff_file_writer
@@ -46,7 +47,7 @@ from tsio.cli import (
     write,
 )
 from typer.testing import CliRunner
-from typing import Any, Dict, Callable, Optional
+from typing import Any, Callable
 
 runner = CliRunner()
 
@@ -82,7 +83,7 @@ def black_16bit_rgba_image() -> np.ndarray:
 
 
 @pytest.fixture
-def black_8bit_gray_png(black_8bit_gray_image, tmp_path) -> Path:
+def black_8bit_gray_png(black_8bit_gray_image: np.ndarray, tmp_path: Path) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": black_8bit_gray_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -95,7 +96,7 @@ def black_8bit_gray_png(black_8bit_gray_image, tmp_path) -> Path:
 
 
 @pytest.fixture
-def black_8bit_rgb_png(black_8bit_rgb_image, tmp_path) -> Path:
+def black_8bit_rgb_png(black_8bit_rgb_image: np.ndarray, tmp_path: Path) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": black_8bit_rgb_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -108,7 +109,7 @@ def black_8bit_rgb_png(black_8bit_rgb_image, tmp_path) -> Path:
 
 
 @pytest.fixture
-def black_8bit_rgba_png(black_8bit_rgba_image, tmp_path) -> Path:
+def black_8bit_rgba_png(black_8bit_rgba_image: np.ndarray, tmp_path: Path) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": black_8bit_rgba_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -121,7 +122,7 @@ def black_8bit_rgba_png(black_8bit_rgba_image, tmp_path) -> Path:
 
 
 @pytest.fixture
-def black_16bit_gray_png(black_16bit_gray_image, tmp_path) -> Path:
+def black_16bit_gray_png(black_16bit_gray_image: np.ndarray, tmp_path: Path) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": black_16bit_gray_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -134,7 +135,7 @@ def black_16bit_gray_png(black_16bit_gray_image, tmp_path) -> Path:
 
 
 @pytest.fixture
-def black_16bit_rgb_png(black_16bit_rgb_image, tmp_path) -> Path:
+def black_16bit_rgb_png(black_16bit_rgb_image: np.ndarray, tmp_path: Path) -> Path:
     png_file = tmp_path.joinpath("image.png")
     # Pillow does not support RGB 16-bit, but the PNG specification does
     # support it. Pillow is used by rosettasciio's `image_file_writer`.
@@ -151,7 +152,7 @@ def black_16bit_rgb_png(black_16bit_rgb_image, tmp_path) -> Path:
 
 
 @pytest.fixture
-def black_16bit_rgba_png(black_16bit_rgba_image, tmp_path) -> Path:
+def black_16bit_rgba_png(black_16bit_rgba_image: np.ndarray, tmp_path: Path) -> Path:
     png_file = tmp_path.joinpath("image.png")
     write_result = cv2.imwrite(
         str(png_file), cv2.cvtColor(black_16bit_rgba_image, cv2.COLOR_RGBA2BGRA)
@@ -181,7 +182,7 @@ def white_8bit_rgba_image() -> np.ndarray:
 
 
 @pytest.fixture
-def white_8bit_gray_png(white_8bit_gray_image, tmp_path) -> Path:
+def white_8bit_gray_png(white_8bit_gray_image: np.ndarray, tmp_path: Path) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": white_8bit_gray_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -194,7 +195,7 @@ def white_8bit_gray_png(white_8bit_gray_image, tmp_path) -> Path:
 
 
 @pytest.fixture
-def white_8bit_rgb_png(white_8bit_rgb_image, tmp_path) -> Path:
+def white_8bit_rgb_png(white_8bit_rgb_image: np.ndarray, tmp_path: Path) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": white_8bit_rgb_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -207,7 +208,7 @@ def white_8bit_rgb_png(white_8bit_rgb_image, tmp_path) -> Path:
 
 
 @pytest.fixture
-def white_8bit_rgba_png(white_8bit_rgba_image, tmp_path) -> Path:
+def white_8bit_rgba_png(white_8bit_rgba_image: np.ndarray, tmp_path: Path) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": white_8bit_rgba_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -235,7 +236,7 @@ def white_16bit_rgba_image() -> np.ndarray:
 
 
 @pytest.fixture
-def white_16bit_gray_png(white_16bit_gray_image, tmp_path) -> Path:
+def white_16bit_gray_png(white_16bit_gray_image: np.ndarray, tmp_path: Path) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": white_16bit_gray_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -248,7 +249,7 @@ def white_16bit_gray_png(white_16bit_gray_image, tmp_path) -> Path:
 
 
 @pytest.fixture
-def white_16bit_rgb_png(white_16bit_rgb_image, tmp_path) -> Path:
+def white_16bit_rgb_png(white_16bit_rgb_image: np.ndarray, tmp_path: Path) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": white_16bit_rgb_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -261,9 +262,9 @@ def white_16bit_rgb_png(white_16bit_rgb_image, tmp_path) -> Path:
 
 
 @pytest.fixture
-def white_16bit_rgba_png(white_16bit_rgba_image, tmp_path) -> Path:
+def white_16bit_rgba_png(white_16bit_rgba_image: np.ndarray, tmp_path: Path) -> Path:
     png_file = tmp_path.joinpath("image.png")
-    signal = {"data": white_16bit_gray_image, "axes": {}}
+    signal = {"data": white_16bit_rgba_image, "axes": {}}
     image_file_writer(str(png_file), signal)
     assert png_file.exists()
     png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
@@ -279,7 +280,9 @@ def random_16bit_multipage_image() -> np.ndarray:
 
 
 @pytest.fixture
-def black_8bit_gray_single_page_tiff(black_8bit_gray_image, tmp_path) -> Path:
+def black_8bit_gray_single_page_tiff(
+    black_8bit_gray_image: np.ndarray, tmp_path: Path
+) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {"data": black_8bit_gray_image}
     tiff_file_writer(str(tif_file), signal)
@@ -292,7 +295,9 @@ def black_8bit_gray_single_page_tiff(black_8bit_gray_image, tmp_path) -> Path:
 
 
 @pytest.fixture
-def black_8bit_rgb_single_page_tiff(black_8bit_rgb_image, tmp_path) -> Path:
+def black_8bit_rgb_single_page_tiff(
+    black_8bit_rgb_image: np.ndarray, tmp_path: Path
+) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {"data": rgb.regular_array2rgbx(black_8bit_rgb_image)}
     tiff_file_writer(str(tif_file), signal)
@@ -305,7 +310,9 @@ def black_8bit_rgb_single_page_tiff(black_8bit_rgb_image, tmp_path) -> Path:
 
 
 @pytest.fixture
-def black_8bit_rgba_single_page_tiff(black_8bit_rgba_image, tmp_path) -> Path:
+def black_8bit_rgba_single_page_tiff(
+    black_8bit_rgba_image: np.ndarray, tmp_path: Path
+) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {"data": rgb.regular_array2rgbx(black_8bit_rgba_image)}
     tiff_file_writer(str(tif_file), signal)
@@ -318,7 +325,9 @@ def black_8bit_rgba_single_page_tiff(black_8bit_rgba_image, tmp_path) -> Path:
 
 
 @pytest.fixture
-def black_16bit_gray_single_page_tiff(black_16bit_gray_image, tmp_path) -> Path:
+def black_16bit_gray_single_page_tiff(
+    black_16bit_gray_image: np.ndarray, tmp_path: Path
+) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {"data": black_16bit_gray_image}
     tiff_file_writer(str(tif_file), signal)
@@ -331,7 +340,9 @@ def black_16bit_gray_single_page_tiff(black_16bit_gray_image, tmp_path) -> Path:
 
 
 @pytest.fixture
-def black_16bit_rgb_single_page_tiff(black_16bit_rgb_image, tmp_path) -> Path:
+def black_16bit_rgb_single_page_tiff(
+    black_16bit_rgb_image: np.ndarray, tmp_path: Path
+) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {"data": rgb.regular_array2rgbx(black_16bit_rgb_image)}
     tiff_file_writer(str(tif_file), signal)
@@ -344,7 +355,9 @@ def black_16bit_rgb_single_page_tiff(black_16bit_rgb_image, tmp_path) -> Path:
 
 
 @pytest.fixture
-def black_16bit_rgba_single_page_tiff(black_16bit_rgba_image, tmp_path) -> Path:
+def black_16bit_rgba_single_page_tiff(
+    black_16bit_rgba_image: np.ndarray, tmp_path: Path
+) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {"data": rgb.regular_array2rgbx(black_16bit_rgba_image)}
     tiff_file_writer(str(tif_file), signal)
@@ -357,7 +370,9 @@ def black_16bit_rgba_single_page_tiff(black_16bit_rgba_image, tmp_path) -> Path:
 
 
 @pytest.fixture
-def random_multipage_tiff(random_16bit_multipage_image, tmp_path) -> Path:
+def random_multipage_tiff(
+    random_16bit_multipage_image: np.ndarray, tmp_path: Path
+) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {
         "data": random_16bit_multipage_image,
@@ -381,22 +396,22 @@ def assets() -> Path:
 
 
 @pytest.fixture
-def heart_png(assets) -> Path:
+def heart_png(assets: Path) -> Path:
     return assets.joinpath("heart16.png")
 
 
 @pytest.fixture
-def ncsu_tif(assets) -> Path:
+def ncsu_tif(assets: Path) -> Path:
     return assets.joinpath("1138622_small_slice_42.tif")
 
 
 @pytest.fixture
-def v09_loaded_confusion_matrix_png(assets) -> Path:
+def v09_loaded_confusion_matrix_png(assets: Path) -> Path:
     return assets.joinpath("v09_loaded_confusion_matrix.png")
 
 
 @pytest.fixture
-def dcm(tmp_path, black_8bit_gray_image) -> Path:
+def dcm(black_8bit_gray_image: np.ndarray, tmp_path: Path) -> Path:
     height, width = black_8bit_gray_image.shape
     grey_img = black_8bit_gray_image
     dcm_file = tmp_path.joinpath("test.dcm")
@@ -426,7 +441,7 @@ def dcm(tmp_path, black_8bit_gray_image) -> Path:
 
 
 @pytest.fixture
-def dm3(tmp_assets) -> Path:
+def dm3(tmp_assets: Path) -> Path:
     dst = tmp_assets.joinpath("2.dm3")
     if not dst.exists():
         url = "https://drive.google.com/uc?id=1BDNBta7cSMUtmb4r5e5gvqgBBhRW6xRq"
@@ -435,7 +450,7 @@ def dm3(tmp_assets) -> Path:
 
 
 @pytest.fixture
-def dm4(tmp_assets) -> Path:
+def dm4(tmp_assets: Path) -> Path:
     dst = tmp_assets.joinpath("1.dm4")
     if not dst.exists():
         url = "https://drive.google.com/uc?id=1Pkbfnl5-7zVSB1h7JfwLbKy6yOxxMvR-"
@@ -444,7 +459,7 @@ def dm4(tmp_assets) -> Path:
 
 
 @pytest.fixture
-def emd_single_image(tmp_assets) -> Path:
+def single_image_emd(tmp_assets: Path) -> Path:
     dst = tmp_assets.joinpath("3.emd")
     if not dst.exists():
         url = "https://drive.google.com/uc?id=1Z-aJUxQdpzd4v5ptOZvIY5Q8EYYSGi7L"
@@ -453,7 +468,7 @@ def emd_single_image(tmp_assets) -> Path:
 
 
 @pytest.fixture
-def emd_multiple_images(tmp_assets) -> Path:
+def multiple_images_emd(tmp_assets: Path) -> Path:
     dst = tmp_assets.joinpath("4.emd")
     if not dst.exists():
         url = "https://drive.google.com/uc?id=1GDB9hvN1FAULy1JwQN0THL7fAs4BbTlf"
@@ -463,18 +478,20 @@ def emd_multiple_images(tmp_assets) -> Path:
 
 @pytest.fixture
 def run_cfg(
-    output_cfg,
+    output_cfg: Callable[..., Output],
 ) -> Callable[
-    [Path, bool, Dict[str, Any], Optional[FromFormats], Output, bool], Output
+    [Path, bool, dict[str, Any], FromFormats | None, Output, bool], Configuration
 ]:
+    DEFAULT_OUTPUT = output_cfg()
+
     def _make_run_cfg(
         src: Path,
         delete_original: bool = False,
-        extras: Dict[str, Any] = {},
-        from_format: Optional[FromFormats] = None,
-        output: Output = output_cfg(),
+        extras: dict[str, Any] | None = None,
+        from_format: FromFormats | None = None,
+        output: Output = DEFAULT_OUTPUT,
         silent: bool = True,
-    ) -> Output:
+    ) -> Configuration:
         return Configuration(
             delete_original=delete_original,
             extras=extras,
@@ -490,7 +507,9 @@ def run_cfg(
 @pytest.fixture
 def output_cfg() -> Callable[[BitDepths, ToFormats, Path], Output]:
     def _make_output_cfg(
-        bit_depth=BitDepths.EIGHT, format=ToFormats.JPEG, path=None
+        bit_depth: BitDepths = BitDepths.EIGHT,
+        format: ToFormats = ToFormats.JPEG,
+        path: Path | None = None,
     ) -> Output:
         return Output(bit_depth=bit_depth, format=format, path=path)
 
@@ -540,21 +559,25 @@ def test_to_formats_file_ext():
     assert ToFormats.TIFF.file_ext == TIFF_FILE_EXT
 
 
-def test_output_destination_with_none_path(tmp_path, output_cfg):
+def test_output_destination_with_none_path(
+    tmp_path: Path, output_cfg: Callable[..., Output]
+):
     assert output_cfg().destination(tmp_path) == tmp_path.resolve().parent
 
 
-def test_output_destination_with_path(tmp_path, output_cfg):
+def test_output_destination_with_path(
+    tmp_path: Path, output_cfg: Callable[..., Output]
+):
     assert output_cfg(path=tmp_path).destination(tmp_path) == tmp_path
 
 
 def test_output_is_gray(
-    black_8bit_gray_image,
-    black_16bit_gray_image,
-    black_8bit_rgb_image,
-    black_16bit_rgb_image,
-    black_8bit_rgba_image,
-    black_16bit_rgba_image,
+    black_8bit_gray_image: np.ndarray,
+    black_16bit_gray_image: np.ndarray,
+    black_8bit_rgb_image: np.ndarray,
+    black_16bit_rgb_image: np.ndarray,
+    black_8bit_rgba_image: np.ndarray,
+    black_16bit_rgba_image: np.ndarray,
 ):
     assert Output.is_gray(black_8bit_gray_image)
     assert Output.is_gray(black_16bit_gray_image)
@@ -564,28 +587,42 @@ def test_output_is_gray(
     assert not Output.is_gray(black_16bit_rgba_image)
 
 
-def test_output_cast_eight_gray(black_16bit_gray_image, output_cfg, tmp_path):
+def test_output_cast_eight_gray(
+    black_16bit_gray_image: np.ndarray,
+    output_cfg: Callable[..., Output],
+    tmp_path: Path,
+):
     img = output_cfg(path=tmp_path).cast(black_16bit_gray_image)
     assert img.dtype.name == "uint8"
     assert img.shape == (256, 256, 3)
     assert not np.any(img)
 
 
-def test_output_cast_eight_rgb(black_16bit_rgb_image, output_cfg, tmp_path):
+def test_output_cast_eight_rgb(
+    black_16bit_rgb_image: np.ndarray, output_cfg: Callable[..., Output], tmp_path: Path
+):
     img = output_cfg(path=tmp_path).cast(black_16bit_rgb_image)
     assert img.dtype.name == "uint8"
     assert img.shape == (256, 256, 3)
     assert not np.any(img)
 
 
-def test_output_cast_eight_rgba(black_16bit_rgba_image, output_cfg, tmp_path):
+def test_output_cast_eight_rgba(
+    black_16bit_rgba_image: np.ndarray,
+    output_cfg: Callable[..., Output],
+    tmp_path: Path,
+):
     img = output_cfg(path=tmp_path).cast(black_16bit_rgba_image)
     assert img.dtype.name == "uint8"
     assert img.shape == (256, 256, 3)
     assert not np.any(img)
 
 
-def test_output_cast_sixteen_gray(black_16bit_gray_image, output_cfg, tmp_path):
+def test_output_cast_sixteen_gray(
+    black_16bit_gray_image: np.ndarray,
+    output_cfg: Callable[..., Output],
+    tmp_path: Path,
+):
     img = output_cfg(
         bit_depth=BitDepths.SIXTEEN, format=ToFormats.PNG, path=tmp_path
     ).cast(black_16bit_gray_image)
@@ -594,7 +631,9 @@ def test_output_cast_sixteen_gray(black_16bit_gray_image, output_cfg, tmp_path):
     assert not np.any(img)
 
 
-def test_output_cast_sixteen_rgb(black_16bit_rgb_image, output_cfg, tmp_path):
+def test_output_cast_sixteen_rgb(
+    black_16bit_rgb_image: np.ndarray, output_cfg: Callable[..., Output], tmp_path: Path
+):
     img = output_cfg(
         bit_depth=BitDepths.SIXTEEN, format=ToFormats.PNG, path=tmp_path
     ).cast(black_16bit_rgb_image)
@@ -603,7 +642,11 @@ def test_output_cast_sixteen_rgb(black_16bit_rgb_image, output_cfg, tmp_path):
     assert not np.any(img)
 
 
-def test_output_cast_sixteen_rgba(black_16bit_rgba_image, output_cfg, tmp_path):
+def test_output_cast_sixteen_rgba(
+    black_16bit_rgba_image: np.ndarray,
+    output_cfg: Callable[..., Output],
+    tmp_path: Path,
+):
     img = output_cfg(
         bit_depth=BitDepths.SIXTEEN, format=ToFormats.PNG, path=tmp_path
     ).cast(black_16bit_rgba_image)
@@ -614,7 +657,7 @@ def test_output_cast_sixteen_rgba(black_16bit_rgba_image, output_cfg, tmp_path):
 
 def test_output_validation():
     with pytest.raises(ValidationError):
-        Output(bit_depth=BitDepths.SIXTEEN, format=ToFormats.JPEG, path=None)
+        _ = Output(bit_depth=BitDepths.SIXTEEN, format=ToFormats.JPEG, path=None)
 
 
 def test_map_verbosity_none():
@@ -643,7 +686,9 @@ def test_map_verbosity_three():
     assert actual == "DEBUG"
 
 
-def test_write_tiff_with_black_8bit_gray(black_8bit_gray_single_page_tiff, output_cfg):
+def test_write_tiff_with_black_8bit_gray(
+    black_8bit_gray_single_page_tiff: Path, output_cfg: Callable[..., Output]
+):
     src = black_8bit_gray_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     write(
@@ -663,7 +708,9 @@ def test_write_tiff_with_black_8bit_gray(black_8bit_gray_single_page_tiff, outpu
     assert not np.any(jpeg_img)
 
 
-def test_write_tiff_with_black_8bit_rgb(black_8bit_rgb_single_page_tiff, output_cfg):
+def test_write_tiff_with_black_8bit_rgb(
+    black_8bit_rgb_single_page_tiff: Path, output_cfg: Callable[..., Output]
+):
     src = black_8bit_rgb_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     write(
@@ -683,7 +730,9 @@ def test_write_tiff_with_black_8bit_rgb(black_8bit_rgb_single_page_tiff, output_
     assert not np.any(jpeg_img)
 
 
-def test_write_tiff_with_black_8bit_rgba(black_8bit_rgba_single_page_tiff, output_cfg):
+def test_write_tiff_with_black_8bit_rgba(
+    black_8bit_rgba_single_page_tiff: Path, output_cfg: Callable[..., Output]
+):
     src = black_8bit_rgba_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     write(
@@ -704,7 +753,7 @@ def test_write_tiff_with_black_8bit_rgba(black_8bit_rgba_single_page_tiff, outpu
 
 
 def test_write_tiff_with_black_16bit_gray(
-    black_16bit_gray_single_page_tiff, output_cfg
+    black_16bit_gray_single_page_tiff: Path, output_cfg: Callable[..., Output]
 ):
     src = black_16bit_gray_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
@@ -726,7 +775,7 @@ def test_write_tiff_with_black_16bit_gray(
 
 
 def test_write_with_single_tiff_delete_original(
-    black_16bit_gray_single_page_tiff, output_cfg
+    black_16bit_gray_single_page_tiff: Path, output_cfg: Callable[..., Output]
 ):
     src = black_16bit_gray_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
@@ -750,7 +799,9 @@ def test_write_with_single_tiff_delete_original(
 
 
 def test_write_with_multipages_tiff(
-    output_cfg, random_multipage_tiff, random_16bit_multipage_image
+    output_cfg: Callable[..., Output],
+    random_multipage_tiff: Path,
+    random_16bit_multipage_image: np.ndarray,
 ):
     pages_count, *_ = random_16bit_multipage_image.shape
     src = random_multipage_tiff
@@ -779,7 +830,7 @@ def test_write_with_multipages_tiff(
         assert np.any(jpeg_img)
 
 
-def test_write_with_dm3(dm3, output_cfg, tmp_path):
+def test_write_with_dm3(dm3: Path, output_cfg: Callable[..., Output], tmp_path: Path):
     src = dm3
     dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
     write(
@@ -791,7 +842,7 @@ def test_write_with_dm3(dm3, output_cfg, tmp_path):
     assert dst.exists()
 
 
-def test_write_with_dm4(dm4, output_cfg, tmp_path):
+def test_write_with_dm4(dm4: Path, output_cfg: Callable[..., Output], tmp_path: Path):
     src = dm4
     dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
     write(
@@ -811,7 +862,12 @@ def test_write_with_dm4(dm4, output_cfg, tmp_path):
     assert np.any(jpeg_img)
 
 
-def test_run_dcm(dcm, output_cfg, run_cfg, tmp_path):
+def test_run_dcm(
+    dcm: Path,
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    tmp_path: Path,
+):
     src = dcm
     dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
     run_dcm(run_cfg(src, output=output_cfg(path=tmp_path)))
@@ -826,37 +882,51 @@ def test_run_dcm(dcm, output_cfg, run_cfg, tmp_path):
     assert not np.any(jpeg_img)
 
 
-def test_run_dm(dm4, output_cfg, run_cfg, tmp_path):
+def test_run_dm(
+    dm4: Path,
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    tmp_path: Path,
+):
     src = dm4
     dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
     run_dm(run_cfg(src, output=output_cfg(path=dst)))
     assert dst.exists()
 
 
-def test_run_dm_fails_with_not_implemented(mocker, run_cfg, tmp_path):
+def test_run_dm_fails_with_not_implemented(
+    mocker: MockerFixture, run_cfg: Callable[..., Configuration], tmp_path: Path
+):
     src = tmp_path.joinpath("test.dm4")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
-    def mock_file_reader(*args, **kwargs):
+    def mock_file_reader(*args: Any, **kwargs: Any):
         _ = args
         _ = kwargs
 
         raise NotImplementedError("Not supported version")
 
-    mocker.patch("rsciio.digitalmicrograph.file_reader", mock_file_reader)
+    _ = mocker.patch("rsciio.digitalmicrograph.file_reader", mock_file_reader)
     run_dm(run_cfg(src))
     assert not dst.exists()
 
 
-def test_run_dm_fails_with_exception(run_cfg, tmp_path):
+def test_run_dm_fails_with_exception(
+    run_cfg: Callable[..., Configuration], tmp_path: Path
+):
     src = tmp_path.joinpath("test.dm4")
     dst = src.with_suffix(JPEG_FILE_EXT)
     run_dm(run_cfg(src))
     assert not dst.exists()
 
 
-def test_run_emd_single_image(emd_single_image, output_cfg, run_cfg, tmp_path):
-    src = emd_single_image
+def test_run_emd_single_image(
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    single_image_emd: Path,
+    tmp_path: Path,
+):
+    src = single_image_emd
     dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
     run_emd(run_cfg(src, output=output_cfg(path=tmp_path)))
     assert dst.exists()
@@ -870,8 +940,13 @@ def test_run_emd_single_image(emd_single_image, output_cfg, run_cfg, tmp_path):
     assert np.any(jpeg_img)
 
 
-def test_run_emd_multiple_images(emd_multiple_images, output_cfg, run_cfg, tmp_path):
-    src = emd_multiple_images
+def test_run_emd_multiple_images(
+    multiple_images_emd: Path,
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    tmp_path: Path,
+):
+    src = multiple_images_emd
     dst = tmp_path.joinpath(src.stem)
     run_emd(run_cfg(src, output=output_cfg(path=tmp_path)))
     assert dst.exists()
@@ -889,52 +964,63 @@ def test_run_emd_multiple_images(emd_multiple_images, output_cfg, run_cfg, tmp_p
         assert len(jpeg_img.shape) == 3
 
 
-def test_run_emd_with_no_image_data(mocker, run_cfg, tmp_path):
+def test_run_emd_with_no_image_data(
+    mocker: MockerFixture, run_cfg: Callable[..., Configuration], tmp_path: Path
+):
     src = tmp_path.joinpath("test.emd")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
-    def mock_file_reader(*args, **kwargs):
+    def mock_file_reader(*args: Any, **kwargs: Any) -> list[Any]:
         _ = args
         _ = kwargs
 
         return []
 
-    mocker.patch("rsciio.emd.file_reader", mock_file_reader)
+    _ = mocker.patch("rsciio.emd.file_reader", mock_file_reader)
     run_emd(run_cfg(src))
     assert not dst.exists()
 
 
-def test_run_emd_with_no_data_field(mocker, run_cfg, tmp_path):
+def test_run_emd_with_no_data_field(
+    mocker: MockerFixture, run_cfg: Callable[..., Configuration], tmp_path: Path
+):
     src = tmp_path.joinpath("test.emd")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
-    def mock_file_reader(*args, **kwargs):
+    def mock_file_reader(*args: Any, **kwargs: Any) -> list[dict[str, list[Any]]]:
         _ = args
         _ = kwargs
 
         return [{"axes": []}]
 
-    mocker.patch("rsciio.emd.file_reader", mock_file_reader)
+    _ = mocker.patch("rsciio.emd.file_reader", mock_file_reader)
     run_emd(run_cfg(src))
     assert not dst.exists()
 
 
-def test_run_emd_fails_with_exception(mocker, run_cfg, tmp_path):
+def test_run_emd_fails_with_exception(
+    mocker: MockerFixture, run_cfg: Callable[..., Configuration], tmp_path: Path
+):
     src = tmp_path.joinpath("test.emd")
     dst = src.with_suffix(JPEG_FILE_EXT)
 
-    def mock_file_reader(*args, **kwargs):
+    def mock_file_reader(*args: Any, **kwargs: Any):
         _ = args
         _ = kwargs
 
         raise Exception("Test Exception")
 
-    mocker.patch("rsciio.emd.file_reader", mock_file_reader)
+    _ = mocker.patch("rsciio.emd.file_reader", mock_file_reader)
     run_emd(run_cfg(src))
     assert not dst.exists()
 
 
-def test_run(black_8bit_gray_png, output_cfg, run_cfg, tmp_path):
+def test_run(
+    black_8bit_gray_png: Path,
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    tmp_path: Path,
+):
     src = black_8bit_gray_png
     dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
     run(run_cfg(src, from_format=FromFormats.PNG, output=output_cfg(path=tmp_path)))
@@ -949,7 +1035,9 @@ def test_run(black_8bit_gray_png, output_cfg, run_cfg, tmp_path):
     assert not np.any(jpeg_img)
 
 
-def test_run_png_8bit_gray(black_8bit_gray_png, run_cfg):
+def test_run_png_8bit_gray(
+    black_8bit_gray_png: Path, run_cfg: Callable[..., Configuration]
+):
     src = black_8bit_gray_png
     dst = src.with_suffix(JPEG_FILE_EXT)
     run_png(run_cfg(src))
@@ -964,7 +1052,9 @@ def test_run_png_8bit_gray(black_8bit_gray_png, run_cfg):
     assert not np.any(jpeg_img)
 
 
-def test_run_png_8bit_rgb(black_8bit_rgb_png, run_cfg):
+def test_run_png_8bit_rgb(
+    black_8bit_rgb_png: Path, run_cfg: Callable[..., Configuration]
+):
     src = black_8bit_rgb_png
     dst = src.with_suffix(JPEG_FILE_EXT)
     run_png(run_cfg(src))
@@ -979,7 +1069,9 @@ def test_run_png_8bit_rgb(black_8bit_rgb_png, run_cfg):
     assert not np.any(jpeg_img)
 
 
-def test_run_png_8bit_rgba(black_8bit_rgba_png, run_cfg):
+def test_run_png_8bit_rgba(
+    black_8bit_rgba_png: Path, run_cfg: Callable[..., Configuration]
+):
     src = black_8bit_rgba_png
     dst = src.with_suffix(JPEG_FILE_EXT)
     run_png(run_cfg(src))
@@ -994,7 +1086,9 @@ def test_run_png_8bit_rgba(black_8bit_rgba_png, run_cfg):
     assert not np.any(jpeg_img)
 
 
-def test_run_png_16bit_gray(black_16bit_gray_png, run_cfg):
+def test_run_png_16bit_gray(
+    black_16bit_gray_png: Path, run_cfg: Callable[..., Configuration]
+):
     src = black_16bit_gray_png
     dst = src.with_suffix(JPEG_FILE_EXT)
     run_png(run_cfg(src))
@@ -1009,7 +1103,9 @@ def test_run_png_16bit_gray(black_16bit_gray_png, run_cfg):
     assert not np.any(jpeg_img)
 
 
-def test_run_png_16bit_rgb(black_16bit_rgb_png, run_cfg):
+def test_run_png_16bit_rgb(
+    black_16bit_rgb_png: Path, run_cfg: Callable[..., Configuration]
+):
     src = black_16bit_rgb_png
     dst = src.with_suffix(JPEG_FILE_EXT)
     run_png(run_cfg(src))
@@ -1024,7 +1120,9 @@ def test_run_png_16bit_rgb(black_16bit_rgb_png, run_cfg):
     assert not np.any(jpeg_img)
 
 
-def test_run_png_16bit_rgba(black_16bit_rgba_png, run_cfg):
+def test_run_png_16bit_rgba(
+    black_16bit_rgba_png: Path, run_cfg: Callable[..., Configuration]
+):
     src = black_16bit_rgba_png
     dst = src.with_suffix(JPEG_FILE_EXT)
     run_png(run_cfg(src))
@@ -1040,7 +1138,9 @@ def test_run_png_16bit_rgba(black_16bit_rgba_png, run_cfg):
 
 
 def test_run_8bit_grayscale_png_to_8bit_tiff(
-    black_8bit_gray_png, output_cfg, run_cfg, tmp_path
+    black_8bit_gray_png: Path,
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
 ):
     src = black_8bit_gray_png
     dst = src.with_suffix(TIFF_FILE_EXT)
@@ -1057,7 +1157,10 @@ def test_run_8bit_grayscale_png_to_8bit_tiff(
 
 
 def test_run_8bit_grayscale_png_to_16bit_tiff(
-    black_8bit_gray_image, output_cfg, run_cfg, tmp_path
+    black_8bit_gray_image: np.ndarray,
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    tmp_path: Path,
 ):
     src = tmp_path.joinpath("tmp.png")
     write_result = cv2.imwrite(str(src), black_8bit_gray_image)
@@ -1085,7 +1188,9 @@ def test_run_8bit_grayscale_png_to_16bit_tiff(
 
 
 def test_run_16bit_grayscale_png_to_8bit_tiff(
-    black_16bit_gray_png, output_cfg, run_cfg
+    black_16bit_gray_png: Path,
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
 ):
     src = black_16bit_gray_png
     dst = src.with_suffix(TIFF_FILE_EXT)
@@ -1102,7 +1207,9 @@ def test_run_16bit_grayscale_png_to_8bit_tiff(
 
 
 def test_run_16bit_grayscale_png_to_16bit_tiff(
-    black_16bit_gray_png, output_cfg, run_cfg
+    black_16bit_gray_png: Path,
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
 ):
     src = black_16bit_gray_png
     dst = src.with_suffix(TIFF_FILE_EXT)
@@ -1122,7 +1229,12 @@ def test_run_16bit_grayscale_png_to_16bit_tiff(
     assert not np.any(tiff_img)
 
 
-def test_run_heart_png_to_8bit_gray_tiff(heart_png, output_cfg, run_cfg, tmp_path):
+def test_run_heart_png_to_8bit_gray_tiff(
+    heart_png: Path,
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    tmp_path: Path,
+):
     src = heart_png
     dst = tmp_path.joinpath(src.name).with_suffix(TIFF_FILE_EXT)
     run_png(
@@ -1144,7 +1256,12 @@ def test_run_heart_png_to_8bit_gray_tiff(heart_png, output_cfg, run_cfg, tmp_pat
     assert np.any(tiff_img)
 
 
-def test_run_heart_png_to_16bit_gray_tiff(heart_png, output_cfg, run_cfg, tmp_path):
+def test_run_heart_png_to_16bit_gray_tiff(
+    heart_png: Path,
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    tmp_path: Path,
+):
     src = heart_png
     dst = tmp_path.joinpath(src.name).with_suffix(TIFF_FILE_EXT)
     run_png(
@@ -1169,7 +1286,10 @@ def test_run_heart_png_to_16bit_gray_tiff(heart_png, output_cfg, run_cfg, tmp_pa
 
 
 def test_run_confusion_matrix_png_to_jpeg(
-    v09_loaded_confusion_matrix_png, output_cfg, run_cfg, tmp_path
+    v09_loaded_confusion_matrix_png: Path,
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    tmp_path: Path,
 ):
     src = v09_loaded_confusion_matrix_png
     dst = tmp_path.joinpath(src.name).with_suffix(JPEG_FILE_EXT)
@@ -1185,7 +1305,9 @@ def test_run_confusion_matrix_png_to_jpeg(
     assert np.any(jpeg_img)
 
 
-def test_run_white_8bit_rgba_png(white_8bit_rgba_png, run_cfg):
+def test_run_white_8bit_rgba_png(
+    white_8bit_rgba_png: Path, run_cfg: Callable[..., Configuration]
+):
     src = white_8bit_rgba_png
     dst = src.with_suffix(JPEG_FILE_EXT)
     run_png(run_cfg(src))
@@ -1197,10 +1319,12 @@ def test_run_white_8bit_rgba_png(white_8bit_rgba_png, run_cfg):
     assert jpeg_img is not None
     assert jpeg_img.dtype.name == "uint8"
     assert jpeg_img.shape == (256, 256, 3)
-    assert np.all(jpeg_img, where=255)
+    assert np.all(jpeg_img == 255)
 
 
-def test_run_tiff(black_16bit_gray_single_page_tiff, run_cfg):
+def test_run_tiff(
+    black_16bit_gray_single_page_tiff: Path, run_cfg: Callable[..., Configuration]
+):
     src = black_16bit_gray_single_page_tiff
     dst = src.with_suffix(JPEG_FILE_EXT)
     run_tiff(run_cfg(src))
@@ -1215,7 +1339,12 @@ def test_run_tiff(black_16bit_gray_single_page_tiff, run_cfg):
     assert not np.any(jpeg_img)
 
 
-def test_run_tiff_with_ncsu(ncsu_tif, output_cfg, run_cfg, tmp_path):
+def test_run_tiff_with_ncsu(
+    ncsu_tif: Path,
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    tmp_path: Path,
+):
     actual = tmp_path.joinpath(ncsu_tif.with_suffix(JPEG_FILE_EXT).name)
     run_tiff(run_cfg(ncsu_tif, output=output_cfg(path=tmp_path)))
     assert actual.exists()
@@ -1229,7 +1358,11 @@ def test_run_tiff_with_ncsu(ncsu_tif, output_cfg, run_cfg, tmp_path):
     assert np.any(jpeg_img)
 
 
-def test_expand_sources(output_cfg, run_cfg, tmp_path):
+def test_expand_sources(
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    tmp_path: Path,
+):
     paths = [
         tmp_path.joinpath("dst1.tif"),
         tmp_path.joinpath("dst2.dm3"),
@@ -1246,7 +1379,9 @@ def test_expand_sources(output_cfg, run_cfg, tmp_path):
     assert actual[2] == run_cfg(paths[2])
 
 
-def test_expand_sources_with_directories(output_cfg, tmp_path):
+def test_expand_sources_with_directories(
+    output_cfg: Callable[..., Output], tmp_path: Path
+):
     dir1 = tmp_path.joinpath("dst1")
     os.makedirs(dir1, exist_ok=True)
     file1 = dir1.joinpath("1.tif")
@@ -1272,7 +1407,9 @@ def test_expand_sources_with_directories(output_cfg, tmp_path):
     assert actual[4].src in expected
 
 
-def test_expand_sources_with_multiple_folders(output_cfg, tmp_path):
+def test_expand_sources_with_multiple_folders(
+    output_cfg: Callable[..., Output], tmp_path: Path
+):
     dir1 = tmp_path.joinpath("dst1")
     os.makedirs(dir1, exist_ok=True)
     file1 = dir1.joinpath("1.tif")
@@ -1305,33 +1442,21 @@ def test_expand_sources_with_multiple_folders(output_cfg, tmp_path):
     assert actual[5].src in expected
 
 
-def test_run_with_darwin(dm4, mocker, tmp_path):
+def test_run_with_darwin(dm4: Path, mocker: MockerFixture, tmp_path: Path):
     def mock_platform_system() -> str:
         return "Darwin"
 
-    mocker.patch("platform.system", mock_platform_system)
-
-    def mock_write(*args, **kwargs):
-        _ = args
-        _ = kwargs
-
-        return None
+    _ = mocker.patch("platform.system", mock_platform_system)
 
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm4)])
     assert result.exit_code == 0
 
 
-def test_run_with_linux(dm4, mocker, tmp_path):
+def test_run_with_linux(dm4: Path, mocker: MockerFixture, tmp_path: Path):
     def mock_platform_system() -> str:
         return "Linux"
 
-    mocker.patch("platform.system", mock_platform_system)
-
-    def mock_write(*args, **kwargs):
-        _ = args
-        _ = kwargs
-
-        return None
+    _ = mocker.patch("platform.system", mock_platform_system)
 
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm4)])
     assert result.exit_code == 0
@@ -1349,7 +1474,7 @@ def test_app_version():
     assert f"{__app_name__} {version}" in result.stdout
 
 
-def test_app_dcm(dcm, tmp_path):
+def test_app_dcm(dcm: Path, tmp_path: Path):
     dst = tmp_path.joinpath(dcm.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dcm)])
     assert result.exit_code == 0
@@ -1364,12 +1489,12 @@ def test_app_dcm(dcm, tmp_path):
     assert not np.any(jpeg_img)
 
 
-def test_app_dcm_fails(dcm, tmp_path):
+def test_app_dcm_fails(dcm: Path, tmp_path: Path):
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", "-b", "16", str(dcm)])
     assert result.exit_code == 1
 
 
-def test_app_dm(dm4, tmp_path):
+def test_app_dm(dm4: Path, tmp_path: Path):
     dst = tmp_path.joinpath(dm4.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm4)])
     assert result.exit_code == 0
@@ -1384,12 +1509,12 @@ def test_app_dm(dm4, tmp_path):
     assert np.any(jpeg_img)
 
 
-def test_app_dm_fails(dm4, tmp_path):
+def test_app_dm_fails(dm4: Path, tmp_path: Path):
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", "-b", "16", str(dm4)])
     assert result.exit_code == 1
 
 
-def test_app_all_dm_as_files(dm3, dm4, tmp_path):
+def test_app_all_dm_as_files(dm3: Path, dm4: Path, tmp_path: Path):
     dst_dm3 = tmp_path.joinpath(dm3.name).with_suffix(JPEG_FILE_EXT)
     dst_dm4 = tmp_path.joinpath(dm4.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm3), str(dm4)])
@@ -1414,33 +1539,33 @@ def test_app_all_dm_as_files(dm3, dm4, tmp_path):
     assert np.any(jpeg_img)
 
 
-def test_app_emd(mocker, emd_single_image, tmp_path):
-    src = emd_single_image
+def test_app_emd(mocker: MockerFixture, single_image_emd: Path, tmp_path: Path):
+    src = single_image_emd
 
-    def mock_write_emd(*args, **kwargs):
+    def mock_write_emd(*args: Any, **kwargs: Any):
         _ = args
         _ = kwargs
 
-    mocker.patch("tsio.cli.run_emd", mock_write_emd)
+    _ = mocker.patch("tsio.cli.run_emd", mock_write_emd)
 
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(src)])
     assert result.exit_code == 0
 
 
-def test_app_emd_fails(mocker, emd_single_image, tmp_path):
-    src = emd_single_image
+def test_app_emd_fails(mocker: MockerFixture, single_image_emd: Path, tmp_path: Path):
+    src = single_image_emd
 
-    def mock_write_emd(*args, **kwargs):
+    def mock_write_emd(*args: Any, **kwargs: Any):
         _ = args
         _ = kwargs
 
-    mocker.patch("tsio.cli.run_emd", mock_write_emd)
+    _ = mocker.patch("tsio.cli.run_emd", mock_write_emd)
 
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", "-b", "16", str(src)])
     assert result.exit_code == 1
 
 
-def test_app_png_8bit_gray(black_8bit_gray_png, tmp_path):
+def test_app_png_8bit_gray(black_8bit_gray_png: Path, tmp_path: Path):
     dst = tmp_path.joinpath(black_8bit_gray_png.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(black_8bit_gray_png)])
     assert result.exit_code == 0
@@ -1455,7 +1580,7 @@ def test_app_png_8bit_gray(black_8bit_gray_png, tmp_path):
     assert not np.any(jpeg_img)
 
 
-def test_app_png_16bit(black_16bit_gray_png, tmp_path):
+def test_app_png_16bit(black_16bit_gray_png: Path, tmp_path: Path):
     dst = tmp_path.joinpath(black_16bit_gray_png.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(black_16bit_gray_png)])
     assert result.exit_code == 0
@@ -1470,7 +1595,7 @@ def test_app_png_16bit(black_16bit_gray_png, tmp_path):
     assert not np.any(jpeg_img)
 
 
-def test_app_png_white_8bit_rgba(white_8bit_rgba_png, tmp_path):
+def test_app_png_white_8bit_rgba(white_8bit_rgba_png: Path, tmp_path: Path):
     dst = tmp_path.joinpath(white_8bit_rgba_png.name).with_suffix(JPEG_FILE_EXT)
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(white_8bit_rgba_png)])
     assert result.exit_code == 0
@@ -1482,10 +1607,10 @@ def test_app_png_white_8bit_rgba(white_8bit_rgba_png, tmp_path):
     assert jpeg_img is not None
     assert jpeg_img.dtype.name == "uint8"
     assert jpeg_img.shape == (256, 256, 3)
-    assert np.all(jpeg_img, where=1)
+    assert np.all(jpeg_img == 1)
 
 
-def test_app_png_fails(black_8bit_gray_png, tmp_path):
+def test_app_png_fails(black_8bit_gray_png: Path, tmp_path: Path):
     result = runner.invoke(
         app,
         [
@@ -1500,7 +1625,7 @@ def test_app_png_fails(black_8bit_gray_png, tmp_path):
     assert result.exit_code == 1
 
 
-def test_app_tiff(black_16bit_gray_single_page_tiff, tmp_path):
+def test_app_tiff(black_16bit_gray_single_page_tiff: Path, tmp_path: Path):
     dst = tmp_path.joinpath(black_16bit_gray_single_page_tiff.name).with_suffix(
         JPEG_FILE_EXT
     )
@@ -1517,7 +1642,7 @@ def test_app_tiff(black_16bit_gray_single_page_tiff, tmp_path):
     assert dst.exists()
 
 
-def test_app_tiff_fails(black_16bit_gray_single_page_tiff, tmp_path):
+def test_app_tiff_fails(black_16bit_gray_single_page_tiff: Path, tmp_path: Path):
     result = runner.invoke(
         app,
         [
