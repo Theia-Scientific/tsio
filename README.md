@@ -27,7 +27,7 @@ microscopy files include:
    2. [Source](#upgrade-app-source)
 4. [Usage](#usage)
 5. [Contributing](#contributing)
-5. [License](#license)
+6. [License](#license)
 
 ## Prerequisites
 
