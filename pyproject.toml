@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "tsio"
 version = "0.1.0"
-description = "A Python Command Line Interface (CLI) application to handle various file formats"
+description = "A Python Command Line Interface (CLI) application to extract the images from various microscopy files."
 authors = [
     {name = "Christopher Field", email = "chris.field@theiascientific.com"},
 ]
