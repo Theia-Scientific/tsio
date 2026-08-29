@@ -53,7 +53,6 @@ dev = [
     "gdown",
     "hatch",
     "isort",
-    "multiprocess-stubs",
     "pytest",
     "pytest-cov",
     "pytest-mock",
@@ -83,4 +82,9 @@ max-line-length = 127
 max-complexity = 15
 
 [tool.basedpyright]
-allowedUntypedLibraries = ["rsciio"]
+reportAny = false
+reportExplicitAny = false
+reportMissingTypeStubs = false
+reportUnknownArgumentType = false
+reportUnknownMemberType = false
+reportUnknownVariableType = false
