@@ -43,7 +43,7 @@ class Dm3(filetype.Type):
         # Next 4 bytes are the file size
         # Last 4 bytes are "endian"
         return (
-            len(buf) > 3
+            len(buf) > 4
             and buf[0] == 0x00
             and buf[1] == 0x00
             and buf[2] == 0x00
@@ -63,7 +63,7 @@ class Dm4(filetype.Type):
         # Next 8 bytes are the file size
         # Last 4 bytes are "endian"
         return (
-            len(buf) > 3
+            len(buf) > 4
             and buf[0] == 0x00
             and buf[1] == 0x00
             and buf[2] == 0x00
@@ -79,12 +79,17 @@ class Emd(filetype.Type):
         super(Emd, self).__init__(mime=Emd.MIME, extension=Emd.EXTENSION)
 
     def match(self, buf) -> bool:
+        # Velox EMD is a HDF5 file.
         return (
-            len(buf) > 3
-            and buf[0] == 0x00
-            and buf[1] == 0x00
-            and buf[2] == 0x00
-            and buf[3] == 0x04
+            len(buf) > 7
+            and buf[0] == 0x89
+            and buf[1] == 0x48
+            and buf[2] == 0x44
+            and buf[3] == 0x46
+            and buf[4] == 0x0D
+            and buf[5] == 0x0A
+            and buf[6] == 0x1A
+            and buf[7] == 0x0A
         )
 
 
