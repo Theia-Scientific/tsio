@@ -1607,7 +1607,7 @@ def test_app_png_white_8bit_rgba(white_8bit_rgba_png: Path, tmp_path: Path):
     assert jpeg_img is not None
     assert jpeg_img.dtype.name == "uint8"
     assert jpeg_img.shape == (256, 256, 3)
-    assert np.all(jpeg_img == 1)
+    assert np.all(jpeg_img == 255)
 
 
 def test_app_png_fails(black_8bit_gray_png: Path, tmp_path: Path):
