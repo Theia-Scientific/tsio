@@ -27,12 +27,14 @@ from tsio.cli import (
     expand_sources,
     map_verbosity,
     Output,
+    run,
     run_dcm,
     run_dm,
     run_emd,
     run_png,
     run_tiff,
     ToFormats,
+    UnsupportedFileType,
     write,
 )
 from typer.testing import CliRunner
@@ -371,6 +373,14 @@ def random_multipage_tiff(
 
 
 @pytest.fixture
+def text_file_txt(tmp_path: Path) -> Path:
+    txt_file = tmp_path.joinpath("tmp.txt")
+    with open(txt_file, "w") as fp:
+        fp.write("This is some text for a random unknown file.")
+    return txt_file
+
+
+@pytest.fixture
 def tmp_assets() -> Path:
     cwd = Path(os.getcwd())
     assets = cwd.joinpath(".tmp", "tests", "assets")
@@ -397,6 +407,11 @@ def ncsu_tif(assets: Path) -> Path:
 @pytest.fixture
 def v09_loaded_confusion_matrix_png(assets: Path) -> Path:
     return assets.joinpath("v09_loaded_confusion_matrix.png")
+
+
+@pytest.fixture
+def sample_1_docx(assets: Path) -> Path:
+    return assets.joinpath("sample_1.docx")
 
 
 @pytest.fixture
@@ -1418,6 +1433,23 @@ def test_expand_sources_with_multiple_folders(
     assert actual[5].src in expected
 
 
+def test_run_fails_with_unknown(
+    run_cfg: Callable[..., Configuration], text_file_txt: Path
+):
+    with pytest.raises(UnsupportedFileType):
+        run(run_cfg(src=text_file_txt))
+
+
+def test_run_fails_with_unsupported(
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    sample_1_docx: Path,
+    tmp_path: Path,
+):
+    with pytest.raises(UnsupportedFileType):
+        run(run_cfg(output=output_cfg(path=tmp_path), src=sample_1_docx))
+
+
 def test_run_with_darwin(dm4: Path, mocker: MockerFixture, tmp_path: Path):
     def mock_platform_system() -> str:
         return "Darwin"
@@ -1596,12 +1628,10 @@ def test_app_png_white_8bit_rgba(white_8bit_rgba_png: Path, tmp_path: Path):
     assert np.all(jpeg_img == 255)
 
 
-def test_app_png_fails(black_8bit_gray_png: Path, tmp_path: Path):
+def test_app_png_fails(black_8bit_gray_png: Path):
     result = runner.invoke(
         app,
         [
-            "-o",
-            str(tmp_path),
             "-S",
             "-b",
             "16",
@@ -1611,29 +1641,31 @@ def test_app_png_fails(black_8bit_gray_png: Path, tmp_path: Path):
     assert result.exit_code == 1
 
 
-def test_app_tiff(black_16bit_gray_single_page_tiff: Path, tmp_path: Path):
-    dst = tmp_path.joinpath(black_16bit_gray_single_page_tiff.name).with_suffix(
-        "." + Jpeg.EXTENSION
-    )
+def test_app_tiff(black_16bit_gray_single_page_tiff: Path):
+    dst = black_16bit_gray_single_page_tiff.with_suffix("." + Jpeg.EXTENSION)
     result = runner.invoke(
         app,
         [
-            "-o",
-            str(tmp_path),
             "-S",
             str(black_16bit_gray_single_page_tiff),
         ],
     )
     assert result.exit_code == 0
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
-def test_app_tiff_fails(black_16bit_gray_single_page_tiff: Path, tmp_path: Path):
+def test_app_tiff_fails(black_16bit_gray_single_page_tiff: Path):
     result = runner.invoke(
         app,
         [
-            "-o",
-            str(tmp_path),
             "-S",
             "-b",
             "16",
@@ -1641,3 +1673,35 @@ def test_app_tiff_fails(black_16bit_gray_single_page_tiff: Path, tmp_path: Path)
         ],
     )
     assert result.exit_code == 1
+
+
+def test_app_with_supported_and_unsupported(
+    black_16bit_gray_single_page_tiff: Path, sample_1_docx: Path, tmp_path: Path
+):
+    out = tmp_path.joinpath("out")
+    dst = out.joinpath(black_16bit_gray_single_page_tiff.name).with_suffix(
+        "." + Jpeg.EXTENSION
+    )
+    skipped = out.joinpath(sample_1_docx.name).with_suffix("." + Jpeg.EXTENSION)
+    result = runner.invoke(
+        app,
+        [
+            "-o",
+            str(out),
+            "-S",
+            str(black_16bit_gray_single_page_tiff),
+            str(sample_1_docx),
+        ],
+    )
+    assert result.exit_code == 0
+    assert len(os.listdir(out)) == 1
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
+    assert not skipped.exists()

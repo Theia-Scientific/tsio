@@ -31,11 +31,6 @@ from typing_extensions import Self
 LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
-class UnknownFileType(Exception):
-    def __init__(self, src: Path):
-        self.src = src
-
-
 class UnsupportedFileType(Exception):
     def __init__(self, src: Path):
         self.src = src
@@ -458,7 +453,7 @@ def run(cfg: Configuration):
     kind = filetype.guess(cfg.src)
     LOGGER.debug(f"{kind=}")
     if kind is None:
-        raise UnknownFileType(cfg.src)
+        raise UnsupportedFileType(cfg.src)
     else:
         SUPPORTED_MAP = {
             Dcm.MIME: run_dcm,
@@ -577,10 +572,6 @@ def main(
                         total=len(sources),
                     )
                 )
-    except UnknownFileType as err:
-        LOGGER.warning(
-            f"Could not determine file type for the {err.src} file. Skipping!"
-        )
     except UnsupportedFileType as err:
         LOGGER.warning(f"The {err.src} file is not supported. Skipping!")
     except ValidationError as err:
