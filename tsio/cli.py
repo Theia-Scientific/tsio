@@ -24,7 +24,7 @@ from rsciio.tiff import file_reader as tiff_file_reader
 from rsciio.utils import rgb
 from tqdm import tqdm
 from tsio import __app_name__
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal
 from typing_extensions import Self
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
@@ -48,7 +48,6 @@ mimetypes.add_type(DCM_MIME_TYPE, DCM_FILE_EXT)
 mimetypes.add_type(DM3_MIME_TYPE, DM3_FILE_EXT)
 mimetypes.add_type(DM4_MIME_TYPE, DM4_FILE_EXT)
 mimetypes.add_type(EMD_MIME_TYPE, EMD_FILE_EXT)
-
 logging.getLogger("PIL.Image").setLevel(logging.WARNING)
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
@@ -124,7 +123,7 @@ class ToFormats(Enum):
 
 class Output(BaseModel):
     bit_depth: BitDepths
-    path: Optional[Path]
+    path: Path | None
     format: ToFormats
 
     @staticmethod
@@ -141,9 +140,9 @@ class Output(BaseModel):
 
     @staticmethod
     def normalize(img: np.ndarray) -> np.ndarray:
-        max_pixel_intensity = np.max(img)
+        max_pixel_intensity = int(np.max(img))
         LOGGER.debug(f"{max_pixel_intensity=}")
-        min_pixel_intensity = np.min(img)
+        min_pixel_intensity = int(np.min(img))
         LOGGER.debug(f"{min_pixel_intensity=}")
         normalization_factor = abs(max_pixel_intensity - min_pixel_intensity)
         LOGGER.debug(f"{normalization_factor=}")
@@ -199,8 +198,8 @@ class Output(BaseModel):
 
 class Configuration(BaseModel):
     delete_original: bool
-    extras: Dict[str, Any]
-    from_format: Optional[FromFormats]
+    extras: dict[str, Any] | None
+    from_format: FromFormats | None
     output: Output
     silent: bool
     src: Path
@@ -231,7 +230,7 @@ def version_callback(value: bool):
 
 
 def write(
-    pages: List[Dict],
+    pages: list[dict[str, Any]],
     src: Path,
     output: Output,
     silent: bool,
@@ -315,7 +314,10 @@ def run_dm(cfg: Configuration):
 
 def run_emd(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
-    detector = cfg.extras.get("detector", 0)
+    if cfg.extras is None:
+        detector = 0
+    else:
+        detector = cfg.extras.get("detector", 0)
     LOGGER.debug(f"{detector=}")
     try:
         emd_data = emd.file_reader(cfg.src, lazy=True, select_type="images")
@@ -373,13 +375,13 @@ def run_tiff(cfg: Configuration):
 
 
 def expand_sources(
-    paths: List[Path],
+    paths: list[Path],
     output: Output,
     silent: bool,
     delete_original: bool = False,
-    extras: Dict[str, Any] = {},
-    from_format: Optional[FromFormats] = None,
-) -> List[Configuration]:
+    extras: dict[str, Any] | None = None,
+    from_format: FromFormats | None = None,
+) -> list[Configuration]:
     LOGGER.debug(f"{paths=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{silent=}")
@@ -435,68 +437,78 @@ def run(cfg: Configuration):
 
 
 PROGRESS_BAR_FORMAT: str = "{l_bar}{bar}| {n_fmt}/{total_fmt}"
+
+DELETE_ORIGINAL_OPT: bool = typer.Option(
+    False,
+    "-D",
+    "--delete-original",
+    help="Deletes the original file after conversion.",
+)
+FROM_FORMAT_OPT: FromFormats | None = typer.Option(
+    None,
+    "-f",
+    "--from",
+    case_sensitive=False,
+    help=(
+        "The original source format for all files. If not specified, then "
+        "the file extension will be used. Use this option when there are "
+        "no file extensions or a non-standard file extension is exists."
+    ),
+)
+NUM_CPUS_OPT: int | None = typer.Option(
+    None,
+    "-n",
+    "--num-cpus",
+    help="The number of CPU cores to use for parallel execution.",
+)
+OUTPUT_OPT: Path | None = typer.Option(
+    None, "-o", "--output", help="Destination for output file(s)."
+)
+PATHS_ARG: list[Path] = typer.Argument(help="The original source files.")
+SILENT_OPT: bool = typer.Option(
+    False, "-S", "--silent", help="Disables the progress bars."
+)
 TO_BIT_DEPTH_OPT: Literal[8, 16] = typer.Option(
     8,
     "-b",
     "--to-bit-depth",
     help="The bit depth for the output file.",
 )
+TO_FORMAT_OPT: ToFormats = typer.Option(
+    ToFormats.JPEG.value,
+    "-t",
+    "--to",
+    case_sensitive=False,
+    help="The output file format.",
+)
+VERBOSE_OPT: int = typer.Option(
+    0,
+    "--verbose",
+    "-v",
+    help="Print debugging statements.",
+    count=True,
+)
+VERSION_OPT: bool | None = typer.Option(
+    None,
+    "--version",
+    help="Prints the version.",
+    callback=version_callback,
+    is_eager=True,
+)
 
 
 @app.command()
 def main(
-    paths: List[Path] = typer.Argument(help="The original source files."),
-    delete_original: bool = typer.Option(
-        False,
-        "-D",
-        "--delete-original",
-        help="Deletes the original file after conversion.",
-    ),
-    from_format: Optional[FromFormats] = typer.Option(
-        None,
-        "-f",
-        "--from",
-        case_sensitive=False,
-        help=(
-            "The original source format for all files. If not specified, then "
-            "the file extension will be used. Use this option when there are "
-            "no file extensions or a non-standard file extension is exists."
-        ),
-    ),
-    num_cpus: Optional[int] = typer.Option(
-        None,
-        "-n",
-        "--num-cpus",
-        help="The number of CPU cores to use for parallel execution.",
-    ),
-    output: Optional[Path] = typer.Option(
-        None, "-o", "--output", help="Destination for output file(s)."
-    ),
-    silent: bool = typer.Option(
-        False, "-S", "--silent", help="Disables the progress bars."
-    ),
+    paths: list[Path] = PATHS_ARG,
+    delete_original: bool = DELETE_ORIGINAL_OPT,
+    from_format: FromFormats | None = FROM_FORMAT_OPT,
+    num_cpus: int | None = NUM_CPUS_OPT,
+    output: Path | None = OUTPUT_OPT,
+    silent: bool = SILENT_OPT,
     to_bit_depth: int = TO_BIT_DEPTH_OPT,
-    to_format: ToFormats = typer.Option(
-        ToFormats.JPEG.value,
-        "-t",
-        "--to",
-        case_sensitive=False,
-        help="The output file format.",
-    ),
-    verbose: int = typer.Option(
-        0,
-        "--verbose",
-        "-v",
-        help="Print debugging statements.",
-        count=True,
-    ),
-    version: Optional[bool] = typer.Option(
-        None,
-        "--version",
-        help="Prints the version.",
-        callback=version_callback,
-        is_eager=True,
-    ),
+    to_format: ToFormats = TO_FORMAT_OPT,
+    verbose: int = VERBOSE_OPT,
+    version: bool | None = VERSION_OPT,
 ):
     logging.basicConfig(level=map_verbosity(verbose))
     LOGGER.debug(f"{delete_original=}")
@@ -522,7 +534,7 @@ def main(
             from_format=from_format,
         )
         if platform.system().lower() == "darwin":
-            list(
+            _ = list(
                 tqdm(
                     map(run, sources),
                     bar_format=PROGRESS_BAR_FORMAT,
@@ -532,7 +544,7 @@ def main(
             )
         else:
             with Pool(num_cpus) as pool:
-                list(
+                _ = list(
                     tqdm(
                         pool.imap(run, sources),
                         bar_format=PROGRESS_BAR_FORMAT,
