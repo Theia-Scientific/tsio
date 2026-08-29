@@ -29,6 +29,8 @@ htmlcov
 .tox
 .nox
 .flake8
+pyrightconfig.json
+basedpyrightconfig.json
 
 .direnv
 .envrc
