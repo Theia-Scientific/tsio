@@ -964,6 +964,26 @@ def test_run_emd_multiple_images(
         assert len(jpeg_img.shape) == 3
 
 
+def test_run_emd_single_image_with_extras(
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    single_image_emd: Path,
+    tmp_path: Path,
+):
+    src = single_image_emd
+    dst = tmp_path.joinpath(src.with_suffix(JPEG_FILE_EXT).name)
+    run_emd(run_cfg(src, extras={"detector": 0}, output=output_cfg(path=tmp_path)))
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (1024, 1024, 3)
+    assert np.any(jpeg_img)
+
+
 def test_run_emd_with_no_image_data(
     mocker: MockerFixture, run_cfg: Callable[..., Configuration], tmp_path: Path
 ):
