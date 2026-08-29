@@ -1583,9 +1583,9 @@ def test_app_emd_fails(mocker: MockerFixture, single_image_emd: Path, tmp_path: 
     assert result.exit_code == 1
 
 
-def test_app_png_8bit_gray(black_8bit_gray_png: Path, tmp_path: Path):
-    dst = tmp_path.joinpath(black_8bit_gray_png.name).with_suffix("." + Jpeg.EXTENSION)
-    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(black_8bit_gray_png)])
+def test_app_png_8bit_gray(black_8bit_gray_png: Path):
+    dst = black_8bit_gray_png.with_suffix("." + Jpeg.EXTENSION)
+    result = runner.invoke(app, ["-S", str(black_8bit_gray_png)])
     assert result.exit_code == 0
     assert dst.exists()
     kind = filetype.guess(str(dst))
