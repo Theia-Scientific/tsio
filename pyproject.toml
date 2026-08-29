@@ -38,6 +38,7 @@ dependencies = [
     "tifffile",
     "typer",
 ]
+license = "GPL-3.0"
 
 [build-system]
 requires = [ "hatchling" ]
@@ -52,6 +53,7 @@ dev = [
     "gdown",
     "hatch",
     "isort",
+    "multiprocess-stubs",
     "pytest",
     "pytest-cov",
     "pytest-mock",
@@ -79,3 +81,6 @@ filterwarnings = [
 ignore = ['E203', 'W503']
 max-line-length = 127
 max-complexity = 15
+
+[tool.basedpyright]
+allowedUntypedLibraries = ["rsciio"]
