@@ -159,17 +159,17 @@ def black_16bit_rgba_png(black_16bit_rgba_image: np.ndarray, tmp_path: Path) -> 
 
 @pytest.fixture
 def white_8bit_gray_image() -> np.ndarray:
-    return np.ones((256, 256), dtype=np.uint8)
+    return np.full((256, 256), 255, dtype=np.uint8)
 
 
 @pytest.fixture
 def white_8bit_rgb_image() -> np.ndarray:
-    return np.ones((256, 256, 3), dtype=np.uint8)
+    return np.full((256, 256, 3), 255, dtype=np.uint8)
 
 
 @pytest.fixture
 def white_8bit_rgba_image() -> np.ndarray:
-    return np.ones((256, 256, 4), dtype=np.uint8)
+    return np.full((256, 256, 4), 255, dtype=np.uint8)
 
 
 @pytest.fixture
@@ -181,7 +181,8 @@ def white_8bit_gray_png(white_8bit_gray_image: np.ndarray, tmp_path: Path) -> Pa
     png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
     assert png_img is not None
     assert png_img.dtype.name == "uint8"
-    assert png_img.shape == (256, 256, 4)
+    assert png_img.shape == (256, 256)
+    assert np.all(png_img == 255)
     return png_file
 
 
@@ -1431,6 +1432,21 @@ def test_expand_sources_with_multiple_folders(
     assert actual[3].src in expected
     assert actual[4].src in expected
     assert actual[5].src in expected
+
+
+def test_run(run_cfg: Callable[..., Configuration], white_8bit_gray_png: Path):
+    dst = white_8bit_gray_png.with_suffix("." + Jpeg.EXTENSION)
+    run(run_cfg(white_8bit_gray_png))
+    assert dst.exists()
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert np.all(jpeg_img == 255)
 
 
 def test_run_fails_with_unknown(
