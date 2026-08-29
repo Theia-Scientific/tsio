@@ -82,9 +82,4 @@ max-line-length = 127
 max-complexity = 15
 
 [tool.basedpyright]
-reportAny = false
-reportExplicitAny = false
-reportMissingTypeStubs = false
-reportUnknownArgumentType = false
-reportUnknownMemberType = false
-reportUnknownVariableType = false
+typeCheckingMode = "standard"
