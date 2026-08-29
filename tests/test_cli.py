@@ -1119,7 +1119,7 @@ def test_run_8bit_grayscale_png_to_8bit_tiff(
     run_cfg: Callable[..., Configuration],
 ):
     src = black_8bit_gray_png
-    dst = src.with_suffix(Tiff.EXTENSION)
+    dst = src.with_suffix("." + Tiff.EXTENSION)
     run_png(run_cfg(src, output=output_cfg(format=ToFormats.TIFF)))
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1146,7 +1146,7 @@ def test_run_8bit_grayscale_png_to_16bit_tiff(
     assert png_img is not None
     assert png_img.dtype.name == "uint8"
     assert png_img.shape == (256, 256)
-    dst = src.with_suffix(Tiff.EXTENSION)
+    dst = src.with_suffix("." + Tiff.EXTENSION)
     run_png(
         run_cfg(
             src, output=output_cfg(bit_depth=BitDepths.SIXTEEN, format=ToFormats.TIFF)
@@ -1169,7 +1169,7 @@ def test_run_16bit_grayscale_png_to_8bit_tiff(
     run_cfg: Callable[..., Configuration],
 ):
     src = black_16bit_gray_png
-    dst = src.with_suffix(Tiff.EXTENSION)
+    dst = src.with_suffix("." + Tiff.EXTENSION)
     run_png(run_cfg(src, output=output_cfg(format=ToFormats.TIFF)))
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1188,7 +1188,7 @@ def test_run_16bit_grayscale_png_to_16bit_tiff(
     run_cfg: Callable[..., Configuration],
 ):
     src = black_16bit_gray_png
-    dst = src.with_suffix(Tiff.EXTENSION)
+    dst = src.with_suffix("." + Tiff.EXTENSION)
     run_png(
         run_cfg(
             src, output=output_cfg(bit_depth=BitDepths.SIXTEEN, format=ToFormats.TIFF)
@@ -1212,7 +1212,7 @@ def test_run_heart_png_to_8bit_gray_tiff(
     tmp_path: Path,
 ):
     src = heart_png
-    dst = tmp_path.joinpath(src.name).with_suffix(Tiff.EXTENSION)
+    dst = tmp_path.joinpath(src.name).with_suffix("." + Tiff.EXTENSION)
     run_png(
         run_cfg(
             src,
@@ -1239,7 +1239,7 @@ def test_run_heart_png_to_16bit_gray_tiff(
     tmp_path: Path,
 ):
     src = heart_png
-    dst = tmp_path.joinpath(src.name).with_suffix(Tiff.EXTENSION)
+    dst = tmp_path.joinpath(src.name).with_suffix("." + Tiff.EXTENSION)
     run_png(
         run_cfg(
             src,
@@ -1613,7 +1613,7 @@ def test_app_png_fails(black_8bit_gray_png: Path, tmp_path: Path):
 
 def test_app_tiff(black_16bit_gray_single_page_tiff: Path, tmp_path: Path):
     dst = tmp_path.joinpath(black_16bit_gray_single_page_tiff.name).with_suffix(
-        Jpeg.EXTENSION
+        "." + Jpeg.EXTENSION
     )
     result = runner.invoke(
         app,
