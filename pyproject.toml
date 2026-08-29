@@ -1,3 +1,7 @@
+[build-system]
+requires = [ "hatchling" ]
+build-backend = "hatchling.build"
+
 [project]
 name = "tsio"
 version = "0.1.0"
@@ -39,10 +43,6 @@ dependencies = [
     "typer",
 ]
 license = "GPL-3.0"
-
-[build-system]
-requires = [ "hatchling" ]
-build-backend = "hatchling.build"
 
 [project.optional-dependencies]
 dev = [
