@@ -1448,6 +1448,11 @@ def test_run_with_darwin(dm4: Path, mocker: MockerFixture, tmp_path: Path):
 
     _ = mocker.patch("platform.system", mock_platform_system)
 
+    def mock_run(cfg: Configuration):
+        _ = cfg
+
+    _ = mocker.patch("tsio.cli.run", mock_run)
+
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm4)])
     assert result.exit_code == 0
 
@@ -1457,6 +1462,11 @@ def test_run_with_linux(dm4: Path, mocker: MockerFixture, tmp_path: Path):
         return "Linux"
 
     _ = mocker.patch("platform.system", mock_platform_system)
+
+    def mock_run(cfg: Configuration):
+        _ = cfg
+
+    _ = mocker.patch("tsio.cli.run", mock_run)
 
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm4)])
     assert result.exit_code == 0
