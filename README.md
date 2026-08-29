@@ -26,6 +26,7 @@ microscopy files include:
    1. [pipx](#upgrade-app-pipx)
    2. [Source](#upgrade-app-source)
 4. [Usage](#usage)
+5. [Contributing](#contributing)
 5. [License](#license)
 
 ## Prerequisites
@@ -378,6 +379,80 @@ multiple-frames/ multiple-frames.emd
 $ ls multiple-frames/
 0.jpg 1.jpg 2.jpg 3.jpg 4.jpg
 ```
+
+## Contributing
+
+1. Clone this repository.
+
+   ```sh
+   git clone https://github.com/Theia-Scientific/tsio && cd tsio
+   ```
+
+2. Create a virtual environment.
+
+   ```sh
+   python3 -m venv .venv
+   ```
+
+3. Activate the virtual environment.
+
+   ```sh
+   source .venv/bin/activate
+   ```
+   
+   or if [direnv] is installed, the virtual environment will automatically be
+   activated.
+
+4. Upgrade `pip`.
+
+   ```sh
+   pip install --upgrade pip
+   ```
+   
+5. Install all the dependencies.
+
+   ```sh
+   pip install -e ".[dev]"
+   ```
+
+6. Create a local branch.
+
+   ```sh
+   git checkout -b feature-awesome-new-feature
+   ```
+
+7. Modify the code.
+8. Run the tests.
+
+   ```sh
+   pytest --color=yes --cov=tsio --cov-report=term-missing
+   ```
+
+9. Commit changes to your local branch.
+
+   ```sh
+   git add -A && git commit -m "Add new feature"
+   ```
+
+10. Push your local branch to GitHub to create a Pull Request (PR).
+
+   ```sh
+   git push origin feature-awesome-new-feature
+   ```
+
+11. Create a Pull Request (PR) in GitHub.
+12. Wait for CI to complete.
+13. Add comment to PR that it is ready to review.
+14. Wait for review from a maintainer.
+15. Address any comments from the reviewer by modifying your local files and
+    pushing to the remote branch/PR.
+    
+    ```sh
+    git push origin feature-awesome-new-feature
+    ```
+    
+16. Once the PR is approved, then it will be "Squash and Merge". Congratulations
+    on contributing to an open source project, and Thank you!
 
 ## License
 
