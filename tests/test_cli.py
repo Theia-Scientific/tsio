@@ -1598,9 +1598,9 @@ def test_app_png_8bit_gray(black_8bit_gray_png: Path, tmp_path: Path):
     assert not np.any(jpeg_img)
 
 
-def test_app_png_16bit(black_16bit_gray_png: Path, tmp_path: Path):
-    dst = tmp_path.joinpath(black_16bit_gray_png.name).with_suffix("." + Jpeg.EXTENSION)
-    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(black_16bit_gray_png)])
+def test_app_png_16bit(black_16bit_gray_png: Path):
+    dst = black_16bit_gray_png.with_suffix("." + Jpeg.EXTENSION)
+    result = runner.invoke(app, ["-S", str(black_16bit_gray_png)])
     assert result.exit_code == 0
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1613,9 +1613,9 @@ def test_app_png_16bit(black_16bit_gray_png: Path, tmp_path: Path):
     assert not np.any(jpeg_img)
 
 
-def test_app_png_white_8bit_rgba(white_8bit_rgba_png: Path, tmp_path: Path):
-    dst = tmp_path.joinpath(white_8bit_rgba_png.name).with_suffix("." + Jpeg.EXTENSION)
-    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(white_8bit_rgba_png)])
+def test_app_png_white_8bit_rgba(white_8bit_rgba_png: Path):
+    dst = white_8bit_rgba_png.with_suffix("." + Jpeg.EXTENSION)
+    result = runner.invoke(app, ["-S", str(white_8bit_rgba_png)])
     assert result.exit_code == 0
     assert dst.exists()
     kind = filetype.guess(str(dst))
