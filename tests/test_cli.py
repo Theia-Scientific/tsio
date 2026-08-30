@@ -214,17 +214,17 @@ def white_8bit_rgba_png(white_8bit_rgba_image: np.ndarray, tmp_path: Path) -> Pa
 
 @pytest.fixture
 def white_16bit_gray_image() -> np.ndarray:
-    return np.ones((256, 256), dtype=np.uint16)
+    return np.full((256, 256), 65535, dtype=np.uint16)
 
 
 @pytest.fixture
 def white_16bit_rgb_image() -> np.ndarray:
-    return np.ones((256, 256, 3), dtype=np.uint16)
+    return np.full((256, 256, 3), 65535, dtype=np.uint16)
 
 
 @pytest.fixture
 def white_16bit_rgba_image() -> np.ndarray:
-    return np.ones((256, 256, 4), dtype=np.uint16)
+    return np.full((256, 256, 4), 65535, dtype=np.uint16)
 
 
 @pytest.fixture
@@ -237,19 +237,25 @@ def white_16bit_gray_png(white_16bit_gray_image: np.ndarray, tmp_path: Path) -> 
     assert png_img is not None
     assert png_img.dtype.name == "uint16"
     assert png_img.shape == (256, 256)
+    assert np.all(png_img == 65535)
     return png_file
 
 
 @pytest.fixture
 def white_16bit_rgb_png(white_16bit_rgb_image: np.ndarray, tmp_path: Path) -> Path:
     png_file = tmp_path.joinpath("image.png")
-    signal = {"data": white_16bit_rgb_image, "axes": {}}
-    image_file_writer(str(png_file), signal)
+    # Pillow does not support RGB 16-bit, but the PNG specification does
+    # support it. Pillow is used by rosettasciio's `image_file_writer`.
+    write_result = cv2.imwrite(
+        str(png_file), cv2.cvtColor(white_16bit_rgb_image, cv2.COLOR_RGB2BGR)
+    )
+    assert write_result
     assert png_file.exists()
     png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
     assert png_img is not None
-    assert png_img.dtype.name == "uint8"
+    assert png_img.dtype.name == "uint16"
     assert png_img.shape == (256, 256, 3)
+    assert np.all(png_img == 65535)
     return png_file
 
 
@@ -261,8 +267,9 @@ def white_16bit_rgba_png(white_16bit_rgba_image: np.ndarray, tmp_path: Path) -> 
     assert png_file.exists()
     png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
     assert png_img is not None
-    assert png_img.dtype.name == "uint8"
+    assert png_img.dtype.name == "uint16"
     assert png_img.shape == (256, 256, 4)
+    assert np.all(png_img == 65535)
     return png_file
 
 
@@ -1456,6 +1463,40 @@ def test_run_with_white_16bit_gray_png(
 ):
     dst = white_16bit_gray_png.with_suffix("." + Jpeg.EXTENSION)
     run(run_cfg(white_16bit_gray_png))
+    assert dst.exists()
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert np.all(jpeg_img == 255)
+
+
+def test_run_with_white_8bit_rgb_png(
+    run_cfg: Callable[..., Configuration], white_8bit_rgb_png: Path
+):
+    dst = white_8bit_rgb_png.with_suffix("." + Jpeg.EXTENSION)
+    run(run_cfg(white_8bit_rgb_png))
+    assert dst.exists()
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert np.all(jpeg_img == 255)
+
+
+def test_run_with_white_16bit_rgb_png(
+    run_cfg: Callable[..., Configuration], white_16bit_rgb_png: Path
+):
+    dst = white_16bit_rgb_png.with_suffix("." + Jpeg.EXTENSION)
+    run(run_cfg(white_16bit_rgb_png))
     assert dst.exists()
     assert dst.exists()
     kind = filetype.guess(str(dst))
