@@ -138,13 +138,13 @@ class ToFormats(Enum):
         return MIME_TYPES[self]
 
     @property
-    def file_ext(self) -> str:
-        FILE_EXTS = {
+    def ext(self) -> str:
+        EXTS = {
             ToFormats.JPEG: "." + Jpeg.EXTENSION,
             ToFormats.PNG: "." + Png.EXTENSION,
             ToFormats.TIFF: "." + Tiff.EXTENSION,
         }
-        return FILE_EXTS[self]
+        return EXTS[self]
 
     @property
     def is_alpha_supported(self) -> bool:
@@ -295,11 +295,11 @@ def write(
         LOGGER.debug(f"{page_index=}")
         if pages_count > 1:
             output_file = destination.joinpath(str(page_index)).with_suffix(
-                output.format.file_ext
+                output.format.ext
             )
         else:
             output_file = destination.joinpath(src_file_stem).with_suffix(
-                output.format.file_ext
+                output.format.ext
             )
         LOGGER.debug(f"{output_file=}")
         page["data"] = output.cast(page["data"])

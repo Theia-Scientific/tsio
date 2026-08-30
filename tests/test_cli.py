@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import cv2
 import datetime
 import filetype
@@ -563,9 +562,9 @@ def test_to_formats_mime_type():
 
 
 def test_to_formats_file_ext():
-    assert ToFormats.JPEG.file_ext == "." + Jpeg.EXTENSION
-    assert ToFormats.PNG.file_ext == "." + Png.EXTENSION
-    assert ToFormats.TIFF.file_ext == "." + Tiff.EXTENSION
+    assert ToFormats.JPEG.ext == "." + Jpeg.EXTENSION
+    assert ToFormats.PNG.ext == "." + Png.EXTENSION
+    assert ToFormats.TIFF.ext == "." + Tiff.EXTENSION
 
 
 def test_output_destination_with_none_path(
@@ -721,7 +720,7 @@ def test_write_tiff_with_black_8bit_rgb(
     black_8bit_rgb_single_page_tiff: Path, output_cfg: Callable[..., Output]
 ):
     src = black_8bit_rgb_single_page_tiff
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(ToFormats.JPEG.ext)
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
@@ -743,7 +742,7 @@ def test_write_tiff_with_black_8bit_rgba(
     black_8bit_rgba_single_page_tiff: Path, output_cfg: Callable[..., Output]
 ):
     src = black_8bit_rgba_single_page_tiff
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(ToFormats.JPEG.ext)
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
