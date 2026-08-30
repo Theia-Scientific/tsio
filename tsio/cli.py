@@ -177,6 +177,8 @@ class Output(BaseModel):
         max_pixel_intensity = int(np.max(img))
         LOGGER.debug(f"{max_pixel_intensity=}")
         min_pixel_intensity = int(np.min(img))
+        if max_pixel_intensity == min_pixel_intensity:
+            min_pixel_intensity = 0
         LOGGER.debug(f"{min_pixel_intensity=}")
         normalization_factor = abs(max_pixel_intensity - min_pixel_intensity)
         LOGGER.debug(f"{normalization_factor=}")
