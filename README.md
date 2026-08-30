@@ -459,6 +459,12 @@ $ ls multiple-frames/
 The `tsio` project is licensed under the [GPL-3.0] license. See the
 [LICENSE.txt] file for more information about licensing and copyright.
 
+## Acknowledgments
+
+This material is based upon work supported by the U.S. Department of Energy,
+Office of Basic Science and Office of Nuclear Energy under Award Number
+DE-SC0021529 and DE-SC0021936, respectively.
+
 [dcm]: https://en.wikipedia.org/wiki/DICOM
 [deadsnakes]: https://launchpad.net/~deadsnakes/+archive/ubuntu/ppa
 [direnv]: https://direnv.net/
