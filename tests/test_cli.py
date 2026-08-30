@@ -83,6 +83,7 @@ def black_8bit_gray_png(black_8bit_gray_image: np.ndarray, tmp_path: Path) -> Pa
     assert png_img is not None
     assert png_img.dtype.name == "uint8"
     assert png_img.shape == (256, 256)
+    assert np.all(png_img == 0)
     return png_file
 
 
@@ -96,6 +97,7 @@ def black_8bit_rgb_png(black_8bit_rgb_image: np.ndarray, tmp_path: Path) -> Path
     assert png_img is not None
     assert png_img.dtype.name == "uint8"
     assert png_img.shape == (256, 256, 3)
+    assert np.all(png_img == 0)
     return png_file
 
 
@@ -109,6 +111,7 @@ def black_8bit_rgba_png(black_8bit_rgba_image: np.ndarray, tmp_path: Path) -> Pa
     assert png_img is not None
     assert png_img.dtype.name == "uint8"
     assert png_img.shape == (256, 256, 4)
+    assert np.all(png_img == 0)
     return png_file
 
 
@@ -122,6 +125,7 @@ def black_16bit_gray_png(black_16bit_gray_image: np.ndarray, tmp_path: Path) -> 
     assert png_img is not None
     assert png_img.dtype.name == "uint16"
     assert png_img.shape == (256, 256)
+    assert np.all(png_img == 0)
     return png_file
 
 
@@ -139,6 +143,7 @@ def black_16bit_rgb_png(black_16bit_rgb_image: np.ndarray, tmp_path: Path) -> Pa
     assert png_img is not None
     assert png_img.dtype.name == "uint16"
     assert png_img.shape == (256, 256, 3)
+    assert np.all(png_img == 0)
     return png_file
 
 
@@ -154,6 +159,7 @@ def black_16bit_rgba_png(black_16bit_rgba_image: np.ndarray, tmp_path: Path) -> 
     assert png_img is not None
     assert png_img.dtype.name == "uint16"
     assert png_img.shape == (256, 256, 4)
+    assert np.all(png_img == 0)
     return png_file
 
 
