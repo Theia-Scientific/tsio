@@ -235,8 +235,8 @@ def white_16bit_gray_png(white_16bit_gray_image: np.ndarray, tmp_path: Path) -> 
     assert png_file.exists()
     png_img = cv2.imread(str(png_file), cv2.IMREAD_UNCHANGED)
     assert png_img is not None
-    assert png_img.dtype.name == "uint8"
-    assert png_img.shape == (256, 256, 4)
+    assert png_img.dtype.name == "uint16"
+    assert png_img.shape == (256, 256)
     return png_file
 
 
@@ -1437,6 +1437,21 @@ def test_expand_sources_with_multiple_folders(
 def test_run(run_cfg: Callable[..., Configuration], white_8bit_gray_png: Path):
     dst = white_8bit_gray_png.with_suffix("." + Jpeg.EXTENSION)
     run(run_cfg(white_8bit_gray_png))
+    assert dst.exists()
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert np.all(jpeg_img == 255)
+
+
+def test_run(run_cfg: Callable[..., Configuration], white_16bit_gray_png: Path):
+    dst = white_16bit_gray_png.with_suffix("." + Jpeg.EXTENSION)
+    run(run_cfg(white_16bit_gray_png))
     assert dst.exists()
     assert dst.exists()
     kind = filetype.guess(str(dst))
