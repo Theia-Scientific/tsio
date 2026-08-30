@@ -39,6 +39,8 @@ from tsio.cli import (
 from typer.testing import CliRunner
 from typing import Any, Callable
 
+JPEG_EXT: str = ToFormats.JPEG.ext
+
 runner = CliRunner()
 
 
@@ -698,7 +700,7 @@ def test_write_tiff_with_black_8bit_gray(
     black_8bit_gray_single_page_tiff: Path, output_cfg: Callable[..., Output]
 ):
     src = black_8bit_gray_single_page_tiff
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(JPEG_EXT)
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
@@ -720,7 +722,7 @@ def test_write_tiff_with_black_8bit_rgb(
     black_8bit_rgb_single_page_tiff: Path, output_cfg: Callable[..., Output]
 ):
     src = black_8bit_rgb_single_page_tiff
-    dst = src.with_suffix(ToFormats.JPEG.ext)
+    dst = src.with_suffix(JPEG_EXT)
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
@@ -742,7 +744,7 @@ def test_write_tiff_with_black_8bit_rgba(
     black_8bit_rgba_single_page_tiff: Path, output_cfg: Callable[..., Output]
 ):
     src = black_8bit_rgba_single_page_tiff
-    dst = src.with_suffix(ToFormats.JPEG.ext)
+    dst = src.with_suffix(JPEG_EXT)
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
@@ -764,7 +766,7 @@ def test_write_tiff_with_black_16bit_gray(
     black_16bit_gray_single_page_tiff: Path, output_cfg: Callable[..., Output]
 ):
     src = black_16bit_gray_single_page_tiff
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(JPEG_EXT)
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
@@ -786,7 +788,7 @@ def test_write_with_single_tiff_delete_original(
     black_16bit_gray_single_page_tiff: Path, output_cfg: Callable[..., Output]
 ):
     src = black_16bit_gray_single_page_tiff
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(JPEG_EXT)
     write(
         tiff_file_reader(src, multipage_as_list=True),
         src,
@@ -840,7 +842,7 @@ def test_write_with_multipages_tiff(
 
 def test_write_with_dm3(dm3: Path, output_cfg: Callable[..., Output], tmp_path: Path):
     src = dm3
-    dst = tmp_path.joinpath(src.name).with_suffix("." + Jpeg.EXTENSION)
+    dst = tmp_path.joinpath(src.name).with_suffix(JPEG_EXT)
     write(
         dm_file_reader(src),
         src,
@@ -852,7 +854,7 @@ def test_write_with_dm3(dm3: Path, output_cfg: Callable[..., Output], tmp_path: 
 
 def test_write_with_dm4(dm4: Path, output_cfg: Callable[..., Output], tmp_path: Path):
     src = dm4
-    dst = tmp_path.joinpath(src.name).with_suffix("." + Jpeg.EXTENSION)
+    dst = tmp_path.joinpath(src.name).with_suffix(JPEG_EXT)
     write(
         dm_file_reader(src),
         src,
@@ -877,7 +879,7 @@ def test_run_dcm(
     tmp_path: Path,
 ):
     src = dcm
-    dst = tmp_path.joinpath(src.with_suffix("." + Jpeg.EXTENSION).name)
+    dst = tmp_path.joinpath(src.with_suffix(JPEG_EXT).name)
     run_dcm(run_cfg(src, output=output_cfg(path=tmp_path)))
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -897,7 +899,7 @@ def test_run_dm(
     tmp_path: Path,
 ):
     src = dm4
-    dst = tmp_path.joinpath(src.with_suffix("." + Jpeg.EXTENSION).name)
+    dst = tmp_path.joinpath(src.with_suffix(JPEG_EXT).name)
     run_dm(run_cfg(src, output=output_cfg(path=dst)))
     assert dst.exists()
 
@@ -906,7 +908,7 @@ def test_run_dm_fails_with_not_implemented(
     mocker: MockerFixture, run_cfg: Callable[..., Configuration], tmp_path: Path
 ):
     src = tmp_path.joinpath("test.dm4")
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(JPEG_EXT)
 
     def mock_file_reader(*args: Any, **kwargs: Any):
         _ = args
@@ -923,7 +925,7 @@ def test_run_dm_fails_with_exception(
     run_cfg: Callable[..., Configuration], tmp_path: Path
 ):
     src = tmp_path.joinpath("test.dm4")
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(JPEG_EXT)
     run_dm(run_cfg(src))
     assert not dst.exists()
 
@@ -935,7 +937,7 @@ def test_run_emd_single_image(
     tmp_path: Path,
 ):
     src = single_image_emd
-    dst = tmp_path.joinpath(src.with_suffix("." + Jpeg.EXTENSION).name)
+    dst = tmp_path.joinpath(src.with_suffix(JPEG_EXT).name)
     run_emd(run_cfg(src, output=output_cfg(path=tmp_path)))
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -979,7 +981,7 @@ def test_run_emd_single_image_with_extras(
     tmp_path: Path,
 ):
     src = single_image_emd
-    dst = tmp_path.joinpath(src.with_suffix("." + Jpeg.EXTENSION).name)
+    dst = tmp_path.joinpath(src.with_suffix(JPEG_EXT).name)
     run_emd(run_cfg(src, extras={"detector": 0}, output=output_cfg(path=tmp_path)))
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -996,7 +998,7 @@ def test_run_emd_with_no_image_data(
     mocker: MockerFixture, run_cfg: Callable[..., Configuration], tmp_path: Path
 ):
     src = tmp_path.joinpath("test.emd")
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(JPEG_EXT)
 
     def mock_file_reader(*args: Any, **kwargs: Any) -> list[Any]:
         _ = args
@@ -1013,7 +1015,7 @@ def test_run_emd_with_no_data_field(
     mocker: MockerFixture, run_cfg: Callable[..., Configuration], tmp_path: Path
 ):
     src = tmp_path.joinpath("test.emd")
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(JPEG_EXT)
 
     def mock_file_reader(*args: Any, **kwargs: Any) -> list[dict[str, list[Any]]]:
         _ = args
@@ -1030,7 +1032,7 @@ def test_run_emd_fails_with_exception(
     mocker: MockerFixture, run_cfg: Callable[..., Configuration], tmp_path: Path
 ):
     src = tmp_path.joinpath("test.emd")
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(JPEG_EXT)
 
     def mock_file_reader(*args: Any, **kwargs: Any):
         _ = args
@@ -1047,7 +1049,7 @@ def test_run_png_8bit_gray(
     black_8bit_gray_png: Path, run_cfg: Callable[..., Configuration]
 ):
     src = black_8bit_gray_png
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(JPEG_EXT)
     run_png(run_cfg(src))
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1064,7 +1066,7 @@ def test_run_png_8bit_rgb(
     black_8bit_rgb_png: Path, run_cfg: Callable[..., Configuration]
 ):
     src = black_8bit_rgb_png
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(JPEG_EXT)
     run_png(run_cfg(src))
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1081,7 +1083,7 @@ def test_run_png_8bit_rgba(
     black_8bit_rgba_png: Path, run_cfg: Callable[..., Configuration]
 ):
     src = black_8bit_rgba_png
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(JPEG_EXT)
     run_png(run_cfg(src))
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1098,7 +1100,7 @@ def test_run_png_16bit_gray(
     black_16bit_gray_png: Path, run_cfg: Callable[..., Configuration]
 ):
     src = black_16bit_gray_png
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(JPEG_EXT)
     run_png(run_cfg(src))
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1115,7 +1117,7 @@ def test_run_png_16bit_rgb(
     black_16bit_rgb_png: Path, run_cfg: Callable[..., Configuration]
 ):
     src = black_16bit_rgb_png
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(JPEG_EXT)
     run_png(run_cfg(src))
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1132,7 +1134,7 @@ def test_run_png_16bit_rgba(
     black_16bit_rgba_png: Path, run_cfg: Callable[..., Configuration]
 ):
     src = black_16bit_rgba_png
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(JPEG_EXT)
     run_png(run_cfg(src))
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1300,7 +1302,7 @@ def test_run_confusion_matrix_png_to_jpeg(
     tmp_path: Path,
 ):
     src = v09_loaded_confusion_matrix_png
-    dst = tmp_path.joinpath(src.name).with_suffix("." + Jpeg.EXTENSION)
+    dst = tmp_path.joinpath(src.name).with_suffix(JPEG_EXT)
     run_png(run_cfg(src, output=output_cfg(path=tmp_path)))
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1317,7 +1319,7 @@ def test_run_white_8bit_rgba_png(
     white_8bit_rgba_png: Path, run_cfg: Callable[..., Configuration]
 ):
     src = white_8bit_rgba_png
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(JPEG_EXT)
     run_png(run_cfg(src))
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1334,7 +1336,7 @@ def test_run_tiff(
     black_16bit_gray_single_page_tiff: Path, run_cfg: Callable[..., Configuration]
 ):
     src = black_16bit_gray_single_page_tiff
-    dst = src.with_suffix("." + Jpeg.EXTENSION)
+    dst = src.with_suffix(JPEG_EXT)
     run_tiff(run_cfg(src))
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -1353,7 +1355,7 @@ def test_run_tiff_with_ncsu(
     run_cfg: Callable[..., Configuration],
     tmp_path: Path,
 ):
-    actual = tmp_path.joinpath(ncsu_tif.with_suffix("." + Jpeg.EXTENSION).name)
+    actual = tmp_path.joinpath(ncsu_tif.with_suffix(JPEG_EXT).name)
     run_tiff(run_cfg(ncsu_tif, output=output_cfg(path=tmp_path)))
     assert actual.exists()
     kind = filetype.guess(str(actual))
@@ -1453,7 +1455,7 @@ def test_expand_sources_with_multiple_folders(
 def test_run_with_white_8bit_gray_png(
     run_cfg: Callable[..., Configuration], white_8bit_gray_png: Path
 ):
-    dst = white_8bit_gray_png.with_suffix("." + Jpeg.EXTENSION)
+    dst = white_8bit_gray_png.with_suffix(JPEG_EXT)
     run(run_cfg(white_8bit_gray_png))
     assert dst.exists()
     assert dst.exists()
@@ -1470,7 +1472,7 @@ def test_run_with_white_8bit_gray_png(
 def test_run_with_white_16bit_gray_png(
     run_cfg: Callable[..., Configuration], white_16bit_gray_png: Path
 ):
-    dst = white_16bit_gray_png.with_suffix("." + Jpeg.EXTENSION)
+    dst = white_16bit_gray_png.with_suffix(JPEG_EXT)
     run(run_cfg(white_16bit_gray_png))
     assert dst.exists()
     assert dst.exists()
@@ -1487,7 +1489,7 @@ def test_run_with_white_16bit_gray_png(
 def test_run_with_white_8bit_rgb_png(
     run_cfg: Callable[..., Configuration], white_8bit_rgb_png: Path
 ):
-    dst = white_8bit_rgb_png.with_suffix("." + Jpeg.EXTENSION)
+    dst = white_8bit_rgb_png.with_suffix(JPEG_EXT)
     run(run_cfg(white_8bit_rgb_png))
     assert dst.exists()
     assert dst.exists()
@@ -1504,7 +1506,7 @@ def test_run_with_white_8bit_rgb_png(
 def test_run_with_white_16bit_rgb_png(
     run_cfg: Callable[..., Configuration], white_16bit_rgb_png: Path
 ):
-    dst = white_16bit_rgb_png.with_suffix("." + Jpeg.EXTENSION)
+    dst = white_16bit_rgb_png.with_suffix(JPEG_EXT)
     run(run_cfg(white_16bit_rgb_png))
     assert dst.exists()
     assert dst.exists()
@@ -1521,7 +1523,7 @@ def test_run_with_white_16bit_rgb_png(
 def test_run_with_white_8bit_rgba_png(
     run_cfg: Callable[..., Configuration], white_8bit_rgba_png: Path
 ):
-    dst = white_8bit_rgba_png.with_suffix("." + Jpeg.EXTENSION)
+    dst = white_8bit_rgba_png.with_suffix(JPEG_EXT)
     run(run_cfg(white_8bit_rgba_png))
     assert dst.exists()
     assert dst.exists()
@@ -1538,7 +1540,7 @@ def test_run_with_white_8bit_rgba_png(
 def test_run_with_white_16bit_rgba_png(
     run_cfg: Callable[..., Configuration], white_16bit_rgba_png: Path
 ):
-    dst = white_16bit_rgba_png.with_suffix("." + Jpeg.EXTENSION)
+    dst = white_16bit_rgba_png.with_suffix(JPEG_EXT)
     run(run_cfg(white_16bit_rgba_png))
     assert dst.exists()
     assert dst.exists()
@@ -1612,7 +1614,7 @@ def test_app_version():
 
 
 def test_app_dcm(dcm: Path, tmp_path: Path):
-    dst = tmp_path.joinpath(dcm.name).with_suffix("." + Jpeg.EXTENSION)
+    dst = tmp_path.joinpath(dcm.name).with_suffix(JPEG_EXT)
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dcm)])
     assert result.exit_code == 0
     assert dst.exists()
@@ -1632,7 +1634,7 @@ def test_app_dcm_fails(dcm: Path, tmp_path: Path):
 
 
 def test_app_dm(dm4: Path, tmp_path: Path):
-    dst = tmp_path.joinpath(dm4.name).with_suffix("." + Jpeg.EXTENSION)
+    dst = tmp_path.joinpath(dm4.name).with_suffix(JPEG_EXT)
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm4)])
     assert result.exit_code == 0
     assert dst.exists()
@@ -1652,8 +1654,8 @@ def test_app_dm_fails(dm4: Path, tmp_path: Path):
 
 
 def test_app_all_dm_as_files(dm3: Path, dm4: Path, tmp_path: Path):
-    dst_dm3 = tmp_path.joinpath(dm3.name).with_suffix("." + Jpeg.EXTENSION)
-    dst_dm4 = tmp_path.joinpath(dm4.name).with_suffix("." + Jpeg.EXTENSION)
+    dst_dm3 = tmp_path.joinpath(dm3.name).with_suffix(JPEG_EXT)
+    dst_dm4 = tmp_path.joinpath(dm4.name).with_suffix(JPEG_EXT)
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm3), str(dm4)])
     assert result.exit_code == 0
     assert dst_dm3.exists()
@@ -1703,7 +1705,7 @@ def test_app_emd_fails(mocker: MockerFixture, single_image_emd: Path):
 
 
 def test_app_png_8bit_gray(black_8bit_gray_png: Path):
-    dst = black_8bit_gray_png.with_suffix("." + Jpeg.EXTENSION)
+    dst = black_8bit_gray_png.with_suffix(JPEG_EXT)
     result = runner.invoke(app, ["-S", str(black_8bit_gray_png)])
     assert result.exit_code == 0
     assert dst.exists()
@@ -1718,7 +1720,7 @@ def test_app_png_8bit_gray(black_8bit_gray_png: Path):
 
 
 def test_app_png_16bit(black_16bit_gray_png: Path):
-    dst = black_16bit_gray_png.with_suffix("." + Jpeg.EXTENSION)
+    dst = black_16bit_gray_png.with_suffix(JPEG_EXT)
     result = runner.invoke(app, ["-S", str(black_16bit_gray_png)])
     assert result.exit_code == 0
     assert dst.exists()
@@ -1733,7 +1735,7 @@ def test_app_png_16bit(black_16bit_gray_png: Path):
 
 
 def test_app_png_white_8bit_rgba(white_8bit_rgba_png: Path):
-    dst = white_8bit_rgba_png.with_suffix("." + Jpeg.EXTENSION)
+    dst = white_8bit_rgba_png.with_suffix(JPEG_EXT)
     result = runner.invoke(app, ["-S", str(white_8bit_rgba_png)])
     assert result.exit_code == 0
     assert dst.exists()
@@ -1761,7 +1763,7 @@ def test_app_png_fails(black_8bit_gray_png: Path):
 
 
 def test_app_tiff(black_16bit_gray_single_page_tiff: Path):
-    dst = black_16bit_gray_single_page_tiff.with_suffix("." + Jpeg.EXTENSION)
+    dst = black_16bit_gray_single_page_tiff.with_suffix(JPEG_EXT)
     result = runner.invoke(
         app,
         [
@@ -1798,10 +1800,8 @@ def test_app_with_supported_and_unsupported(
     black_16bit_gray_single_page_tiff: Path, sample_1_docx: Path, tmp_path: Path
 ):
     out = tmp_path.joinpath("out")
-    dst = out.joinpath(black_16bit_gray_single_page_tiff.name).with_suffix(
-        "." + Jpeg.EXTENSION
-    )
-    skipped = out.joinpath(sample_1_docx.name).with_suffix("." + Jpeg.EXTENSION)
+    dst = out.joinpath(black_16bit_gray_single_page_tiff.name).with_suffix(JPEG_EXT)
+    skipped = out.joinpath(sample_1_docx.name).with_suffix(JPEG_EXT)
     result = runner.invoke(
         app,
         [
