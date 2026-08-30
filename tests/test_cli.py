@@ -1434,7 +1434,9 @@ def test_expand_sources_with_multiple_folders(
     assert actual[5].src in expected
 
 
-def test_run(run_cfg: Callable[..., Configuration], white_8bit_gray_png: Path):
+def test_run_with_white_8bit_gray_png(
+    run_cfg: Callable[..., Configuration], white_8bit_gray_png: Path
+):
     dst = white_8bit_gray_png.with_suffix("." + Jpeg.EXTENSION)
     run(run_cfg(white_8bit_gray_png))
     assert dst.exists()
@@ -1449,7 +1451,9 @@ def test_run(run_cfg: Callable[..., Configuration], white_8bit_gray_png: Path):
     assert np.all(jpeg_img == 255)
 
 
-def test_run(run_cfg: Callable[..., Configuration], white_16bit_gray_png: Path):
+def test_run_with_white_16bit_gray_png(
+    run_cfg: Callable[..., Configuration], white_16bit_gray_png: Path
+):
     dst = white_16bit_gray_png.with_suffix("." + Jpeg.EXTENSION)
     run(run_cfg(white_16bit_gray_png))
     assert dst.exists()
