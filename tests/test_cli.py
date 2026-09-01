@@ -708,6 +708,8 @@ def test_dm3_filetype_fails(tmp_path):
         fp.write((0).to_bytes(1, "big"))
         fp.write((0).to_bytes(1, "big"))
         fp.write((1234).to_bytes(4, "big"))
+    with open(endian_bin, "rb") as fp:
+        buf = fp.read(18)
     assert not dm3.match(buf)
 
 
@@ -736,17 +738,19 @@ def test_dm4_filetype_fails(tmp_path):
         fp.write((0).to_bytes(1, "big"))
         fp.write((1234).to_bytes(4, "big"))
     with open(small_bin, "rb") as fp:
-        buf = fp.read(20)
-    assert len(buf) == 20
+        buf = fp.read(22)
+    assert len(buf) == 22
     assert not dm4.match(buf)
     endian_bin = tmp_path.joinpath("endian.bin")
     with open(endian_bin, "wb") as fp:
         fp.write((4).to_bytes(4, "big"))
-        fp.write((19).to_bytes(8, "big"))
+        fp.write((1234).to_bytes(8, "big"))
         fp.write((3).to_bytes(4, "big"))
         fp.write((0).to_bytes(1, "big"))
         fp.write((0).to_bytes(1, "big"))
         fp.write((1234).to_bytes(4, "big"))
+    with open(endian_bin, "rb") as fp:
+        buf = fp.read(22)
     assert not dm4.match(buf)
 
 
