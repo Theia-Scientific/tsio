@@ -700,6 +700,15 @@ def test_dm3_filetype_fails(tmp_path):
         buf = fp.read(18)
     assert len(buf) == 18
     assert not dm3.match(buf)
+    endian_bin = tmp_path.joinpath("endian.bin")
+    with open(endian_bin, "wb") as fp:
+        fp.write((3).to_bytes(4, "big"))
+        fp.write((19).to_bytes(4, "big"))
+        fp.write((3).to_bytes(4, "big"))
+        fp.write((0).to_bytes(1, "big"))
+        fp.write((0).to_bytes(1, "big"))
+        fp.write((1234).to_bytes(4, "big"))
+    assert not dm3.match(buf)
 
 
 def test_dm4_filetype(dm4: Path):
@@ -707,6 +716,38 @@ def test_dm4_filetype(dm4: Path):
     assert kind is not None
     assert kind.mime == Dm4.MIME
     assert kind.extension == Dm4.EXTENSION
+
+
+def test_dm4_filetype_fails(tmp_path):
+    dm4 = Dm4()
+    short_bin = tmp_path.joinpath("short.bin")
+    with open(short_bin, "wb") as fp:
+        fp.write((1234).to_bytes(4, "big"))
+    with open(short_bin, "rb") as fp:
+        buf = fp.read(2)
+    assert len(buf) == 2
+    assert not dm4.match(buf)
+    small_bin = tmp_path.joinpath("small.bin")
+    with open(small_bin, "wb") as fp:
+        fp.write((4).to_bytes(4, "big"))
+        fp.write((8).to_bytes(8, "big"))
+        fp.write((0).to_bytes(4, "big"))
+        fp.write((0).to_bytes(1, "big"))
+        fp.write((0).to_bytes(1, "big"))
+        fp.write((1234).to_bytes(4, "big"))
+    with open(small_bin, "rb") as fp:
+        buf = fp.read(20)
+    assert len(buf) == 20
+    assert not dm4.match(buf)
+    endian_bin = tmp_path.joinpath("endian.bin")
+    with open(endian_bin, "wb") as fp:
+        fp.write((4).to_bytes(4, "big"))
+        fp.write((19).to_bytes(8, "big"))
+        fp.write((3).to_bytes(4, "big"))
+        fp.write((0).to_bytes(1, "big"))
+        fp.write((0).to_bytes(1, "big"))
+        fp.write((1234).to_bytes(4, "big"))
+    assert not dm4.match(buf)
 
 
 def test_map_verbosity_none():
