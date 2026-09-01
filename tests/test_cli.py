@@ -679,6 +679,29 @@ def test_dm3_filetype(dm3: Path):
     assert kind.extension == Dm3.EXTENSION
 
 
+def test_dm3_filetype_fails(tmp_path):
+    dm3 = Dm3()
+    short_bin = tmp_path.joinpath("short.bin")
+    with open(short_bin, "wb") as fp:
+        fp.write((1234).to_bytes(4, "big"))
+    with open(short_bin, "rb") as fp:
+        buf = fp.read(2)
+    assert len(buf) == 2
+    assert not dm3.match(buf)
+    small_bin = tmp_path.joinpath("small.bin")
+    with open(small_bin, "wb") as fp:
+        fp.write((3).to_bytes(4, "big"))
+        fp.write((8).to_bytes(4, "big"))
+        fp.write((0).to_bytes(4, "big"))
+        fp.write((0).to_bytes(1, "big"))
+        fp.write((0).to_bytes(1, "big"))
+        fp.write((1234).to_bytes(4, "big"))
+    with open(small_bin, "rb") as fp:
+        buf = fp.read(18)
+    assert len(buf) == 18
+    assert not dm3.match(buf)
+
+
 def test_dm4_filetype(dm4: Path):
     kind = filetype.guess(dm4)
     assert kind is not None
