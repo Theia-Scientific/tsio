@@ -23,6 +23,8 @@ from tsio.cli import (
     app,
     BitDepths,
     Configuration,
+    Dm3,
+    Dm4,
     expand_sources,
     map_verbosity,
     Output,
@@ -670,6 +672,20 @@ def test_output_validation():
         _ = Output(bit_depth=BitDepths.SIXTEEN, format=ToFormats.JPEG, path=None)
 
 
+def test_dm3_filetype(dm3: Path):
+    kind = filetype.guess(dm3)
+    assert kind is not None
+    assert kind.mime == Dm3.MIME
+    assert kind.extension == Dm3.EXTENSION
+
+
+def test_dm4_filetype(dm4: Path):
+    kind = filetype.guess(dm4)
+    assert kind is not None
+    assert kind.mime == Dm4.MIME
+    assert kind.extension == Dm4.EXTENSION
+
+
 def test_map_verbosity_none():
     actual = map_verbosity(0)
     assert actual == "INFO"
@@ -892,16 +908,44 @@ def test_run_dcm(
     assert not np.any(jpeg_img)
 
 
-def test_run_dm(
+def test_run_dm3(
+    dm3: Path,
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    tmp_path: Path,
+):
+    src = dm3
+    dst = tmp_path.joinpath(src.with_suffix(ToFormats.JPEG.ext).name)
+    run_dm(run_cfg(src, output=output_cfg(path=tmp_path)))
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (1024, 1024, 3)
+    assert np.any(jpeg_img)
+
+
+def test_run_dm4(
     dm4: Path,
     output_cfg: Callable[..., Output],
     run_cfg: Callable[..., Configuration],
     tmp_path: Path,
 ):
     src = dm4
-    dst = tmp_path.joinpath(src.with_suffix(JPEG_EXT).name)
-    run_dm(run_cfg(src, output=output_cfg(path=dst)))
+    dst = tmp_path.joinpath(src.with_suffix(ToFormats.JPEG.ext).name)
+    run_dm(run_cfg(src, output=output_cfg(path=tmp_path)))
     assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (1024, 1024, 3)
+    assert np.any(jpeg_img)
 
 
 def test_run_dm_fails_with_not_implemented(
@@ -1633,7 +1677,7 @@ def test_app_dcm_fails(dcm: Path, tmp_path: Path):
     assert result.exit_code == 1
 
 
-def test_app_dm(dm4: Path, tmp_path: Path):
+def test_app_dm4(dm4: Path, tmp_path: Path):
     dst = tmp_path.joinpath(dm4.name).with_suffix(JPEG_EXT)
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm4)])
     assert result.exit_code == 0
@@ -1648,7 +1692,7 @@ def test_app_dm(dm4: Path, tmp_path: Path):
     assert np.any(jpeg_img)
 
 
-def test_app_dm_fails(dm4: Path, tmp_path: Path):
+def test_app_dm4_fails(dm4: Path, tmp_path: Path):
     result = runner.invoke(app, ["-o", str(tmp_path), "-S", "-b", "16", str(dm4)])
     assert result.exit_code == 1
 

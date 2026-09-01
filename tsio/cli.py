@@ -7,6 +7,7 @@ import logging
 import numpy as np
 import os
 import platform
+import struct
 import typer
 
 from enum import Enum
@@ -47,13 +48,29 @@ class Dm3(filetype.Type):
         # First 4 bytes are version number = 3
         # Next 4 bytes are the file size
         # Last 4 bytes are "endian"
-        return (
-            len(buf) > 4
-            and buf[0] == 0x00
-            and buf[1] == 0x00
-            and buf[2] == 0x00
-            and buf[3] == 0x03
-        )
+        LOGGER.debug(f"{buf[:18]=}")
+        if len(buf) < 17:
+            return False
+        version_number = int.from_bytes(buf[0:4], byteorder="big")
+        LOGGER.debug(f"{version_number=}")
+        if version_number == 3:
+            file_size = int.from_bytes(buf[4:8], byteorder="big")
+            LOGGER.debug(f"{file_size=}")
+            if file_size <= 16:
+                return False
+            little_endian_int = int.from_bytes(buf[8:12], byteorder="big")
+            if little_endian_int != 0 and little_endian_int != 1:
+                return False
+            else:
+                is_sorted = bool(buf[12])
+                LOGGER.debug(f"{is_sorted=}")
+                is_open = buf[13]
+                LOGGER.debug(f"{is_open=}")
+                tags_count = int.from_bytes(buf[14:18], byteorder="big")
+                LOGGER.debug(f"{tags_count=}")
+                return tags_count > 0
+        else:
+            return False
 
 
 class Dm4(filetype.Type):
@@ -67,13 +84,30 @@ class Dm4(filetype.Type):
         # First 4 bytes are version number = 4
         # Next 8 bytes are the file size
         # Last 4 bytes are "endian"
-        return (
-            len(buf) > 4
-            and buf[0] == 0x00
-            and buf[1] == 0x00
-            and buf[2] == 0x00
-            and buf[3] == 0x04
-        )
+        LOGGER.debug(f"{buf[:20]=}")
+        if len(buf) < 20:
+            return False
+        version_number = int.from_bytes(buf[0:4], byteorder="big")
+        LOGGER.debug(f"{version_number=}")
+        if version_number == 4:
+            file_size = int.from_bytes(buf[4:12], byteorder="big")
+            LOGGER.debug(f"{file_size=}")
+            if file_size <= 16:
+                return False
+            little_endian_int = int.from_bytes(buf[12:16], byteorder="big")
+            LOGGER.debug(f"{little_endian_int=}")
+            if little_endian_int != 0 and little_endian_int != 1:
+                return False
+            else:
+                is_sorted = bool(buf[12])
+                LOGGER.debug(f"{is_sorted=}")
+                is_open = buf[13]
+                LOGGER.debug(f"{is_open=}")
+                tags_count = int.from_bytes(buf[14:18], byteorder="big")
+                LOGGER.debug(f"{tags_count=}")
+                return tags_count > 0
+        else:
+            return False
 
 
 class Emd(filetype.Type):
