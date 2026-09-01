@@ -391,7 +391,7 @@ $ ls multiple-frames/
 2. Create a virtual environment.
 
    ```sh
-   python3 -m venv .venv
+   python3.11 -m venv .venv
    ```
 
 3. Activate the virtual environment.
