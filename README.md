@@ -469,6 +469,7 @@ DE-SC0021529 and DE-SC0021936, respectively.
 [deadsnakes]: https://launchpad.net/~deadsnakes/+archive/ubuntu/ppa
 [direnv]: https://direnv.net/
 [dm3/dm4]: https://www.gatan.com/products/tem-analysis/gatan-microscopy-suite-software
+[emd]: https://hyperspy.org/rosettasciio/supported_formats/emd.html#emd-fei-format
 [gpl-3.0]: https://opensource.org/license/gpl-3.0
 [homebrew]: https://brew.sh/
 [license.txt]: https://github.com/Theia-Scientific/tsio/blob/main/LICENSE.txt
