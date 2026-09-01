@@ -212,7 +212,7 @@ The `tsio` code includes a Python application with a Command Line Interface
 2. Create a virtual environment.
 
    ```sh
-   python3 -m venv .venv
+   python3.11 -m venv .venv
    ```
 
 3. Activate the virtual environment.
@@ -236,7 +236,7 @@ The `tsio` code includes a Python application with a Command Line Interface
 4. Upgrade `pip` to the latest version.
 
    ```sh
-   python3 -m pip install --upgrade pip
+   pip install --upgrade pip
    ```
 
 5. Locally install the package, utility, and its dependencies. This will create
@@ -244,7 +244,7 @@ The `tsio` code includes a Python application with a Command Line Interface
    Slack feature for sending notifications to a Slack channel.
 
    ```sh
-   python3 -m pip install -e .
+   pip install -e .
    ```
 
 ## Upgrade
@@ -294,7 +294,7 @@ The `tsio` code includes a Python application with a Command Line Interface
 4. Upgrade the `tsio` application within the virtual environment.
 
    ```sh
-   python -m pip install --upgrade -e .
+   pip install --upgrade -e .
    ```
 
 5. Verify new version.
