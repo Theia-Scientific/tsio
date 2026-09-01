@@ -189,7 +189,7 @@ The `tsio` code includes a Python application with a Command Line Interface
 3. Install `tsio` command globally for all users.
 
    ```sh
-   sudo pipx install --global --python python3.11 --piparg=--extra-index-url="https://pypi:<key>@app.envelope.dev/simple/" "tsio"
+   sudo pipx install --global --python python3.11 "tsio"
    ```
 
 4. Verify `tsio` command is available.
@@ -212,7 +212,7 @@ The `tsio` code includes a Python application with a Command Line Interface
 2. Create a virtual environment.
 
    ```sh
-   python3 -m venv .venv
+   python3.11 -m venv .venv
    ```
 
 3. Activate the virtual environment.
@@ -236,7 +236,7 @@ The `tsio` code includes a Python application with a Command Line Interface
 4. Upgrade `pip` to the latest version.
 
    ```sh
-   python3 -m pip install --upgrade pip
+   pip install --upgrade pip
    ```
 
 5. Locally install the package, utility, and its dependencies. This will create
@@ -244,7 +244,7 @@ The `tsio` code includes a Python application with a Command Line Interface
    Slack feature for sending notifications to a Slack channel.
 
    ```sh
-   python3 -m pip install -e .
+   pip install -e .
    ```
 
 ## Upgrade
@@ -294,7 +294,7 @@ The `tsio` code includes a Python application with a Command Line Interface
 4. Upgrade the `tsio` application within the virtual environment.
 
    ```sh
-   python -m pip install --upgrade -e .
+   pip install --upgrade -e .
    ```
 
 5. Verify new version.
@@ -391,7 +391,7 @@ $ ls multiple-frames/
 2. Create a virtual environment.
 
    ```sh
-   python3 -m venv .venv
+   python3.11 -m venv .venv
    ```
 
 3. Activate the virtual environment.
@@ -469,6 +469,7 @@ DE-SC0021529 and DE-SC0021936, respectively.
 [deadsnakes]: https://launchpad.net/~deadsnakes/+archive/ubuntu/ppa
 [direnv]: https://direnv.net/
 [dm3/dm4]: https://www.gatan.com/products/tem-analysis/gatan-microscopy-suite-software
+[emd]: https://hyperspy.org/rosettasciio/supported_formats/emd.html#emd-fei-format
 [gpl-3.0]: https://opensource.org/license/gpl-3.0
 [homebrew]: https://brew.sh/
 [license.txt]: https://github.com/Theia-Scientific/tsio/blob/main/LICENSE.txt
