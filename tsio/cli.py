@@ -7,7 +7,6 @@ import logging
 import numpy as np
 import os
 import platform
-import struct
 import typer
 
 from enum import Enum
