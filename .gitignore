@@ -28,6 +28,9 @@ htmlcov
 .cache
 .tox
 .nox
+.flake8
+pyrightconfig.json
+basedpyrightconfig.json
 
 .direnv
 .envrc
@@ -40,9 +43,10 @@ venv/
 *.png
 *.tif
 *.jpg
-*.txt
-*.pt
-*.zip
+*.emd
+*.dcm
+*.dm3
+*.dm4
 !requirements.txt
 !tests/assets/*.png
 !tests/assets/*.tif

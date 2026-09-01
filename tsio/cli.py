@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 
 import cv2
+import filetype
 import importlib.metadata
 import logging
-import mimetypes
 import numpy as np
 import os
 import platform
 import typer
 
 from enum import Enum
+from filetype.types.image import Dcm, Jpeg, Png, Tiff
 from multiprocess.pool import Pool
 from pathlib import Path
 from pydantic import BaseModel, model_validator, ValidationError
@@ -22,35 +23,118 @@ from rsciio.image import (
 )
 from rsciio.tiff import file_reader as tiff_file_reader
 from rsciio.utils import rgb
-from tifffile import TiffFileError
 from tqdm import tqdm
 from tsio import __app_name__
-from typing import Any, Callable, Dict, List, Literal, Optional
+from typing import Any, Literal
 from typing_extensions import Self
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
-PREFIX: str = f"{__app_name__.upper()}"
 
-BIT_DEPTH_DTYPE: str = "uint8"
-DCM_FILE_EXT: str = ".dcm"
-DCM_MIME_TYPE: str = "application/dicom"
-DM4_FILE_EXT: str = ".dm4"
-DM3_FILE_EXT: str = ".dm3"
-DM3_MIME_TYPE: str = "application/vnd.gatan.dm3"
-DM4_MIME_TYPE: str = "application/vnd.gatan.dm4"
-EMD_FILE_EXT: str = ".emd"
-EMD_MIME_TYPE: str = "application/vnd.velox.emd"
-JPEG_FILE_EXT: str = ".jpg"
-JPEG_MIME_TYPE: str = "image/jpeg"
-PNG_FILE_EXT: str = ".png"
-PNG_MIME_TYPE: str = "image/png"
-TIFF_FILE_EXT: str = ".tif"
-TIFF_MIME_TYPE: str = "image/tiff"
 
-mimetypes.add_type(DCM_MIME_TYPE, DCM_FILE_EXT)
-mimetypes.add_type(DM3_MIME_TYPE, DM3_FILE_EXT)
-mimetypes.add_type(DM4_MIME_TYPE, DM4_FILE_EXT)
-mimetypes.add_type(EMD_MIME_TYPE, EMD_FILE_EXT)
+class UnsupportedFileType(Exception):
+    def __init__(self, src: Path):
+        self.src = src
+
+
+class Dm3(filetype.Type):
+    MIME = "application/vnd.gatan.dm3"
+    EXTENSION = ".dm3"
+
+    def __init__(self):
+        super(Dm3, self).__init__(mime=Dm3.MIME, extension=Dm3.EXTENSION)
+
+    def match(self, buf) -> bool:
+        # First 4 bytes are version number = 3
+        # Next 4 bytes are the file size
+        # Last 4 bytes are "endian"
+        LOGGER.debug(f"{buf[:18]=}")
+        if len(buf) < 17:
+            return False
+        version_number = int.from_bytes(buf[0:4], byteorder="big")
+        LOGGER.debug(f"{version_number=}")
+        if version_number == 3:
+            file_size = int.from_bytes(buf[4:8], byteorder="big")
+            LOGGER.debug(f"{file_size=}")
+            if file_size <= 18:
+                return False
+            little_endian_int = int.from_bytes(buf[8:12], byteorder="big")
+            if little_endian_int != 0 and little_endian_int != 1:
+                return False
+            else:
+                is_sorted = bool(buf[12])
+                LOGGER.debug(f"{is_sorted=}")
+                is_open = buf[13]
+                LOGGER.debug(f"{is_open=}")
+                tags_count = int.from_bytes(buf[14:18], byteorder="big")
+                LOGGER.debug(f"{tags_count=}")
+                return tags_count > 0
+        else:
+            return False
+
+
+class Dm4(filetype.Type):
+    MIME = "application/vnd.gatan.dm4"
+    EXTENSION = ".dm4"
+
+    def __init__(self):
+        super(Dm4, self).__init__(mime=Dm4.MIME, extension=Dm4.EXTENSION)
+
+    def match(self, buf) -> bool:
+        # First 4 bytes are version number = 4
+        # Next 8 bytes are the file size
+        # Last 4 bytes are "endian"
+        LOGGER.debug(f"{buf[:20]=}")
+        if len(buf) < 20:
+            return False
+        version_number = int.from_bytes(buf[0:4], byteorder="big")
+        LOGGER.debug(f"{version_number=}")
+        if version_number == 4:
+            file_size = int.from_bytes(buf[4:12], byteorder="big")
+            LOGGER.debug(f"{file_size=}")
+            if file_size <= 20:
+                return False
+            little_endian_int = int.from_bytes(buf[12:16], byteorder="big")
+            LOGGER.debug(f"{little_endian_int=}")
+            if little_endian_int != 0 and little_endian_int != 1:
+                return False
+            else:
+                is_sorted = bool(buf[12])
+                LOGGER.debug(f"{is_sorted=}")
+                is_open = buf[13]
+                LOGGER.debug(f"{is_open=}")
+                tags_count = int.from_bytes(buf[14:18], byteorder="big")
+                LOGGER.debug(f"{tags_count=}")
+                return tags_count > 0
+        else:
+            return False
+
+
+class Emd(filetype.Type):
+    MIME = "application/vnd.velox.emd"
+    EXTENSION = ".emd"
+
+    def __init__(self):
+        super(Emd, self).__init__(mime=Emd.MIME, extension=Emd.EXTENSION)
+
+    def match(self, buf) -> bool:
+        # Velox EMD is a HDF5 file.
+        return (
+            len(buf) > 7
+            and buf[0] == 0x89
+            and buf[1] == 0x48
+            and buf[2] == 0x44
+            and buf[3] == 0x46
+            and buf[4] == 0x0D
+            and buf[5] == 0x0A
+            and buf[6] == 0x1A
+            and buf[7] == 0x0A
+        )
+
+
+filetype.add_type(Dm3())
+filetype.add_type(Dm4())
+filetype.add_type(Emd())
+
 
 logging.getLogger("PIL.Image").setLevel(logging.WARNING)
 
@@ -72,7 +156,7 @@ class BitDepths(Enum):
         return MAX_MAP[self]
 
 
-class OutputFileFormats(Enum):
+class ToFormats(Enum):
     JPEG = "jpeg"
     PNG = "png"
     TIFF = "tiff"
@@ -80,34 +164,34 @@ class OutputFileFormats(Enum):
     @property
     def mime_type(self) -> str:
         MIME_TYPES = {
-            OutputFileFormats.JPEG: JPEG_MIME_TYPE,
-            OutputFileFormats.PNG: PNG_MIME_TYPE,
-            OutputFileFormats.TIFF: TIFF_MIME_TYPE,
+            ToFormats.JPEG: Jpeg.MIME,
+            ToFormats.PNG: Png.MIME,
+            ToFormats.TIFF: Tiff.MIME,
         }
         return MIME_TYPES[self]
 
     @property
-    def file_ext(self) -> str:
-        FILE_EXTS = {
-            OutputFileFormats.JPEG: JPEG_FILE_EXT,
-            OutputFileFormats.PNG: PNG_FILE_EXT,
-            OutputFileFormats.TIFF: TIFF_FILE_EXT,
+    def ext(self) -> str:
+        EXTS = {
+            ToFormats.JPEG: "." + Jpeg.EXTENSION,
+            ToFormats.PNG: "." + Png.EXTENSION,
+            ToFormats.TIFF: "." + Tiff.EXTENSION,
         }
-        return FILE_EXTS[self]
+        return EXTS[self]
 
     @property
     def is_alpha_supported(self) -> bool:
-        return self != OutputFileFormats.JPEG
+        return self != ToFormats.JPEG
 
     @property
     def is_gray_supported(self) -> bool:
-        return self != OutputFileFormats.JPEG
+        return self != ToFormats.JPEG
 
 
 class Output(BaseModel):
     bit_depth: BitDepths
-    format: OutputFileFormats
-    path: Optional[Path]
+    path: Path | None
+    format: ToFormats
 
     @staticmethod
     def is_gray(img: np.ndarray) -> bool:
@@ -123,9 +207,11 @@ class Output(BaseModel):
 
     @staticmethod
     def normalize(img: np.ndarray) -> np.ndarray:
-        max_pixel_intensity = np.max(img)
+        max_pixel_intensity = int(np.max(img))
         LOGGER.debug(f"{max_pixel_intensity=}")
-        min_pixel_intensity = np.min(img)
+        min_pixel_intensity = int(np.min(img))
+        if max_pixel_intensity == min_pixel_intensity:
+            min_pixel_intensity = 0
         LOGGER.debug(f"{min_pixel_intensity=}")
         normalization_factor = abs(max_pixel_intensity - min_pixel_intensity)
         LOGGER.debug(f"{normalization_factor=}")
@@ -164,9 +250,9 @@ class Output(BaseModel):
     @model_validator(mode="after")
     def check_supported_bit_depth(self) -> Self:
         SUPPORTED_MAP = {
-            OutputFileFormats.JPEG: [BitDepths.EIGHT],
-            OutputFileFormats.PNG: [BitDepths.EIGHT, BitDepths.SIXTEEN],
-            OutputFileFormats.TIFF: [BitDepths.EIGHT, BitDepths.SIXTEEN],
+            ToFormats.JPEG: [BitDepths.EIGHT],
+            ToFormats.PNG: [BitDepths.EIGHT, BitDepths.SIXTEEN],
+            ToFormats.TIFF: [BitDepths.EIGHT, BitDepths.SIXTEEN],
         }
         if self.bit_depth in SUPPORTED_MAP[self.format]:
             return self
@@ -180,8 +266,8 @@ class Output(BaseModel):
 
 
 class Configuration(BaseModel):
-    delete_original: bool = False
-    extras: Dict[str, Any] = {}
+    delete_original: bool
+    extras: dict[str, Any] | None
     output: Output
     silent: bool
     src: Path
@@ -212,7 +298,7 @@ def version_callback(value: bool):
 
 
 def write(
-    pages: List[Dict],
+    pages: list[dict[str, Any]],
     src: Path,
     output: Output,
     silent: bool,
@@ -242,11 +328,11 @@ def write(
         LOGGER.debug(f"{page_index=}")
         if pages_count > 1:
             output_file = destination.joinpath(str(page_index)).with_suffix(
-                output.format.file_ext
+                output.format.ext
             )
         else:
             output_file = destination.joinpath(src_file_stem).with_suffix(
-                output.format.file_ext
+                output.format.ext
             )
         LOGGER.debug(f"{output_file=}")
         page["data"] = output.cast(page["data"])
@@ -258,7 +344,7 @@ def write(
             src.unlink(missing_ok=True)
 
 
-def write_dcm(cfg: Configuration):
+def run_dcm(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
     write(
         [
@@ -278,7 +364,7 @@ def write_dcm(cfg: Configuration):
     )
 
 
-def write_dm(cfg: Configuration):
+def run_dm(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
     try:
         write(
@@ -294,9 +380,12 @@ def write_dm(cfg: Configuration):
         LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
 
 
-def write_emd(cfg: Configuration):
+def run_emd(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
-    detector = cfg.extras.get("detector", 0)
+    if cfg.extras is None:
+        detector = 0
+    else:
+        detector = cfg.extras.get("detector", 0)
     LOGGER.debug(f"{detector=}")
     try:
         emd_data = emd.file_reader(cfg.src, lazy=True, select_type="images")
@@ -331,7 +420,7 @@ def write_emd(cfg: Configuration):
         LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
 
 
-def write_png(cfg: Configuration):
+def run_png(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
     write(
         image_file_reader(cfg.src),
@@ -342,28 +431,24 @@ def write_png(cfg: Configuration):
     )
 
 
-def write_tiff(cfg: Configuration):
+def run_tiff(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
-    try:
-        write(
-            tiff_file_reader(cfg.src, multipage_as_list=True),
-            cfg.src,
-            cfg.output,
-            cfg.silent,
-            delete_original=cfg.delete_original,
-        )
-    except TiffFileError:
-        if not cfg.silent:
-            LOGGER.warning(f"The '{cfg.src}' file is not a TIFF, skipped.")
+    write(
+        tiff_file_reader(cfg.src, multipage_as_list=True),
+        cfg.src,
+        cfg.output,
+        cfg.silent,
+        delete_original=cfg.delete_original,
+    )
 
 
 def expand_sources(
-    paths: List[Path],
+    paths: list[Path],
     output: Output,
     silent: bool,
     delete_original: bool = False,
-    extras: Dict[str, Any] = {},
-) -> List[Configuration]:
+    extras: dict[str, Any] | None = None,
+) -> list[Configuration]:
     LOGGER.debug(f"{paths=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{silent=}")
@@ -398,30 +483,29 @@ def expand_sources(
     return sources
 
 
-def run(
-    write_func: Callable,
-    sources: List[Configuration],
-    num_cpus: Optional[int] = None,
-    silent: bool = False,
-):
-    LOGGER.debug(f"{sources=}")
-    LOGGER.debug(f"{num_cpus=}")
-    LOGGER.debug(f"{silent=}")
-    LOGGER.debug(f"{len(sources)=}")
-    if platform.system().lower() == "darwin":
-        for src in sources:
-            write_func(src)
+def run(cfg: Configuration):
+    LOGGER.debug(f"{cfg=}")
+    kind = filetype.guess(cfg.src)
+    LOGGER.debug(f"{kind=}")
+    if kind is None:
+        raise UnsupportedFileType(cfg.src)
     else:
-        with Pool(num_cpus) as pool:
-            list(
-                tqdm(
-                    pool.imap(write_func, sources),
-                    bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
-                    disable=silent,
-                    total=len(sources),
-                )
-            )
+        SUPPORTED_MAP = {
+            Dcm.MIME: run_dcm,
+            Dm3.MIME: run_dm,
+            Dm4.MIME: run_dm,
+            Emd.MIME: run_emd,
+            Png.MIME: run_png,
+            Tiff.MIME: run_tiff,
+        }
+        runner = SUPPORTED_MAP.get(kind.mime)
+        if runner is None:
+            raise UnsupportedFileType(cfg.src)
+        else:
+            runner(cfg)
 
+
+PROGRESS_BAR_FORMAT: str = "{l_bar}{bar}| {n_fmt}/{total_fmt}"
 
 DELETE_ORIGINAL_OPT: bool = typer.Option(
     False,
@@ -429,243 +513,105 @@ DELETE_ORIGINAL_OPT: bool = typer.Option(
     "--delete-original",
     help="Deletes the original file after conversion.",
 )
-NUM_CPUS_OPT: Optional[int] = typer.Option(
+NUM_CPUS_OPT: int | None = typer.Option(
     None,
     "-n",
     "--num-cpus",
     help="The number of CPU cores to use for parallel execution.",
 )
-OUTPUT_FORMAT_ARG: OutputFileFormats = typer.Argument(help="The output file format.")
-OUTPUT_OPT: Optional[Path] = typer.Option(
+OUTPUT_OPT: Path | None = typer.Option(
     None, "-o", "--output", help="Destination for output file(s)."
 )
-OUTPUT_BIT_DEPTH_OPT: Literal[8, 16] = typer.Option(
-    8,
-    "-b",
-    "--output-bit-depth",
-    help="The bit depth for the output file.",
-)
+PATHS_ARG: list[Path] = typer.Argument(help="The original source files.")
 SILENT_OPT: bool = typer.Option(
     False, "-S", "--silent", help="Disables the progress bars."
 )
+TO_BIT_DEPTH_OPT: Literal[8, 16] = typer.Option(
+    8,
+    "-b",
+    "--to-bit-depth",
+    help="The bit depth for the output file.",
+)
+TO_FORMAT_OPT: ToFormats = typer.Option(
+    ToFormats.JPEG.value,
+    "-t",
+    "--to",
+    case_sensitive=False,
+    help="The output file format.",
+)
+VERBOSE_OPT: int = typer.Option(
+    0,
+    "--verbose",
+    "-v",
+    help="Print debugging statements.",
+    count=True,
+)
+VERSION_OPT: bool | None = typer.Option(
+    None,
+    "--version",
+    help="Prints the version.",
+    callback=version_callback,
+    is_eager=True,
+)
 
 
-@app.command(help="Handle Input/Output (IO) of DICOM (DCM) files.")
-def dcm(
-    output_format: OutputFileFormats = OUTPUT_FORMAT_ARG,
-    paths: List[Path] = typer.Argument(help="The original DCM source files."),
-    delete_original: bool = DELETE_ORIGINAL_OPT,
-    num_cpus: Optional[int] = NUM_CPUS_OPT,
-    output: Optional[Path] = OUTPUT_OPT,
-    output_bit_depth: int = OUTPUT_BIT_DEPTH_OPT,
-    silent: bool = SILENT_OPT,
-):
-    LOGGER.debug(f"{delete_original=}")
-    LOGGER.debug(f"{paths=}")
-    LOGGER.debug(f"{num_cpus=}")
-    LOGGER.debug(f"{output=}")
-    LOGGER.debug(f"{output_bit_depth=}")
-    LOGGER.debug(f"{output_format=}")
-    LOGGER.debug(f"{silent=}")
-    try:
-        run(
-            write_dcm,
-            expand_sources(
-                paths,
-                Output(
-                    bit_depth=BitDepths(output_bit_depth),
-                    format=output_format,
-                    path=output,
-                ),
-                silent,
-                delete_original=delete_original,
-            ),
-            num_cpus=num_cpus,
-            silent=silent,
-        )
-    except ValidationError as err:
-        print_validation_error(err)
-        raise typer.Exit(code=1)
-
-
-@app.command(help="Handle Input/Output (IO) of DigitalMicrograph (DM) files.")
-def dm(
-    output_format: OutputFileFormats = OUTPUT_FORMAT_ARG,
-    paths: List[Path] = typer.Argument(help="The original DM source files."),
-    delete_original: bool = DELETE_ORIGINAL_OPT,
-    num_cpus: Optional[int] = NUM_CPUS_OPT,
-    output: Optional[Path] = OUTPUT_OPT,
-    output_bit_depth: int = OUTPUT_BIT_DEPTH_OPT,
-    silent: bool = SILENT_OPT,
-):
-    LOGGER.debug(f"{paths=}")
-    LOGGER.debug(f"{delete_original=}")
-    LOGGER.debug(f"{num_cpus=}")
-    LOGGER.debug(f"{output=}")
-    LOGGER.debug(f"{output_bit_depth=}")
-    LOGGER.debug(f"{output_format=}")
-    LOGGER.debug(f"{silent=}")
-    try:
-        run(
-            write_dm,
-            expand_sources(
-                paths,
-                Output(
-                    bit_depth=BitDepths(output_bit_depth),
-                    format=output_format,
-                    path=output,
-                ),
-                silent,
-                delete_original=delete_original,
-            ),
-            num_cpus=num_cpus,
-            silent=silent,
-        )
-    except ValidationError as err:
-        print_validation_error(err)
-        raise typer.Exit(code=1)
-
-
-@app.command(help="Handle Input/Output (IO) of Velox (EMD) files.", name="emd")
-def app_emd(
-    output_format: OutputFileFormats = OUTPUT_FORMAT_ARG,
-    paths: List[Path] = typer.Argument(help="The original EMD source files."),
-    delete_original: bool = DELETE_ORIGINAL_OPT,
-    detector: int = typer.Option(
-        0, "-d", "--detector", help="The index of the detector to export images."
-    ),
-    num_cpus: Optional[int] = NUM_CPUS_OPT,
-    output: Optional[Path] = OUTPUT_OPT,
-    output_bit_depth: int = OUTPUT_BIT_DEPTH_OPT,
-    silent: bool = SILENT_OPT,
-):
-    LOGGER.debug(f"{detector=}")
-    LOGGER.debug(f"{delete_original=}")
-    LOGGER.debug(f"{num_cpus=}")
-    LOGGER.debug(f"{output=}")
-    LOGGER.debug(f"{output_bit_depth=}")
-    LOGGER.debug(f"{output_format=}")
-    LOGGER.debug(f"{paths=}")
-    LOGGER.debug(f"{silent=}")
-    try:
-        run(
-            write_emd,
-            expand_sources(
-                paths,
-                Output(
-                    bit_depth=BitDepths(output_bit_depth),
-                    format=output_format,
-                    path=output,
-                ),
-                silent,
-                delete_original=delete_original,
-                extras={"detector": detector},
-            ),
-            num_cpus=num_cpus,
-            silent=silent,
-        )
-    except ValidationError as err:
-        print_validation_error(err)
-        raise typer.Exit(code=1)
-
-
-@app.command(help="Handle Input/Output (IO) of PNG files.")
-def png(
-    output_format: OutputFileFormats = OUTPUT_FORMAT_ARG,
-    paths: List[Path] = typer.Argument(help="The original PNG source files."),
-    delete_original: bool = DELETE_ORIGINAL_OPT,
-    num_cpus: Optional[int] = NUM_CPUS_OPT,
-    output: Optional[Path] = OUTPUT_OPT,
-    output_bit_depth: int = OUTPUT_BIT_DEPTH_OPT,
-    silent: bool = SILENT_OPT,
-):
-    LOGGER.debug(f"{paths=}")
-    LOGGER.debug(f"{delete_original=}")
-    LOGGER.debug(f"{num_cpus=}")
-    LOGGER.debug(f"{output=}")
-    LOGGER.debug(f"{output_bit_depth=}")
-    LOGGER.debug(f"{output_format=}")
-    LOGGER.debug(f"{silent=}")
-    try:
-        run(
-            write_png,
-            expand_sources(
-                paths,
-                Output(
-                    bit_depth=BitDepths(output_bit_depth),
-                    format=output_format,
-                    path=output,
-                ),
-                silent,
-                delete_original=delete_original,
-            ),
-            num_cpus=num_cpus,
-            silent=silent,
-        )
-    except ValidationError as err:
-        print_validation_error(err)
-        raise typer.Exit(code=1)
-
-
-@app.command(help="Handle Input/Output (IO) of TIFF files.")
-def tiff(
-    output_format: OutputFileFormats = OUTPUT_FORMAT_ARG,
-    paths: List[Path] = typer.Argument(help="The original TIFF source files."),
-    delete_original: bool = DELETE_ORIGINAL_OPT,
-    num_cpus: Optional[int] = NUM_CPUS_OPT,
-    output: Optional[Path] = OUTPUT_OPT,
-    output_bit_depth: int = OUTPUT_BIT_DEPTH_OPT,
-    silent: bool = SILENT_OPT,
-):
-    LOGGER.debug(f"{paths=}")
-    LOGGER.debug(f"{delete_original=}")
-    LOGGER.debug(f"{num_cpus=}")
-    LOGGER.debug(f"{output=}")
-    LOGGER.debug(f"{output_bit_depth=}")
-    LOGGER.debug(f"{output_format=}")
-    LOGGER.debug(f"{silent=}")
-    try:
-        run(
-            write_tiff,
-            expand_sources(
-                paths,
-                Output(
-                    bit_depth=BitDepths(output_bit_depth),
-                    format=output_format,
-                    path=output,
-                ),
-                silent,
-                delete_original=delete_original,
-            ),
-            num_cpus=num_cpus,
-            silent=silent,
-        )
-    except ValidationError as err:
-        print_validation_error(err)
-        raise typer.Exit(code=1)
-
-
-@app.callback()
+@app.command()
 def main(
-    verbose: int = typer.Option(
-        0,
-        "--verbose",
-        "-v",
-        help="Print debugging statements.",
-        envvar=f"{PREFIX}_VERBOSE",
-        count=True,
-    ),
-    version: Optional[bool] = typer.Option(
-        None,
-        "--version",
-        help="Prints the version.",
-        callback=version_callback,
-        is_eager=True,
-    ),
+    paths: list[Path] = PATHS_ARG,
+    delete_original: bool = DELETE_ORIGINAL_OPT,
+    num_cpus: int | None = NUM_CPUS_OPT,
+    output: Path | None = OUTPUT_OPT,
+    silent: bool = SILENT_OPT,
+    to_bit_depth: int = TO_BIT_DEPTH_OPT,
+    to_format: ToFormats = TO_FORMAT_OPT,
+    verbose: int = VERBOSE_OPT,
+    version: bool | None = VERSION_OPT,
 ):
     logging.basicConfig(level=map_verbosity(verbose))
+    LOGGER.debug(f"{delete_original=}")
+    LOGGER.debug(f"{paths=}")
+    LOGGER.debug(f"{num_cpus=}")
+    LOGGER.debug(f"{output=}")
+    LOGGER.debug(f"{silent=}")
+    LOGGER.debug(f"{to_bit_depth=}")
+    LOGGER.debug(f"{to_format=}")
     LOGGER.debug(f"{verbose=}")
     LOGGER.debug(f"{version=}")
+    try:
+        sources = expand_sources(
+            paths,
+            Output(
+                bit_depth=BitDepths(to_bit_depth),
+                format=to_format,
+                path=output,
+            ),
+            silent,
+            delete_original=delete_original,
+        )
+        if platform.system().lower() == "darwin":
+            _ = list(
+                tqdm(
+                    map(run, sources),
+                    bar_format=PROGRESS_BAR_FORMAT,
+                    disable=silent,
+                    total=len(sources),
+                )
+            )
+        else:
+            with Pool(num_cpus) as pool:
+                _ = list(
+                    tqdm(
+                        pool.imap(run, sources),
+                        bar_format=PROGRESS_BAR_FORMAT,
+                        disable=silent,
+                        total=len(sources),
+                    )
+                )
+    except UnsupportedFileType as err:
+        LOGGER.warning(f"The {err.src} file is not supported. Skipping!")
+    except ValidationError as err:
+        print_validation_error(err)
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":

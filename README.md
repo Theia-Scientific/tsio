@@ -1,13 +1,16 @@
-# tsio: A command line utility for working with various inputs and outputs related to microscopy
+# tsio: A command line utility for extracting images from microscopy-related files
 
 [![CI](https://github.com/Theia-Scientific/tsio/actions/workflows/ci.yml/badge.svg)](https://github.com/Theia-Scientific/tsio/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/Theia-Scientific/tsio/graph/badge.svg?token=XXXXXXX)](https://codecov.io/gh/Theia-Scientific/tsio)
+![PyPI Version](https://img.shields.io/pypi/v/:tsio)
 
-A Command Line Interface (CLI) application for converting specialized
-image file formats to the common jpeg, png, or tiff formats. Currently
-supported specialized formats include:
+A Command Line Interface (CLI) application for extracting images from microscopy
+files to common image file formats, such as JPEG, PNT, and/or TIFF. Supported
+microscopy files include:
 
 * [dcm] (DICOM) - medical image file format standard
-* [dm3/dm4] (DigitalMicrograph) - (S)TEM image file format standard by GATAN
+* [dm3/dm4] (DigitalMicrograph) - (S)TEM image file format by GATAN
+* [emd] (Velox) - (S)TEM image file format by ThermoFisher
 
 1. [Prerequisites](#prerequisites)
    1. [Python](#prerequisites-python)
@@ -17,23 +20,20 @@ supported specialized formats include:
       1. [Ubuntu](#prerequisites-pipx-ubuntu)
       2. [macOS](#prerequisites-pipx-macos)
 2. [Installation](#installation)
-   1. [Application](#installation-app)
-      1. [pipx](#installation-app-pipx)
-      2. [Source](#installation-app-source)
-3. [Configuraton](#configuration)
-4. [Upgrade](#upgrade)
-   1. [Application](#upgrade-app)
-      1. [pipx](#upgrade-app-pipx)
-      2. [Source](#upgrade-app-source)
-5. [Usage](#usage)
+   1. [pipx](#installation-app-pipx)
+   2. [Source](#installation-app-source)
+3. [Upgrade](#upgrade)
+   1. [pipx](#upgrade-app-pipx)
+   2. [Source](#upgrade-app-source)
+4. [Usage](#usage)
+5. [Contributing](#contributing)
 6. [License](#license)
 
 ## Prerequisites
 
 All of the prerequisites may already be installed and configured by the
 superuser, a.k.a. root, of the computer. The prerequisites only need to be
-installed and configured once per machine. For example, if [tsyolo] is already
-running, then the [Prerequisites](#prerequisites) steps can be ignored.
+installed and configured once per machine.
 
 ### Python
 
@@ -171,14 +171,10 @@ brew update && brew upgrade pipx
 
 ## Installation
 
-### Application
-
-<a name="installation-app"></a>
-
 The `tsio` code includes a Python application with a Command Line Interface
 (CLI). It can be installed as a standalone application.
 
-#### pipx (recommended)
+### pipx (recommended)
 
 <a name="installation-app-pipx"></a>
 
@@ -203,7 +199,7 @@ The `tsio` code includes a Python application with a Command Line Interface
    tsio 0.1.0
    ```
 
-#### Source
+### Source
 
 <a name="installation-app-source"></a>
 
@@ -253,9 +249,7 @@ The `tsio` code includes a Python application with a Command Line Interface
 
 ## Upgrade
 
-### Application
-
-#### pipx (recommended)
+### pipx (recommended)
 
 <a name="upgrade-app-pipx"></a>
 
@@ -272,7 +266,7 @@ The `tsio` code includes a Python application with a Command Line Interface
    tsio 0.1.0
    ```
 
-#### Source
+### Source
 
 <a name="upgrade-app-source"></a>
 
@@ -312,50 +306,172 @@ The `tsio` code includes a Python application with a Command Line Interface
 
 ## Usage
 
+Convert a single page TIFF to a JPEG. Creating a JPEG image file is the default
+because this is useful for Machine Learning (ML) tools, supported by all web
+browsers, and it creates the smallest file, making this the quickest for
+obtaining a thumbnail of the microscopy image file.
+
 ```sh
-$ tsio tiff png image.tif
+$ tsio image.tif
+$ ls
+image.jpg image.tif
+```
+
+Convert a single page TIFF to a PNG. All of the following commands are equivalent.
+
+```sh
+# Use the long option.
+$ tsio --to png image.tif
+$ ls
+image.png image.tif
+
+# Use the `=` syntax for specifying an option value.
+$ tsio --to=png image.tif
+$ ls
+image.png image.tif
+
+# Use the short option.
+$ tsio -t png image.tif
+$ ls
+image.png image.tif
+
+# Use the short option with the `=` syntax.
+$ tsio -t=png image.tif
 $ ls
 image.png image.tif
 ```
 
-```sh
-$ tsio --output new_name.png tiff png image.tif
-$ ls
-image.tif new_name.png
-```
+Extract all the "frames" from a multi-page TIFF.
 
 ```sh
-$ tsio tiff png multi-page.tif
+$ tsio multi-page.tif
 $ ls
 multi-page/ multi-page.tif
 $ ls multi-page/
-0.png 1.png 2.png 3.png 4.png
-```
+0.jpg 1.jpg 2.jpg 3.jpg 4.jpg
 
-```sh
+# Use the `-o,--output` option to extract to different location.
 $ tsio --output /path/to/directory tiff png multi-page.tif
 $ ls
 multi-page.tif
 $ ls /path/to/directory
-0.png 1.png 2.png 3.png 4.png
+0.jpg 1.jpg 2.jpg 3.jpg 4.jpg
 ```
 
+Extract an image from a DM3 or DM4 file.
+
 ```sh
-$ tsio dm jpeg ./00001.dm4
+$ tsio ./00001.dm3
+$ ls
+00001.dm3  00001.jpg
+
+$ tsio ./00001.dm4
 $ ls
 00001.dm4  00001.jpg
 ```
 
+Extract all the "frames" from a EMD file.
+
+```sh
+$ tsio multiple-frames.emd
+$ ls
+multiple-frames/ multiple-frames.emd
+$ ls multiple-frames/
+0.jpg 1.jpg 2.jpg 3.jpg 4.jpg
+```
+
+## Contributing
+
+1. Clone this repository.
+
+   ```sh
+   git clone https://github.com/Theia-Scientific/tsio && cd tsio
+   ```
+
+2. Create a virtual environment.
+
+   ```sh
+   python3 -m venv .venv
+   ```
+
+3. Activate the virtual environment.
+
+   ```sh
+   source .venv/bin/activate
+   ```
+   
+   or if [direnv] is installed, the virtual environment will automatically be
+   activated.
+
+4. Upgrade `pip`.
+
+   ```sh
+   pip install --upgrade pip
+   ```
+   
+5. Install all the dependencies.
+
+   ```sh
+   pip install -e ".[dev]"
+   ```
+
+6. Create a local branch.
+
+   ```sh
+   git checkout -b feature-awesome-new-feature
+   ```
+
+7. Modify the code.
+8. Run the tests.
+
+   ```sh
+   pytest --color=yes --cov=tsio --cov-report=term-missing
+   ```
+
+9. Commit changes to your local branch.
+
+   ```sh
+   git add -A && git commit -m "Add new feature"
+   ```
+
+10. Push your local branch to GitHub to create a Pull Request (PR).
+
+   ```sh
+   git push origin feature-awesome-new-feature
+   ```
+
+11. Create a Pull Request (PR) in GitHub.
+12. Wait for CI to complete.
+13. Add comment to PR that it is ready to review.
+14. Wait for review from a maintainer.
+15. Address any comments from the reviewer by modifying your local files and
+    pushing to the remote branch/PR.
+    
+    ```sh
+    git push origin feature-awesome-new-feature
+    ```
+    
+16. Once the PR is approved, then it will be "Squash and Merge". Congratulations
+    on contributing to an open source project, and Thank you!
+
 ## License
 
-Copyright (C) 2026 Theia Scientific, LLC. All rights reserved.
+The `tsio` project is licensed under the [GPL-3.0] license. See the
+[LICENSE.txt] file for more information about licensing and copyright.
+
+## Acknowledgments
+
+This material is based upon work supported by the U.S. Department of Energy,
+Office of Basic Science and Office of Nuclear Energy under Award Number
+DE-SC0021529 and DE-SC0021936, respectively.
 
 [dcm]: https://en.wikipedia.org/wiki/DICOM
 [deadsnakes]: https://launchpad.net/~deadsnakes/+archive/ubuntu/ppa
 [direnv]: https://direnv.net/
 [dm3/dm4]: https://www.gatan.com/products/tem-analysis/gatan-microscopy-suite-software
+[gpl-3.0]: https://opensource.org/license/gpl-3.0
 [homebrew]: https://brew.sh/
+[license.txt]: https://github.com/Theia-Scientific/tsio/blob/main/LICENSE.txt
 [pipx]: https://github.com/pypa/pipx
 [python]: https://www.python.org/
 [tsio]: https://github.com/Theia-Scientific/tsio
-[tsyolo]: https://github.com/Theia-Scientific/tsyolo

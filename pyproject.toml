@@ -1,7 +1,11 @@
+[build-system]
+requires = [ "hatchling" ]
+build-backend = "hatchling.build"
+
 [project]
 name = "tsio"
 version = "0.1.0"
-description = "A Python Command Line Interface (CLI) application to handle various file formats"
+description = "A Python Command Line Interface (CLI) application to extract the images from various microscopy files."
 authors = [
     {name = "Christopher Field", email = "chris.field@theiascientific.com"},
 ]
@@ -24,6 +28,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Image Recognition",
 ]
 dependencies = [
+    "filetype",
     "h5py",
     "multiprocess",
     "numpy",
@@ -38,17 +43,14 @@ dependencies = [
     "tifffile",
     "typer",
 ]
-
-[build-system]
-requires = [ "hatchling" ]
-build-backend = "hatchling.build"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE.txt"]
 
 [project.optional-dependencies]
 dev = [
     "black",
     "build",
     "flake8",
-    "filetype",
     "gdown",
     "hatch",
     "isort",
@@ -74,3 +76,11 @@ omit = [ "__main__.py" ]
 filterwarnings = [
     "ignore::DeprecationWarning",
 ]
+
+[tool.flake8]
+ignore = ['E203', 'W503']
+max-line-length = 127
+max-complexity = 15
+
+[tool.basedpyright]
+typeCheckingMode = "standard"
