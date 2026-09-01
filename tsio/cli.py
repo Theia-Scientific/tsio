@@ -56,7 +56,7 @@ class Dm3(filetype.Type):
         if version_number == 3:
             file_size = int.from_bytes(buf[4:8], byteorder="big")
             LOGGER.debug(f"{file_size=}")
-            if file_size <= 16:
+            if file_size <= 18:
                 return False
             little_endian_int = int.from_bytes(buf[8:12], byteorder="big")
             if little_endian_int != 0 and little_endian_int != 1:
@@ -92,7 +92,7 @@ class Dm4(filetype.Type):
         if version_number == 4:
             file_size = int.from_bytes(buf[4:12], byteorder="big")
             LOGGER.debug(f"{file_size=}")
-            if file_size <= 16:
+            if file_size <= 20:
                 return False
             little_endian_int = int.from_bytes(buf[12:16], byteorder="big")
             LOGGER.debug(f"{little_endian_int=}")
