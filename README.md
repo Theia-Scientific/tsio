@@ -1,7 +1,7 @@
 # tsio: A command line utility for extracting images from microscopy-related files
 
 [![CI](https://github.com/Theia-Scientific/tsio/actions/workflows/ci.yml/badge.svg)](https://github.com/Theia-Scientific/tsio/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/Theia-Scientific/tsio/graph/badge.svg?token=XXXXXXX)](https://codecov.io/gh/Theia-Scientific/tsio)
+[![codecov](https://codecov.io/gh/Theia-Scientific/tsio/graph/badge.svg?token=warTkiP9QY)](https://codecov.io/gh/Theia-Scientific/tsio)
 ![PyPI Version](https://img.shields.io/pypi/v/:tsio)
 
 A Command Line Interface (CLI) application for extracting images from microscopy
