@@ -40,4 +40,4 @@ jobs:
 
       - name: Test with pytest
         run: |
-          pytest --color=yes --cov=tsio --cov-report=term-missing
+          pytest --color=yes --cov=tsio --cov-branch --cov-report=xml --cov-report=term-missing
