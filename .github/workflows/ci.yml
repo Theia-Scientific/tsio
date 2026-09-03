@@ -41,3 +41,8 @@ jobs:
       - name: Test with pytest
         run: |
           pytest --color=yes --cov=tsio --cov-branch --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
