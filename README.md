@@ -2,7 +2,8 @@
 
 [![CI](https://github.com/Theia-Scientific/tsio/actions/workflows/ci.yml/badge.svg)](https://github.com/Theia-Scientific/tsio/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/Theia-Scientific/tsio/graph/badge.svg?token=warTkiP9QY)](https://codecov.io/gh/Theia-Scientific/tsio)
-![PyPI Version](https://img.shields.io/pypi/v/:tsio)
+![PyPI Version](https://img.shields.io/pypi/v/tsio)
+![GitHub Release](https://img.shields.io/github/v/release/Theia-Scientific/tsio)
 
 A Command Line Interface (CLI) application for extracting images from microscopy
 files to common image file formats, such as JPEG, PNT, and/or TIFF. Supported
