@@ -8,37 +8,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  envelope:
-    name: Upload release to Envelope.dev
-    runs-on: ubuntu-latest
-    environment: release
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@vy
-        with:
-          cache: pip
-          python-version: 3.11
-
-      - name: Install build tools
-        run: python -m pip install --upgrade build
-
-      - name: Build wheel
-        run: python -m build
-
-      - name: Publish wheel
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          attestations: false
-          password: ${{ secrets.ENVELOPE_TOKEN }}
-          user: pypi
-          repository-url: https://app.envelope.dev/legacy/
-
   pypi:
     name: Upload release to the Python Package Index (PyPI)
     runs-on: ubuntu-latest
