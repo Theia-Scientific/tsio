@@ -38,7 +38,7 @@ dependencies = [
     "pydantic-settings",
     "pydicom",
     "python-gdcm",
-    "rosettasciio[hdf5, images, mrcz, tiff]",
+    "rosettasciio[hdf5, image, mrcz, tiff]",
     "tdqm",
     "tifffile",
     "typer",
