@@ -45,7 +45,7 @@ class Dm3(filetype.Type):
     def __init__(self):
         super(Dm3, self).__init__(mime=Dm3.MIME, extension=Dm3.EXTENSION)
 
-    def match(self, buf: bytearray) -> bool:
+    def match(self, buf: bytearray | bytes) -> bool:
         # First 4 bytes are version number = 3
         # Next 4 bytes are the file size
         # Last 4 bytes are "endian"
@@ -81,7 +81,7 @@ class Dm4(filetype.Type):
     def __init__(self):
         super(Dm4, self).__init__(mime=Dm4.MIME, extension=Dm4.EXTENSION)
 
-    def match(self, buf: bytearray) -> bool:
+    def match(self, buf: bytearray | bytes) -> bool:
         # First 4 bytes are version number = 4
         # Next 8 bytes are the file size
         # Last 4 bytes are "endian"
@@ -118,7 +118,7 @@ class Emd(filetype.Type):
     def __init__(self):
         super(Emd, self).__init__(mime=Emd.MIME, extension=Emd.EXTENSION)
 
-    def match(self, buf: bytearray) -> bool:
+    def match(self, buf: bytearray | bytes) -> bool:
         # Velox EMD is a HDF5 file.
         return (
             len(buf) > 7
@@ -242,7 +242,8 @@ class Output(BaseModel):
         return self.convert(rgbx_or_gray_int_img)
 
     def destination(self, src: os.PathLike[str]) -> Path:
-        return Path(src).resolve().parent if self.path is None else self.path
+        src_path = Path(src)
+        return src_path.resolve().parent if self.path is None else src_path
 
     def scale(self, img: np.ndarray) -> np.ndarray:
         return np.round(img * self.bit_depth.max_pixel_intensity).astype(
