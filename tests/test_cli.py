@@ -63,7 +63,7 @@ def black_8bit_rgba_image() -> npt.NDArray[np.uint8]:
 
 
 @pytest.fixture
-def black_16bit_gray_image() -> npt.NDArray[np.uint8]:
+def black_16bit_gray_image() -> npt.NDArray[np.uint16]:
     return np.zeros((256, 256), dtype=np.uint16)
 
 

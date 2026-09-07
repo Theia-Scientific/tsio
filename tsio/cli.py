@@ -11,7 +11,7 @@ import platform
 import typer
 
 from collections.abc import Sequence
-from enum import Enum
+from enum import StrEnum
 from filetype.types.image import Dcm, Jpeg, Png, Tiff
 from multiprocess.pool import Pool
 from pathlib import Path
@@ -27,15 +27,15 @@ from rsciio.tiff import file_reader as tiff_file_reader
 from rsciio.utils import rgb
 from tqdm import tqdm
 from tsio import __app_name__
-from typing import Annotated, Any, Literal, Self
+from typing import Annotated, Any, Self
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
 class UnsupportedFileType(Exception):
-    def __init__(self, src: os.PathLike[str]):
+    def __init__(self, src: os.PathLike[str], message: str | None = None):
+        super().__init__(message)
         self.src: os.PathLike[str] = src
-        super().__init__()
 
 
 class Dm3(filetype.Type):
@@ -143,9 +143,9 @@ logging.getLogger("PIL.Image").setLevel(logging.WARNING)
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
 
-class BitDepths(Enum):
-    EIGHT = 8
-    SIXTEEN = 16
+class BitDepths(StrEnum):
+    EIGHT = "8"
+    SIXTEEN = "16"
 
     @property
     def type(self) -> str:
@@ -158,7 +158,7 @@ class BitDepths(Enum):
         return MAX_MAP[self]
 
 
-class ToFormats(Enum):
+class ToFormats(StrEnum):
     JPEG = "jpeg"
     PNG = "png"
     TIFF = "tiff"
@@ -539,13 +539,13 @@ def main(
         bool, typer.Option("-S", "--silent", help="Disables the progress bars.")
     ] = False,
     to_bit_depth: Annotated[
-        Literal[8, 16],
+        BitDepths,
         typer.Option(
             "-b",
             "--to-bit-depth",
             help="The bit depth for the output file.",
         ),
-    ] = 8,
+    ] = BitDepths.EIGHT,
     to_format: Annotated[
         ToFormats,
         typer.Option(
