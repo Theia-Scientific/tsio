@@ -10,6 +10,7 @@ import os
 import platform
 import typer
 
+from collections.abc import Sequence
 from enum import Enum
 from filetype.types.image import Dcm, Jpeg, Png, Tiff
 from multiprocess.pool import Pool
@@ -445,7 +446,7 @@ def run_tiff(cfg: Configuration):
 
 
 def expand_sources(
-    paths: list[os.PathLike[str]],
+    paths: Sequence[os.PathLike[str]],
     output: Output,
     silent: bool,
     delete_original: bool = False,
@@ -513,9 +514,7 @@ PROGRESS_BAR_FORMAT: str = "{l_bar}{bar}| {n_fmt}/{total_fmt}"
 
 @app.command()
 def main(
-    paths: Annotated[
-        list[os.PathLike[str]], typer.Argument(help="The original source files.")
-    ],
+    paths: Annotated[list[Path], typer.Argument(help="The original source files.")],
     delete_original: Annotated[
         bool,
         typer.Option(
@@ -533,7 +532,7 @@ def main(
         ),
     ] = None,
     output: Annotated[
-        os.PathLike[str] | None,
+        Path | None,
         typer.Option("-o", "--output", help="Destination for output file(s)."),
     ] = None,
     silent: Annotated[
