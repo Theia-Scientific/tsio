@@ -242,8 +242,7 @@ class Output(BaseModel):
         return self.convert(rgbx_or_gray_int_img)
 
     def destination(self, src: os.PathLike[str]) -> Path:
-        src_path = Path(src)
-        return src_path.resolve().parent if self.path is None else src_path
+        return Path(src).resolve().parent if self.path is None else Path(self.path)
 
     def scale(self, img: np.ndarray) -> np.ndarray:
         return np.round(img * self.bit_depth.max_pixel_intensity).astype(
@@ -312,14 +311,16 @@ def write(
     LOGGER.debug(f"{silent=}")
     LOGGER.debug(f"{delete_original=}")
     destination = output.destination(src)
+    LOGGER.debug(f"{destination=}")
     pages_count = len(pages)
     LOGGER.debug(f"{pages_count=}")
     src_path = Path(src)
+    LOGGER.debug(f"{src_path=}")
     src_file_stem = src_path.stem
+    LOGGER.debug(f"{src_file_stem=}")
     if pages_count > 1:
         destination = destination.joinpath(src_file_stem)
     os.makedirs(destination, exist_ok=True)
-    LOGGER.debug(f"{src_file_stem=}")
     for page_index, page in enumerate(
         tqdm(
             pages,
@@ -343,6 +344,7 @@ def write(
         for axis in page["axes"]:
             if "navigate" not in axis:
                 axis["navigate"] = None
+        print(f"{output_file=}")
         image_file_writer(output_file, page)
         if delete_original:
             src_path.unlink(missing_ok=True)
