@@ -5,6 +5,7 @@ import filetype
 import gdown
 import importlib.metadata
 import numpy as np
+import numpy.typing as npt
 import os
 import pytest
 
@@ -47,37 +48,39 @@ runner = CliRunner()
 
 
 @pytest.fixture
-def black_8bit_gray_image() -> np.ndarray:
+def black_8bit_gray_image() -> npt.NDArray[np.uint8]:
     return np.zeros((256, 256), dtype=np.uint8)
 
 
 @pytest.fixture
-def black_8bit_rgb_image() -> np.ndarray:
+def black_8bit_rgb_image() -> npt.NDArray[np.uint8]:
     return np.zeros((256, 256, 3), dtype=np.uint8)
 
 
 @pytest.fixture
-def black_8bit_rgba_image() -> np.ndarray:
+def black_8bit_rgba_image() -> npt.NDArray[np.uint8]:
     return np.zeros((256, 256, 4), dtype=np.uint8)
 
 
 @pytest.fixture
-def black_16bit_gray_image() -> np.ndarray:
+def black_16bit_gray_image() -> npt.NDArray[np.uint16]:
     return np.zeros((256, 256), dtype=np.uint16)
 
 
 @pytest.fixture
-def black_16bit_rgb_image() -> np.ndarray:
+def black_16bit_rgb_image() -> npt.NDArray[np.uint16]:
     return np.zeros((256, 256, 3), dtype=np.uint16)
 
 
 @pytest.fixture
-def black_16bit_rgba_image() -> np.ndarray:
+def black_16bit_rgba_image() -> npt.NDArray[np.uint16]:
     return np.zeros((256, 256, 4), dtype=np.uint16)
 
 
 @pytest.fixture
-def black_8bit_gray_png(black_8bit_gray_image: np.ndarray, tmp_path: Path) -> Path:
+def black_8bit_gray_png(
+    black_8bit_gray_image: npt.NDArray[np.uint8], tmp_path: Path
+) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": black_8bit_gray_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -91,7 +94,9 @@ def black_8bit_gray_png(black_8bit_gray_image: np.ndarray, tmp_path: Path) -> Pa
 
 
 @pytest.fixture
-def black_8bit_rgb_png(black_8bit_rgb_image: np.ndarray, tmp_path: Path) -> Path:
+def black_8bit_rgb_png(
+    black_8bit_rgb_image: npt.NDArray[np.uint8], tmp_path: Path
+) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": black_8bit_rgb_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -105,7 +110,9 @@ def black_8bit_rgb_png(black_8bit_rgb_image: np.ndarray, tmp_path: Path) -> Path
 
 
 @pytest.fixture
-def black_8bit_rgba_png(black_8bit_rgba_image: np.ndarray, tmp_path: Path) -> Path:
+def black_8bit_rgba_png(
+    black_8bit_rgba_image: npt.NDArray[np.uint8], tmp_path: Path
+) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": black_8bit_rgba_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -119,7 +126,9 @@ def black_8bit_rgba_png(black_8bit_rgba_image: np.ndarray, tmp_path: Path) -> Pa
 
 
 @pytest.fixture
-def black_16bit_gray_png(black_16bit_gray_image: np.ndarray, tmp_path: Path) -> Path:
+def black_16bit_gray_png(
+    black_16bit_gray_image: npt.NDArray[np.uint16], tmp_path: Path
+) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": black_16bit_gray_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -133,7 +142,9 @@ def black_16bit_gray_png(black_16bit_gray_image: np.ndarray, tmp_path: Path) -> 
 
 
 @pytest.fixture
-def black_16bit_rgb_png(black_16bit_rgb_image: np.ndarray, tmp_path: Path) -> Path:
+def black_16bit_rgb_png(
+    black_16bit_rgb_image: npt.NDArray[np.uint16], tmp_path: Path
+) -> Path:
     png_file = tmp_path.joinpath("image.png")
     # Pillow does not support RGB 16-bit, but the PNG specification does
     # support it. Pillow is used by rosettasciio's `image_file_writer`.
@@ -151,7 +162,9 @@ def black_16bit_rgb_png(black_16bit_rgb_image: np.ndarray, tmp_path: Path) -> Pa
 
 
 @pytest.fixture
-def black_16bit_rgba_png(black_16bit_rgba_image: np.ndarray, tmp_path: Path) -> Path:
+def black_16bit_rgba_png(
+    black_16bit_rgba_image: npt.NDArray[np.uint16], tmp_path: Path
+) -> Path:
     png_file = tmp_path.joinpath("image.png")
     write_result = cv2.imwrite(
         str(png_file), cv2.cvtColor(black_16bit_rgba_image, cv2.COLOR_RGBA2BGRA)
@@ -167,22 +180,24 @@ def black_16bit_rgba_png(black_16bit_rgba_image: np.ndarray, tmp_path: Path) -> 
 
 
 @pytest.fixture
-def white_8bit_gray_image() -> np.ndarray:
+def white_8bit_gray_image() -> npt.NDArray[np.uint8]:
     return np.full((256, 256), 255, dtype=np.uint8)
 
 
 @pytest.fixture
-def white_8bit_rgb_image() -> np.ndarray:
+def white_8bit_rgb_image() -> npt.NDArray[np.uint8]:
     return np.full((256, 256, 3), 255, dtype=np.uint8)
 
 
 @pytest.fixture
-def white_8bit_rgba_image() -> np.ndarray:
+def white_8bit_rgba_image() -> npt.NDArray[np.uint8]:
     return np.full((256, 256, 4), 255, dtype=np.uint8)
 
 
 @pytest.fixture
-def white_8bit_gray_png(white_8bit_gray_image: np.ndarray, tmp_path: Path) -> Path:
+def white_8bit_gray_png(
+    white_8bit_gray_image: npt.NDArray[np.uint8], tmp_path: Path
+) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": white_8bit_gray_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -196,7 +211,9 @@ def white_8bit_gray_png(white_8bit_gray_image: np.ndarray, tmp_path: Path) -> Pa
 
 
 @pytest.fixture
-def white_8bit_rgb_png(white_8bit_rgb_image: np.ndarray, tmp_path: Path) -> Path:
+def white_8bit_rgb_png(
+    white_8bit_rgb_image: npt.NDArray[np.uint8], tmp_path: Path
+) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": white_8bit_rgb_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -209,7 +226,9 @@ def white_8bit_rgb_png(white_8bit_rgb_image: np.ndarray, tmp_path: Path) -> Path
 
 
 @pytest.fixture
-def white_8bit_rgba_png(white_8bit_rgba_image: np.ndarray, tmp_path: Path) -> Path:
+def white_8bit_rgba_png(
+    white_8bit_rgba_image: npt.NDArray[np.uint8], tmp_path: Path
+) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": white_8bit_rgba_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -222,22 +241,24 @@ def white_8bit_rgba_png(white_8bit_rgba_image: np.ndarray, tmp_path: Path) -> Pa
 
 
 @pytest.fixture
-def white_16bit_gray_image() -> np.ndarray:
+def white_16bit_gray_image() -> npt.NDArray[np.uint16]:
     return np.full((256, 256), 65535, dtype=np.uint16)
 
 
 @pytest.fixture
-def white_16bit_rgb_image() -> np.ndarray:
+def white_16bit_rgb_image() -> npt.NDArray[np.uint16]:
     return np.full((256, 256, 3), 65535, dtype=np.uint16)
 
 
 @pytest.fixture
-def white_16bit_rgba_image() -> np.ndarray:
+def white_16bit_rgba_image() -> npt.NDArray[np.uint16]:
     return np.full((256, 256, 4), 65535, dtype=np.uint16)
 
 
 @pytest.fixture
-def white_16bit_gray_png(white_16bit_gray_image: np.ndarray, tmp_path: Path) -> Path:
+def white_16bit_gray_png(
+    white_16bit_gray_image: npt.NDArray[np.uint16], tmp_path: Path
+) -> Path:
     png_file = tmp_path.joinpath("image.png")
     signal = {"data": white_16bit_gray_image, "axes": {}}
     image_file_writer(str(png_file), signal)
@@ -251,7 +272,9 @@ def white_16bit_gray_png(white_16bit_gray_image: np.ndarray, tmp_path: Path) -> 
 
 
 @pytest.fixture
-def white_16bit_rgb_png(white_16bit_rgb_image: np.ndarray, tmp_path: Path) -> Path:
+def white_16bit_rgb_png(
+    white_16bit_rgb_image: npt.NDArray[np.uint16], tmp_path: Path
+) -> Path:
     png_file = tmp_path.joinpath("image.png")
     # Pillow does not support RGB 16-bit, but the PNG specification does
     # support it. Pillow is used by rosettasciio's `image_file_writer`.
@@ -269,7 +292,9 @@ def white_16bit_rgb_png(white_16bit_rgb_image: np.ndarray, tmp_path: Path) -> Pa
 
 
 @pytest.fixture
-def white_16bit_rgba_png(white_16bit_rgba_image: np.ndarray, tmp_path: Path) -> Path:
+def white_16bit_rgba_png(
+    white_16bit_rgba_image: npt.NDArray[np.uint16], tmp_path: Path
+) -> Path:
     png_file = tmp_path.joinpath("image.png")
     # Pillow does not support RGB 16-bit, but the PNG specification does
     # support it. Pillow is used by rosettasciio's `image_file_writer`.
@@ -287,13 +312,13 @@ def white_16bit_rgba_png(white_16bit_rgba_image: np.ndarray, tmp_path: Path) -> 
 
 
 @pytest.fixture
-def random_16bit_multipage_image() -> np.ndarray:
+def random_16bit_multipage_image() -> npt.NDArray[np.uint16]:
     return np.random.randint(0, 2**12, (64, 301, 219), "uint16")
 
 
 @pytest.fixture
 def black_8bit_gray_single_page_tiff(
-    black_8bit_gray_image: np.ndarray, tmp_path: Path
+    black_8bit_gray_image: npt.NDArray[np.uint8], tmp_path: Path
 ) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {"data": black_8bit_gray_image}
@@ -308,7 +333,7 @@ def black_8bit_gray_single_page_tiff(
 
 @pytest.fixture
 def black_8bit_rgb_single_page_tiff(
-    black_8bit_rgb_image: np.ndarray, tmp_path: Path
+    black_8bit_rgb_image: npt.NDArray[np.uint8], tmp_path: Path
 ) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {"data": rgb.regular_array2rgbx(black_8bit_rgb_image)}
@@ -323,7 +348,7 @@ def black_8bit_rgb_single_page_tiff(
 
 @pytest.fixture
 def black_8bit_rgba_single_page_tiff(
-    black_8bit_rgba_image: np.ndarray, tmp_path: Path
+    black_8bit_rgba_image: npt.NDArray[np.uint8], tmp_path: Path
 ) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {"data": rgb.regular_array2rgbx(black_8bit_rgba_image)}
@@ -338,7 +363,7 @@ def black_8bit_rgba_single_page_tiff(
 
 @pytest.fixture
 def black_16bit_gray_single_page_tiff(
-    black_16bit_gray_image: np.ndarray, tmp_path: Path
+    black_16bit_gray_image: npt.NDArray[np.uint16], tmp_path: Path
 ) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {"data": black_16bit_gray_image}
@@ -353,7 +378,7 @@ def black_16bit_gray_single_page_tiff(
 
 @pytest.fixture
 def black_16bit_rgb_single_page_tiff(
-    black_16bit_rgb_image: np.ndarray, tmp_path: Path
+    black_16bit_rgb_image: npt.NDArray[np.uint16], tmp_path: Path
 ) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {"data": rgb.regular_array2rgbx(black_16bit_rgb_image)}
@@ -368,7 +393,7 @@ def black_16bit_rgb_single_page_tiff(
 
 @pytest.fixture
 def black_16bit_rgba_single_page_tiff(
-    black_16bit_rgba_image: np.ndarray, tmp_path: Path
+    black_16bit_rgba_image: npt.NDArray[np.uint16], tmp_path: Path
 ) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {"data": rgb.regular_array2rgbx(black_16bit_rgba_image)}
@@ -383,7 +408,7 @@ def black_16bit_rgba_single_page_tiff(
 
 @pytest.fixture
 def random_multipage_tiff(
-    random_16bit_multipage_image: np.ndarray, tmp_path: Path
+    random_16bit_multipage_image: npt.NDArray[np.uint16], tmp_path: Path
 ) -> Path:
     tif_file = tmp_path.joinpath("image.tif")
     signal = {
@@ -397,7 +422,7 @@ def random_multipage_tiff(
 def text_file_txt(tmp_path: Path) -> Path:
     txt_file = tmp_path.joinpath("tmp.txt")
     with open(txt_file, "w") as fp:
-        fp.write("This is some text for a random unknown file.")
+        _ = fp.write("This is some text for a random unknown file.")
     return txt_file
 
 
@@ -436,7 +461,7 @@ def sample_1_docx(assets: Path) -> Path:
 
 
 @pytest.fixture
-def dcm(black_8bit_gray_image: np.ndarray, tmp_path: Path) -> Path:
+def dcm(black_8bit_gray_image: npt.NDArray[np.uint8], tmp_path: Path) -> Path:
     height, width = black_8bit_gray_image.shape
     grey_img = black_8bit_gray_image
     dcm_file = tmp_path.joinpath("test.dcm")
@@ -508,7 +533,7 @@ def run_cfg(
     DEFAULT_OUTPUT = output_cfg()
 
     def _make_run_cfg(
-        src: Path,
+        src: os.PathLike[str],
         delete_original: bool = False,
         extras: dict[str, Any] | None = None,
         output: Output = DEFAULT_OUTPUT,

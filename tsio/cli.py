@@ -5,11 +5,13 @@ import filetype
 import importlib.metadata
 import logging
 import numpy as np
+import numpy.typing as npt
 import os
 import platform
 import typer
 
-from enum import Enum
+from collections.abc import Sequence
+from enum import StrEnum
 from filetype.types.image import Dcm, Jpeg, Png, Tiff
 from multiprocess.pool import Pool
 from pathlib import Path
@@ -25,25 +27,25 @@ from rsciio.tiff import file_reader as tiff_file_reader
 from rsciio.utils import rgb
 from tqdm import tqdm
 from tsio import __app_name__
-from typing import Any, Literal
-from typing_extensions import Self
+from typing import Annotated, Any, Self
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
 class UnsupportedFileType(Exception):
-    def __init__(self, src: Path):
-        self.src = src
+    def __init__(self, src: os.PathLike[str], message: str | None = None):
+        super().__init__(message)
+        self.src: os.PathLike[str] = src
 
 
 class Dm3(filetype.Type):
-    MIME = "application/vnd.gatan.dm3"
-    EXTENSION = ".dm3"
+    MIME: str = "application/vnd.gatan.dm3"
+    EXTENSION: str = ".dm3"
 
     def __init__(self):
         super(Dm3, self).__init__(mime=Dm3.MIME, extension=Dm3.EXTENSION)
 
-    def match(self, buf) -> bool:
+    def match(self, buf: bytearray | bytes) -> bool:
         # First 4 bytes are version number = 3
         # Next 4 bytes are the file size
         # Last 4 bytes are "endian"
@@ -63,7 +65,7 @@ class Dm3(filetype.Type):
             else:
                 is_sorted = bool(buf[12])
                 LOGGER.debug(f"{is_sorted=}")
-                is_open = buf[13]
+                is_open = bool(buf[13])
                 LOGGER.debug(f"{is_open=}")
                 tags_count = int.from_bytes(buf[14:18], byteorder="big")
                 LOGGER.debug(f"{tags_count=}")
@@ -73,13 +75,13 @@ class Dm3(filetype.Type):
 
 
 class Dm4(filetype.Type):
-    MIME = "application/vnd.gatan.dm4"
-    EXTENSION = ".dm4"
+    MIME: str = "application/vnd.gatan.dm4"
+    EXTENSION: str = ".dm4"
 
     def __init__(self):
         super(Dm4, self).__init__(mime=Dm4.MIME, extension=Dm4.EXTENSION)
 
-    def match(self, buf) -> bool:
+    def match(self, buf: bytearray | bytes) -> bool:
         # First 4 bytes are version number = 4
         # Next 8 bytes are the file size
         # Last 4 bytes are "endian"
@@ -100,7 +102,7 @@ class Dm4(filetype.Type):
             else:
                 is_sorted = bool(buf[12])
                 LOGGER.debug(f"{is_sorted=}")
-                is_open = buf[13]
+                is_open = bool(buf[13])
                 LOGGER.debug(f"{is_open=}")
                 tags_count = int.from_bytes(buf[14:18], byteorder="big")
                 LOGGER.debug(f"{tags_count=}")
@@ -110,13 +112,13 @@ class Dm4(filetype.Type):
 
 
 class Emd(filetype.Type):
-    MIME = "application/vnd.velox.emd"
-    EXTENSION = ".emd"
+    MIME: str = "application/vnd.velox.emd"
+    EXTENSION: str = ".emd"
 
     def __init__(self):
         super(Emd, self).__init__(mime=Emd.MIME, extension=Emd.EXTENSION)
 
-    def match(self, buf) -> bool:
+    def match(self, buf: bytearray | bytes) -> bool:
         # Velox EMD is a HDF5 file.
         return (
             len(buf) > 7
@@ -141,9 +143,9 @@ logging.getLogger("PIL.Image").setLevel(logging.WARNING)
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
 
-class BitDepths(Enum):
-    EIGHT = 8
-    SIXTEEN = 16
+class BitDepths(StrEnum):
+    EIGHT = "8"
+    SIXTEEN = "16"
 
     @property
     def type(self) -> str:
@@ -156,7 +158,7 @@ class BitDepths(Enum):
         return MAX_MAP[self]
 
 
-class ToFormats(Enum):
+class ToFormats(StrEnum):
     JPEG = "jpeg"
     PNG = "png"
     TIFF = "tiff"
@@ -190,23 +192,23 @@ class ToFormats(Enum):
 
 class Output(BaseModel):
     bit_depth: BitDepths
-    path: Path | None
+    path: os.PathLike[str] | None
     format: ToFormats
 
     @staticmethod
-    def is_gray(img: np.ndarray) -> bool:
+    def is_gray(img: npt.NDArray[np.uint8 | np.uint16]) -> bool:
         return len(img.shape) == 2
 
     @staticmethod
-    def is_rgb(img: np.ndarray) -> bool:
+    def is_rgb(img: npt.NDArray[np.uint8 | np.uint16]) -> bool:
         return len(img.shape) == 3
 
     @staticmethod
-    def is_rgba(img: np.ndarray) -> bool:
+    def is_rgba(img: npt.NDArray[np.uint8 | np.uint16]) -> bool:
         return Output.is_rgb(img) and img.shape[2] == 4
 
     @staticmethod
-    def normalize(img: np.ndarray) -> np.ndarray:
+    def normalize(img: npt.NDArray[np.uint8 | np.uint16]) -> npt.NDArray[np.float32]:
         max_pixel_intensity = int(np.max(img))
         LOGGER.debug(f"{max_pixel_intensity=}")
         min_pixel_intensity = int(np.min(img))
@@ -239,8 +241,8 @@ class Output(BaseModel):
         rgbx_or_gray_int_img = self.scale(rgbx_or_gray_float_img)
         return self.convert(rgbx_or_gray_int_img)
 
-    def destination(self, src: Path) -> Path:
-        return src.resolve().parent if self.path is None else self.path
+    def destination(self, src: os.PathLike[str]) -> Path:
+        return Path(src).resolve().parent if self.path is None else Path(self.path)
 
     def scale(self, img: np.ndarray) -> np.ndarray:
         return np.round(img * self.bit_depth.max_pixel_intensity).astype(
@@ -270,7 +272,7 @@ class Configuration(BaseModel):
     extras: dict[str, Any] | None
     output: Output
     silent: bool
-    src: Path
+    src: os.PathLike[str]
 
 
 def print_validation_error(err: ValidationError):
@@ -299,7 +301,7 @@ def version_callback(value: bool):
 
 def write(
     pages: list[dict[str, Any]],
-    src: Path,
+    src: os.PathLike[str],
     output: Output,
     silent: bool,
     delete_original: bool = False,
@@ -309,18 +311,21 @@ def write(
     LOGGER.debug(f"{silent=}")
     LOGGER.debug(f"{delete_original=}")
     destination = output.destination(src)
+    LOGGER.debug(f"{destination=}")
     pages_count = len(pages)
     LOGGER.debug(f"{pages_count=}")
-    src_file_stem = src.stem
+    src_path = Path(src)
+    LOGGER.debug(f"{src_path=}")
+    src_file_stem = src_path.stem
+    LOGGER.debug(f"{src_file_stem=}")
     if pages_count > 1:
         destination = destination.joinpath(src_file_stem)
     os.makedirs(destination, exist_ok=True)
-    LOGGER.debug(f"{src_file_stem=}")
     for page_index, page in enumerate(
         tqdm(
             pages,
             total=pages_count,
-            desc=src.name,
+            desc=src_path.name,
             disable=silent or pages_count == 1,
             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
         )
@@ -339,9 +344,10 @@ def write(
         for axis in page["axes"]:
             if "navigate" not in axis:
                 axis["navigate"] = None
+        print(f"{output_file=}")
         image_file_writer(output_file, page)
         if delete_original:
-            src.unlink(missing_ok=True)
+            src_path.unlink(missing_ok=True)
 
 
 def run_dcm(cfg: Configuration):
@@ -403,7 +409,7 @@ def run_emd(cfg: Configuration):
             pages_count = 1
             pages = [{"data": data, "axes": emd_data[detector]["axes"]}]
         else:
-            pages_count = data.shape[0]
+            pages_count = int(data.shape[0])
             LOGGER.debug(f"{pages_count=}")
             pages = [
                 {"data": data[i, ...], "axes": emd_data[detector]["axes"]}
@@ -443,7 +449,7 @@ def run_tiff(cfg: Configuration):
 
 
 def expand_sources(
-    paths: list[Path],
+    paths: Sequence[os.PathLike[str]],
     output: Output,
     silent: bool,
     delete_original: bool = False,
@@ -455,8 +461,9 @@ def expand_sources(
     LOGGER.debug(f"{delete_original=}")
     LOGGER.debug(f"{extras=}")
     sources = []
-    for path in paths:
-        if path.is_dir():
+    for src in paths:
+        src_path = Path(src)
+        if src_path.is_dir():
             sources.extend(
                 [
                     Configuration(
@@ -464,10 +471,10 @@ def expand_sources(
                         extras=extras,
                         output=output,
                         silent=silent,
-                        src=path.joinpath(p),
+                        src=src_path.joinpath(p),
                     )
-                    for p in os.listdir(path)
-                    if path.joinpath(p).is_file()
+                    for p in os.listdir(src_path)
+                    if src_path.joinpath(p).is_file()
                 ]
             )
         else:
@@ -477,7 +484,7 @@ def expand_sources(
                     extras=extras,
                     output=output,
                     silent=silent,
-                    src=path,
+                    src=src_path,
                 )
             )
     return sources
@@ -507,65 +514,68 @@ def run(cfg: Configuration):
 
 PROGRESS_BAR_FORMAT: str = "{l_bar}{bar}| {n_fmt}/{total_fmt}"
 
-DELETE_ORIGINAL_OPT: bool = typer.Option(
-    False,
-    "-D",
-    "--delete-original",
-    help="Deletes the original file after conversion.",
-)
-NUM_CPUS_OPT: int | None = typer.Option(
-    None,
-    "-n",
-    "--num-cpus",
-    help="The number of CPU cores to use for parallel execution.",
-)
-OUTPUT_OPT: Path | None = typer.Option(
-    None, "-o", "--output", help="Destination for output file(s)."
-)
-PATHS_ARG: list[Path] = typer.Argument(help="The original source files.")
-SILENT_OPT: bool = typer.Option(
-    False, "-S", "--silent", help="Disables the progress bars."
-)
-TO_BIT_DEPTH_OPT: Literal[8, 16] = typer.Option(
-    8,
-    "-b",
-    "--to-bit-depth",
-    help="The bit depth for the output file.",
-)
-TO_FORMAT_OPT: ToFormats = typer.Option(
-    ToFormats.JPEG.value,
-    "-t",
-    "--to",
-    case_sensitive=False,
-    help="The output file format.",
-)
-VERBOSE_OPT: int = typer.Option(
-    0,
-    "--verbose",
-    "-v",
-    help="Print debugging statements.",
-    count=True,
-)
-VERSION_OPT: bool | None = typer.Option(
-    None,
-    "--version",
-    help="Prints the version.",
-    callback=version_callback,
-    is_eager=True,
-)
-
 
 @app.command()
 def main(
-    paths: list[Path] = PATHS_ARG,
-    delete_original: bool = DELETE_ORIGINAL_OPT,
-    num_cpus: int | None = NUM_CPUS_OPT,
-    output: Path | None = OUTPUT_OPT,
-    silent: bool = SILENT_OPT,
-    to_bit_depth: int = TO_BIT_DEPTH_OPT,
-    to_format: ToFormats = TO_FORMAT_OPT,
-    verbose: int = VERBOSE_OPT,
-    version: bool | None = VERSION_OPT,
+    paths: Annotated[list[Path], typer.Argument(help="The original source files.")],
+    delete_original: Annotated[
+        bool,
+        typer.Option(
+            "-D",
+            "--delete-original",
+            help="Deletes the original file after conversion.",
+        ),
+    ] = False,
+    num_cpus: Annotated[
+        int | None,
+        typer.Option(
+            "-n",
+            "--num-cpus",
+            help="The number of CPU cores to use for parallel execution.",
+        ),
+    ] = None,
+    output: Annotated[
+        Path | None,
+        typer.Option("-o", "--output", help="Destination for output file(s)."),
+    ] = None,
+    silent: Annotated[
+        bool, typer.Option("-S", "--silent", help="Disables the progress bars.")
+    ] = False,
+    to_bit_depth: Annotated[
+        BitDepths,
+        typer.Option(
+            "-b",
+            "--to-bit-depth",
+            help="The bit depth for the output file.",
+        ),
+    ] = BitDepths.EIGHT,
+    to_format: Annotated[
+        ToFormats,
+        typer.Option(
+            "-t",
+            "--to",
+            case_sensitive=False,
+            help="The output file format.",
+        ),
+    ] = ToFormats.JPEG,
+    verbose: Annotated[
+        int,
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Print debugging statements.",
+            count=True,
+        ),
+    ] = 0,
+    version: Annotated[
+        bool | None,
+        typer.Option(
+            "--version",
+            help="Prints the version.",
+            callback=version_callback,
+            is_eager=True,
+        ),
+    ] = None,
 ):
     logging.basicConfig(level=map_verbosity(verbose))
     LOGGER.debug(f"{delete_original=}")
