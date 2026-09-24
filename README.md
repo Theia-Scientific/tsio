@@ -6,7 +6,7 @@
 ![GitHub Release](https://img.shields.io/github/v/release/Theia-Scientific/tsio)
 
 A Command Line Interface (CLI) application for extracting images from microscopy
-files to common image file formats, such as JPEG, PNT, and/or TIFF. Supported
+files to common image file formats, such as JPEG, PNG, and/or TIFF. Supported
 microscopy files include:
 
 * [dcm] (DICOM) - medical image file format standard
