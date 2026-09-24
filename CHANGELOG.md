@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.1.1 (2026-09-24)
+
+### Bug fixes
+
+- Fixed extraneous print statement ([#45](https://github.com/Theia-Scientific/tsio/pull/45))
+
 ## 1.1.0 (2026-09-18)
 
 ### Features and enhancements
