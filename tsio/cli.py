@@ -344,7 +344,6 @@ def write(
         for axis in page["axes"]:
             if "navigate" not in axis:
                 axis["navigate"] = None
-        print(f"{output_file=}")
         image_file_writer(output_file, page)
         if delete_original:
             src_path.unlink(missing_ok=True)
