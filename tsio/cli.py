@@ -18,7 +18,7 @@ from pathlib import Path
 from pydantic import BaseModel, model_validator, ValidationError
 from pydicom import dcmread, iter_pixels
 from rich import print
-from rsciio import digitalmicrograph, emd
+from rsciio import digitalmicrograph, emd, mrcz
 from rsciio.image import (
     file_reader as image_file_reader,
     file_writer as image_file_writer,
@@ -133,9 +133,21 @@ class Emd(filetype.Type):
         )
 
 
+class Mrc(filetype.Type):
+    MIME: str = "application/mrc"
+    EXTENSION: str = ".mrc"
+
+    def __init__(self):
+        super(Mrc, self).__init__(mime=Mrc.MIME, extension=Mrc.EXTENSION)
+
+    def match(self, buf: bytearray | bytes) -> bool:
+        return len(buf) > 208 and buf[209:212] == b"MAP"
+
+
 filetype.add_type(Dm3())
 filetype.add_type(Dm4())
 filetype.add_type(Emd())
+filetype.add_type(Mrc())
 
 
 logging.getLogger("PIL.Image").setLevel(logging.WARNING)
@@ -425,6 +437,20 @@ def run_emd(cfg: Configuration):
         LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
 
 
+def run_mrc(cfg: Configuration):
+    LOGGER.debug(f"{cfg=}")
+    try:
+        write(
+            mrcz.file_reader(cfg.src, lazy=True),
+            cfg.src,
+            cfg.output,
+            cfg.silent,
+            delete_original=cfg.delete_original,
+        )
+    except Exception as error:
+        LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
+
+
 def run_png(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
     write(
@@ -501,6 +527,7 @@ def run(cfg: Configuration):
             Dm3.MIME: run_dm,
             Dm4.MIME: run_dm,
             Emd.MIME: run_emd,
+            Mrc.MIME: run_mrc,
             Png.MIME: run_png,
             Tiff.MIME: run_tiff,
         }
