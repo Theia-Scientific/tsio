@@ -33,6 +33,8 @@ from tsio.cli import (
     run_dcm,
     run_dm,
     run_emd,
+    run_mrc,
+    run_npy,
     run_png,
     run_tiff,
     ToFormats,
@@ -636,6 +638,11 @@ def v09_loaded_confusion_matrix_png(assets: Path) -> Path:
 @pytest.fixture
 def sample_1_docx(assets: Path) -> Path:
     return assets.joinpath("sample_1.docx")
+
+
+@pytest.fixture
+def mrc_haadf(assets: Path) -> Path:
+    return assets.joinpath("HAADFscan.mrc")
 
 
 @pytest.fixture
@@ -1358,6 +1365,62 @@ def test_run_emd_fails_with_exception(
     _ = mocker.patch("rsciio.emd.file_reader", mock_file_reader)
     run_emd(run_cfg(src))
     assert not dst.exists()
+
+
+def test_run_mrc(
+    mrc_haadf: Path,
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    tmp_path: Path,
+):
+    src = mrc_haadf
+    dst = tmp_path.joinpath(src.with_suffix(JPEG_EXT).name)
+    run_mrc(run_cfg(src, output=output_cfg(path=tmp_path)))
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (16, 16, 3)
+
+
+def test_run_mrc_fails_with_exception(
+    mocker: MockerFixture, run_cfg: Callable[..., Configuration], tmp_path: Path
+):
+    src = tmp_path.joinpath("test.mrc")
+    dst = src.with_suffix(JPEG_EXT)
+
+    def mock_file_reader(*args: Any, **kwargs: Any):
+        _ = args
+        _ = kwargs
+
+        raise Exception("Test Exception")
+
+    _ = mocker.patch("rsciio.mrc.file_reader", mock_file_reader)
+    run_mrc(run_cfg(src))
+    assert not dst.exists()
+
+
+def test_run_npy(
+    black_8bit_gray_npy: Path,
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    tmp_path: Path,
+):
+    src = black_8bit_gray_npy
+    dst = tmp_path.joinpath(src.with_suffix(JPEG_EXT).name)
+    run_npy(run_cfg(src, output=output_cfg(path=tmp_path)))
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
 def test_run_png_8bit_gray(

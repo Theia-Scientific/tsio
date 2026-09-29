@@ -18,7 +18,7 @@ from pathlib import Path
 from pydantic import BaseModel, model_validator, ValidationError
 from pydicom import dcmread, iter_pixels
 from rich import print
-from rsciio import digitalmicrograph, emd
+from rsciio import digitalmicrograph, emd, mrc
 from rsciio.image import (
     file_reader as image_file_reader,
     file_writer as image_file_writer,
@@ -133,6 +133,17 @@ class Emd(filetype.Type):
         )
 
 
+class Mrc(filetype.Type):
+    MIME: str = "application/vnd.velox.mrc"
+    EXTENSION: str = ".mrc"
+
+    def __init__(self):
+        super(Mrc, self).__init__(mime=Mrc.MIME, extension=Mrc.EXTENSION)
+
+    def match(self, buf: bytearray | bytes) -> bool:
+        return len(buf) > 208 and buf[208:211] == b"MAP"
+
+
 class Npy(filetype.Type):
     MIME: str = "application/numpy"
     EXTENSION: str = ".npy"
@@ -155,6 +166,7 @@ class Npy(filetype.Type):
 filetype.add_type(Dm3())
 filetype.add_type(Dm4())
 filetype.add_type(Emd())
+filetype.add_type(Mrc())
 filetype.add_type(Npy())
 
 
@@ -445,6 +457,20 @@ def run_emd(cfg: Configuration):
         LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
 
 
+def run_mrc(cfg: Configuration):
+    LOGGER.debug(f"{cfg=}")
+    try:
+        write(
+            mrc.file_reader(str(cfg.src), lazy=True),
+            cfg.src,
+            cfg.output,
+            cfg.silent,
+            delete_original=cfg.delete_original,
+        )
+    except Exception as error:
+        LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
+
+
 def run_npy(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
     write(
@@ -540,6 +566,7 @@ def run(cfg: Configuration):
             Dm3.MIME: run_dm,
             Dm4.MIME: run_dm,
             Emd.MIME: run_emd,
+            Mrc.MIME: run_mrc,
             Npy.MIME: run_npy,
             Png.MIME: run_png,
             Tiff.MIME: run_tiff,
