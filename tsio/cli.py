@@ -440,18 +440,9 @@ def run_emd(cfg: Configuration):
 def run_mrc(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
     try:
-        mrc_data = mrc.file_reader(cfg.src, lazy=True)
-        LOGGER.debug(f"{mrc_data=}")
-        LOGGER.debug(f"{len(mrc_data)=}")
-        if len(mrc_data) == 0:
-            raise Exception("No image data")
-        dask_data = mrc_data["data"]
-        LOGGER.debug(f"{dask_data=}")
-        data = dask_data.compute(close_file=True)
-        LOGGER.debug(f"{data.shape=}")
-        pages = [{"data": data, "axes": mrc_data["axes"]}]
+        mrc_data = mrc.file_reader(str(cfg.src), lazy=True)
         write(
-            pages,
+            mrc.file_reader(str(cfg.src), lazy=True),
             cfg.src,
             cfg.output,
             cfg.silent,

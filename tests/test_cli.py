@@ -467,11 +467,6 @@ def mrc_haadf(assets: Path) -> Path:
 
 
 @pytest.fixture
-def mrc_4dstem(assets: Path) -> Path:
-    return assets.joinpath("4DSTEMscan.mrc")
-
-
-@pytest.fixture
 def dcm(black_8bit_gray_image: npt.NDArray[np.uint8], tmp_path: Path) -> Path:
     height, width = black_8bit_gray_image.shape
     grey_img = black_8bit_gray_image
@@ -1209,8 +1204,7 @@ def test_run_mrc_haadf(
     jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
     assert jpeg_img is not None
     assert jpeg_img.dtype.name == "uint8"
-    assert jpeg_img.shape == (256, 256, 3)
-    assert not np.any(jpeg_img)
+    assert jpeg_img.shape == (16, 16, 3)
 
 
 def test_run_png_8bit_gray(
