@@ -1188,7 +1188,7 @@ def test_run_emd_fails_with_exception(
     assert not dst.exists()
 
 
-def test_run_mrc_haadf(
+def test_run_mrc(
     mrc_haadf: Path,
     output_cfg: Callable[..., Output],
     run_cfg: Callable[..., Configuration],
@@ -1205,6 +1205,23 @@ def test_run_mrc_haadf(
     assert jpeg_img is not None
     assert jpeg_img.dtype.name == "uint8"
     assert jpeg_img.shape == (16, 16, 3)
+
+
+def test_run_mrc_fails_with_exception(
+    mocker: MockerFixture, run_cfg: Callable[..., Configuration], tmp_path: Path
+):
+    src = tmp_path.joinpath("test.mrc")
+    dst = src.with_suffix(JPEG_EXT)
+
+    def mock_file_reader(*args: Any, **kwargs: Any):
+        _ = args
+        _ = kwargs
+
+        raise Exception("Test Exception")
+
+    _ = mocker.patch("rsciio.mrc.file_reader", mock_file_reader)
+    run_mrc(run_cfg(src))
+    assert not dst.exists()
 
 
 def test_run_png_8bit_gray(

@@ -440,7 +440,6 @@ def run_emd(cfg: Configuration):
 def run_mrc(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
     try:
-        mrc_data = mrc.file_reader(str(cfg.src), lazy=True)
         write(
             mrc.file_reader(str(cfg.src), lazy=True),
             cfg.src,
