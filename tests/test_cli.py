@@ -34,6 +34,7 @@ from tsio.cli import (
     run_dm,
     run_emd,
     run_mrc,
+    run_npy,
     run_png,
     run_tiff,
     ToFormats,
@@ -1400,6 +1401,26 @@ def test_run_mrc_fails_with_exception(
     _ = mocker.patch("rsciio.mrc.file_reader", mock_file_reader)
     run_mrc(run_cfg(src))
     assert not dst.exists()
+
+
+def test_run_npy(
+    black_8bit_gray_npy: Path,
+    output_cfg: Callable[..., Output],
+    run_cfg: Callable[..., Configuration],
+    tmp_path: Path,
+):
+    src = black_8bit_gray_npy
+    dst = tmp_path.joinpath(src.with_suffix(JPEG_EXT).name)
+    run_npy(run_cfg(src, output=output_cfg(path=tmp_path)))
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
 def test_run_png_8bit_gray(
