@@ -462,6 +462,11 @@ def sample_1_docx(assets: Path) -> Path:
 
 
 @pytest.fixture
+def mrc(assets: Path) -> Path:
+    return assets.joinpath("20241021_00405_0_Virt 0_sum.mrc")
+
+
+@pytest.fixture
 def dcm(black_8bit_gray_image: npt.NDArray[np.uint8], tmp_path: Path) -> Path:
     height, width = black_8bit_gray_image.shape
     grey_img = black_8bit_gray_image
