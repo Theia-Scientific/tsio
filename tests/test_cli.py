@@ -79,6 +79,36 @@ def black_16bit_rgba_image() -> npt.NDArray[np.uint16]:
 
 
 @pytest.fixture
+def white_8bit_gray_image() -> npt.NDArray[np.uint8]:
+    return np.full((256, 256), 255, dtype=np.uint8)
+
+
+@pytest.fixture
+def white_8bit_rgb_image() -> npt.NDArray[np.uint8]:
+    return np.full((256, 256, 3), 255, dtype=np.uint8)
+
+
+@pytest.fixture
+def white_8bit_rgba_image() -> npt.NDArray[np.uint8]:
+    return np.full((256, 256, 4), 255, dtype=np.uint8)
+
+
+@pytest.fixture
+def white_16bit_gray_image() -> npt.NDArray[np.uint16]:
+    return np.full((256, 256), 65535, dtype=np.uint16)
+
+
+@pytest.fixture
+def white_16bit_rgb_image() -> npt.NDArray[np.uint16]:
+    return np.full((256, 256, 3), 65535, dtype=np.uint16)
+
+
+@pytest.fixture
+def white_16bit_rgba_image() -> npt.NDArray[np.uint16]:
+    return np.full((256, 256, 4), 65535, dtype=np.uint16)
+
+
+@pytest.fixture
 def black_8bit_gray_png(
     black_8bit_gray_image: npt.NDArray[np.uint8], tmp_path: Path
 ) -> Path:
@@ -181,21 +211,6 @@ def black_16bit_rgba_png(
 
 
 @pytest.fixture
-def white_8bit_gray_image() -> npt.NDArray[np.uint8]:
-    return np.full((256, 256), 255, dtype=np.uint8)
-
-
-@pytest.fixture
-def white_8bit_rgb_image() -> npt.NDArray[np.uint8]:
-    return np.full((256, 256, 3), 255, dtype=np.uint8)
-
-
-@pytest.fixture
-def white_8bit_rgba_image() -> npt.NDArray[np.uint8]:
-    return np.full((256, 256, 4), 255, dtype=np.uint8)
-
-
-@pytest.fixture
 def white_8bit_gray_png(
     white_8bit_gray_image: npt.NDArray[np.uint8], tmp_path: Path
 ) -> Path:
@@ -239,21 +254,6 @@ def white_8bit_rgba_png(
     assert png_img.dtype.name == "uint8"
     assert png_img.shape == (256, 256, 4)
     return png_file
-
-
-@pytest.fixture
-def white_16bit_gray_image() -> npt.NDArray[np.uint16]:
-    return np.full((256, 256), 65535, dtype=np.uint16)
-
-
-@pytest.fixture
-def white_16bit_rgb_image() -> npt.NDArray[np.uint16]:
-    return np.full((256, 256, 3), 65535, dtype=np.uint16)
-
-
-@pytest.fixture
-def white_16bit_rgba_image() -> npt.NDArray[np.uint16]:
-    return np.full((256, 256, 4), 65535, dtype=np.uint16)
 
 
 @pytest.fixture
@@ -310,6 +310,184 @@ def white_16bit_rgba_png(
     assert png_img.shape == (256, 256, 4)
     assert np.all(png_img == 65535)
     return png_file
+
+
+@pytest.fixture
+def black_8bit_gray_npy(
+    black_8bit_gray_image: npt.NDArray[np.uint8], tmp_path: Path
+) -> Path:
+    npy_file = tmp_path.joinpath("image.npy")
+    np.save(npy_file, black_8bit_gray_image)
+    assert npy_file.exists()
+    npy_img = np.load(npy_file)
+    assert npy_img is not None
+    assert npy_img.dtype.name == "uint8"
+    assert npy_img.shape == (256, 256)
+    assert np.all(npy_img == 0)
+    return npy_file
+
+
+@pytest.fixture
+def black_8bit_rgb_npy(
+    black_8bit_rgb_image: npt.NDArray[np.uint8], tmp_path: Path
+) -> Path:
+    npy_file = tmp_path.joinpath("image.npy")
+    np.save(npy_file, black_8bit_rgb_image)
+    assert npy_file.exists()
+    npy_img = np.load(npy_file)
+    assert npy_img is not None
+    assert npy_img.dtype.name == "uint8"
+    assert npy_img.shape == (256, 256, 3)
+    assert np.all(npy_img == 0)
+    return npy_file
+
+
+@pytest.fixture
+def black_8bit_rgba_npy(
+    black_8bit_rgba_image: npt.NDArray[np.uint8], tmp_path: Path
+) -> Path:
+    npy_file = tmp_path.joinpath("image.npy")
+    np.save(npy_file, black_8bit_rgba_image)
+    assert npy_file.exists()
+    npy_img = np.load(npy_file)
+    assert npy_img is not None
+    assert npy_img.dtype.name == "uint8"
+    assert npy_img.shape == (256, 256, 4)
+    assert np.all(npy_img == 0)
+    return npy_file
+
+
+@pytest.fixture
+def black_16bit_gray_npy(
+    black_16bit_gray_image: npt.NDArray[np.uint16], tmp_path: Path
+) -> Path:
+    npy_file = tmp_path.joinpath("image.npy")
+    np.save(npy_file, black_16bit_gray_image)
+    assert npy_file.exists()
+    npy_img = np.load(npy_file)
+    assert npy_img is not None
+    assert npy_img.dtype.name == "uint16"
+    assert npy_img.shape == (256, 256)
+    assert np.all(npy_img == 0)
+    return npy_file
+
+
+@pytest.fixture
+def black_16bit_rgb_npy(
+    black_16bit_rgb_image: npt.NDArray[np.uint16], tmp_path: Path
+) -> Path:
+    npy_file = tmp_path.joinpath("image.npy")
+    np.save(npy_file, black_16bit_rgb_image)
+    assert npy_file.exists()
+    npy_img = np.load(npy_file)
+    assert npy_img is not None
+    assert npy_img.dtype.name == "uint16"
+    assert npy_img.shape == (256, 256, 3)
+    assert np.all(npy_img == 0)
+    return npy_file
+
+
+@pytest.fixture
+def black_16bit_rgba_npy(
+    black_16bit_rgba_image: npt.NDArray[np.uint16], tmp_path: Path
+) -> Path:
+    npy_file = tmp_path.joinpath("image.npy")
+    np.save(npy_file, black_16bit_rgba_image)
+    assert npy_file.exists()
+    npy_img = np.load(npy_file)
+    assert npy_img is not None
+    assert npy_img.dtype.name == "uint16"
+    assert npy_img.shape == (256, 256, 4)
+    assert np.all(npy_img == 0)
+    return npy_file
+
+
+@pytest.fixture
+def white_8bit_gray_npy(
+    white_8bit_gray_image: npt.NDArray[np.uint8], tmp_path: Path
+) -> Path:
+    npy_file = tmp_path.joinpath("image.npy")
+    np.save(npy_file, white_8bit_gray_image)
+    assert npy_file.exists()
+    npy_img = np.load(npy_file)
+    assert npy_img is not None
+    assert npy_img.dtype.name == "uint8"
+    assert npy_img.shape == (256, 256)
+    assert np.all(npy_img == 255)
+    return npy_file
+
+
+@pytest.fixture
+def white_8bit_rgb_npy(
+    white_8bit_rgb_image: npt.NDArray[np.uint8], tmp_path: Path
+) -> Path:
+    npy_file = tmp_path.joinpath("image.npy")
+    np.save(npy_file, white_8bit_rgb_image)
+    assert npy_file.exists()
+    npy_img = np.load(npy_file)
+    assert npy_img is not None
+    assert npy_img.dtype.name == "uint8"
+    assert npy_img.shape == (256, 256, 3)
+    return npy_file
+
+
+@pytest.fixture
+def white_8bit_rgba_npy(
+    white_8bit_rgba_image: npt.NDArray[np.uint8], tmp_path: Path
+) -> Path:
+    npy_file = tmp_path.joinpath("image.npy")
+    np.save(npy_file, white_8bit_rgba_image)
+    assert npy_file.exists()
+    npy_img = np.load(npy_file)
+    assert npy_img is not None
+    assert npy_img.dtype.name == "uint8"
+    assert npy_img.shape == (256, 256, 4)
+    return npy_file
+
+
+@pytest.fixture
+def white_16bit_gray_npy(
+    white_16bit_gray_image: npt.NDArray[np.uint16], tmp_path: Path
+) -> Path:
+    npy_file = tmp_path.joinpath("image.npy")
+    np.save(npy_file, white_16bit_gray_image)
+    assert npy_file.exists()
+    npy_img = np.load(npy_file)
+    assert npy_img is not None
+    assert npy_img.dtype.name == "uint16"
+    assert npy_img.shape == (256, 256)
+    assert np.all(npy_img == 65535)
+    return npy_file
+
+
+@pytest.fixture
+def white_16bit_rgb_npy(
+    white_16bit_rgb_image: npt.NDArray[np.uint16], tmp_path: Path
+) -> Path:
+    npy_file = tmp_path.joinpath("image.npy")
+    np.save(npy_file, white_16bit_rgb_image)
+    assert npy_file.exists()
+    npy_img = np.load(npy_file)
+    assert npy_img is not None
+    assert npy_img.dtype.name == "uint16"
+    assert npy_img.shape == (256, 256, 3)
+    assert np.all(npy_img == 65535)
+    return npy_file
+
+
+@pytest.fixture
+def white_16bit_rgba_npy(
+    white_16bit_rgba_image: npt.NDArray[np.uint16], tmp_path: Path
+) -> Path:
+    npy_file = tmp_path.joinpath("image.npy")
+    np.save(npy_file, white_16bit_rgba_image)
+    assert npy_file.exists()
+    npy_img = np.load(npy_file)
+    assert npy_img is not None
+    assert npy_img.dtype.name == "uint16"
+    assert npy_img.shape == (256, 256, 4)
+    assert np.all(npy_img == 65535)
+    return npy_file
 
 
 @pytest.fixture
@@ -1881,6 +2059,51 @@ def test_app_emd_fails(mocker: MockerFixture, single_image_emd: Path):
 
     result = runner.invoke(app, ["-S", "-b", "16", str(src)])
     assert result.exit_code == 1
+
+
+def test_app_npy_8bit_gray(black_8bit_gray_npy: Path):
+    dst = black_8bit_gray_npy.with_suffix(JPEG_EXT)
+    result = runner.invoke(app, ["-S", str(black_8bit_gray_npy)])
+    assert result.exit_code == 0
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
+
+
+def test_app_npy_16bit(black_16bit_gray_npy: Path):
+    dst = black_16bit_gray_npy.with_suffix(JPEG_EXT)
+    result = runner.invoke(app, ["-S", str(black_16bit_gray_npy)])
+    assert result.exit_code == 0
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
+
+
+def test_app_npy_white_8bit_rgba(white_8bit_rgba_npy: Path):
+    dst = white_8bit_rgba_npy.with_suffix(JPEG_EXT)
+    result = runner.invoke(app, ["-S", str(white_8bit_rgba_npy)])
+    assert result.exit_code == 0
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert np.all(jpeg_img == 255)
 
 
 def test_app_png_8bit_gray(black_8bit_gray_png: Path):

@@ -144,10 +144,30 @@ class Mrc(filetype.Type):
         return len(buf) > 208 and buf[208:211] == b"MAP"
 
 
+class Npy(filetype.Type):
+    MIME: str = "application/numpy"
+    EXTENSION: str = ".npy"
+
+    def __init__(self):
+        super(Npy, self).__init__(mime=Npy.MIME, extension=Npy.EXTENSION)
+
+    def match(self, buf: bytearray | bytes) -> bool:
+        return (
+            len(buf) > 5
+            and buf[0] == 0x93
+            and buf[1] == 0x4E
+            and buf[2] == 0x55
+            and buf[3] == 0x4D
+            and buf[4] == 0x50
+            and buf[5] == 0x59
+        )
+
+
 filetype.add_type(Dm3())
 filetype.add_type(Dm4())
 filetype.add_type(Emd())
 filetype.add_type(Mrc())
+filetype.add_type(Npy())
 
 
 logging.getLogger("PIL.Image").setLevel(logging.WARNING)
@@ -451,6 +471,25 @@ def run_mrc(cfg: Configuration):
         LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
 
 
+def run_npy(cfg: Configuration):
+    LOGGER.debug(f"{cfg=}")
+    write(
+        [
+            {
+                "data": np.load(cfg.src),
+                "axes": [],
+                "index_in_array": None,
+                "metadata": {},
+                "original_metadata": {},
+            }
+        ],
+        cfg.src,
+        cfg.output,
+        cfg.silent,
+        delete_original=cfg.delete_original,
+    )
+
+
 def run_png(cfg: Configuration):
     LOGGER.debug(f"{cfg=}")
     write(
@@ -528,6 +567,7 @@ def run(cfg: Configuration):
             Dm4.MIME: run_dm,
             Emd.MIME: run_emd,
             Mrc.MIME: run_mrc,
+            Npy.MIME: run_npy,
             Png.MIME: run_png,
             Tiff.MIME: run_tiff,
         }
