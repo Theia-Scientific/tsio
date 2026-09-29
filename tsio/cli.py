@@ -134,7 +134,7 @@ class Emd(filetype.Type):
 
 
 class Mrc(filetype.Type):
-    MIME: str = "application/mrc"
+    MIME: str = "application/vnd.ccpem.mrc"
     EXTENSION: str = ".mrc"
 
     def __init__(self):
