@@ -18,7 +18,7 @@ from pathlib import Path
 from pydantic import BaseModel, model_validator, ValidationError
 from pydicom import dcmread, iter_pixels
 from rich import print
-from rsciio import digitalmicrograph, emd, mrcz
+from rsciio import digitalmicrograph, emd, mrc
 from rsciio.image import (
     file_reader as image_file_reader,
     file_writer as image_file_writer,
@@ -134,7 +134,7 @@ class Emd(filetype.Type):
 
 
 class Mrc(filetype.Type):
-    MIME: str = "application/vnd.ccpem.mrc"
+    MIME: str = "application/vnd.velox.mrc"
     EXTENSION: str = ".mrc"
 
     def __init__(self):
@@ -438,10 +438,20 @@ def run_emd(cfg: Configuration):
 
 
 def run_mrc(cfg: Configuration):
-    LOGGER.debug(f"{cfg=}")
+    print(f"{cfg=}")
     try:
+        mrc_data = mrc.file_reader(cfg.src, lazy=True)
+        LOGGER.debug(f"{mrc_data=}")
+        LOGGER.debug(f"{len(mrc_data)=}")
+        if len(mrc_data) == 0:
+            raise Exception("No image data")
+        dask_data = mrc_data["data"]
+        LOGGER.debug(f"{dask_data=}")
+        data = dask_data.compute(close_file=True)
+        LOGGER.debug(f"{data.shape=}")
+        pages = [{"data": data, "axes": mrc_data["axes"]}]
         write(
-            mrcz.file_reader(cfg.src, lazy=True),
+            pages,
             cfg.src,
             cfg.output,
             cfg.silent,

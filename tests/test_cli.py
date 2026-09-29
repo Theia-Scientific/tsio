@@ -462,8 +462,13 @@ def sample_1_docx(assets: Path) -> Path:
 
 
 @pytest.fixture
-def mrc(assets: Path) -> Path:
-    return assets.joinpath("20241021_00405_0_Virt 0_sum.mrc")
+def mrc_haadf(assets: Path) -> Path:
+    return assets.joinpath("HAADFscan.mrc")
+
+
+@pytest.fixture
+def mrc_4dstem(assets: Path) -> Path:
+    return assets.joinpath("4DSTEMscan.mrc")
 
 
 @pytest.fixture
@@ -1188,13 +1193,13 @@ def test_run_emd_fails_with_exception(
     assert not dst.exists()
 
 
-def test_run_mrc(
-    dcm: Path,
+def test_run_mrc_haadf(
+    mrc_haadf: Path,
     output_cfg: Callable[..., Output],
     run_cfg: Callable[..., Configuration],
     tmp_path: Path,
 ):
-    src = dcm
+    src = mrc_haadf
     dst = tmp_path.joinpath(src.with_suffix(JPEG_EXT).name)
     run_mrc(run_cfg(src, output=output_cfg(path=tmp_path)))
     assert dst.exists()
