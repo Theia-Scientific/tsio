@@ -141,7 +141,7 @@ class Mrc(filetype.Type):
         super(Mrc, self).__init__(mime=Mrc.MIME, extension=Mrc.EXTENSION)
 
     def match(self, buf: bytearray | bytes) -> bool:
-        return len(buf) > 208 and buf[209:212] == b"MAP"
+        return len(buf) > 208 and buf[208:211] == b"MAP"
 
 
 filetype.add_type(Dm3())
@@ -438,7 +438,7 @@ def run_emd(cfg: Configuration):
 
 
 def run_mrc(cfg: Configuration):
-    print(f"{cfg=}")
+    LOGGER.debug(f"{cfg=}")
     try:
         mrc_data = mrc.file_reader(cfg.src, lazy=True)
         LOGGER.debug(f"{mrc_data=}")
