@@ -1,5 +1,12 @@
 # Change Log
 
+## 1.2.0 (2026-10-02)
+
+### Features and enhancements
+
+- Added MRC file support ([#50](https://github.com/Theia-Scientific/tsio/pull/50))
+- Added support for NPY files ([#49](https://github.com/Theia-Scientific/tsio/pull/49))
+
 ## 1.1.1 (2026-09-24)
 
 ### Bug fixes
