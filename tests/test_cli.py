@@ -8,6 +8,7 @@ import numpy as np
 import numpy.typing as npt
 import os
 import pytest
+import tifffile
 
 from filetype.types.image import Jpeg, Png, Tiff
 from pathlib import Path
@@ -493,7 +494,7 @@ def white_16bit_rgba_npy(
 
 @pytest.fixture
 def random_16bit_multipage_image() -> npt.NDArray[np.uint16]:
-    return np.random.randint(0, 2**12, (64, 301, 219), "uint16")
+    return np.random.randint(0, 2**12, (64, 301, 219), dtype=np.uint16)
 
 
 @pytest.fixture
@@ -596,6 +597,15 @@ def random_multipage_tiff(
     }
     tiff_file_writer(str(tif_file), signal)
     return tif_file
+
+
+@pytest.fixture
+def random_bigtiff(
+    black_16bit_gray_image: npt.NDArray[np.uint16], tmp_path: Path
+) -> Path:
+    bigtiff_file = tmp_path.joinpath("image.tif")
+    tifffile.imwrite(bigtiff_file, black_16bit_gray_image, bigtiff=True)
+    return bigtiff_file
 
 
 @pytest.fixture
@@ -2217,6 +2227,21 @@ def test_app_tiff_fails(black_16bit_gray_single_page_tiff: Path):
         ],
     )
     assert result.exit_code == 1
+
+
+def test_app_bigtiff(random_bigtiff: Path):
+    dst = random_bigtiff.with_suffix(JPEG_EXT)
+    result = runner.invoke(app, ["-S", str(random_bigtiff)])
+    assert result.exit_code == 0
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
 def test_app_with_supported_and_unsupported(

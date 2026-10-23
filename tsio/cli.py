@@ -38,6 +38,32 @@ class UnsupportedFileType(Exception):
         self.src: os.PathLike[str] = src
 
 
+class BigTiff(filetype.Type):
+    MIME = "image/tiff"
+    EXTENSION = "tif"
+
+    def __init__(self):
+        super(BigTiff, self).__init__(
+            mime=BigTiff.MIME,
+            extension=BigTiff.EXTENSION,
+        )
+
+    def match(self, buf: bytearray | bytes) -> bool:
+        return (
+            len(buf) > 9
+            and (
+                (buf[0] == 0x49 and buf[1] == 0x49 and buf[2] == 0x2B and buf[3] == 0x0)
+                or (
+                    buf[0] == 0x4D
+                    and buf[1] == 0x4D
+                    and buf[2] == 0x0
+                    and buf[3] == 0x2B
+                )
+            )
+            and not (buf[8] == 0x43 and buf[9] == 0x52)
+        )
+
+
 class Dm3(filetype.Type):
     MIME: str = "application/vnd.gatan.dm3"
     EXTENSION: str = ".dm3"
@@ -163,6 +189,7 @@ class Npy(filetype.Type):
         )
 
 
+filetype.add_type(BigTiff())
 filetype.add_type(Dm3())
 filetype.add_type(Dm4())
 filetype.add_type(Emd())
