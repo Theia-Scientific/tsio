@@ -493,7 +493,7 @@ def white_16bit_rgba_npy(
 
 @pytest.fixture
 def random_16bit_multipage_image() -> npt.NDArray[np.uint16]:
-    return np.random.randint(0, 2**12, (64, 301, 219), "uint16")
+    return np.random.randint(0, 2**12, (64, 301, 219), dtype=np.uint16)
 
 
 @pytest.fixture
