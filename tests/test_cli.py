@@ -8,6 +8,7 @@ import numpy as np
 import numpy.typing as npt
 import os
 import pytest
+import tifffile
 
 from filetype.types.image import Jpeg, Png, Tiff
 from pathlib import Path
@@ -596,6 +597,17 @@ def random_multipage_tiff(
     }
     tiff_file_writer(str(tif_file), signal)
     return tif_file
+
+
+@pytest.fixture
+def random_bigtiff(
+    random_16bit_multipage_image: npt.NDArray[np.uint16], tmp_path: Path
+) -> Path:
+    bigtiff_file = tmp_path.joinpath("image.tif")
+    tifffile.imwrite(
+        bigtiff_file, random_16bit_multipage_image, bigtiff=True, photometric="rgb"
+    )
+    return bigtiff_file
 
 
 @pytest.fixture
