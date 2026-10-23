@@ -39,8 +39,8 @@ class UnsupportedFileType(Exception):
 
 
 class BigTiff(filetype.Type):
-    MIME = 'image/tiff'
-    EXTENSION = 'tif'
+    MIME = "image/tiff"
+    EXTENSION = "tif"
 
     def __init__(self):
         super(BigTiff, self).__init__(
@@ -49,12 +49,19 @@ class BigTiff(filetype.Type):
         )
 
     def match(self, buf: bytearray | bytes) -> bool:
-        return (len(buf) > 9 and
-                ((buf[0] == 0x49 and buf[1] == 0x49 and
-                    buf[2] == 0x2B and buf[3] == 0x0) or
-                (buf[0] == 0x4D and buf[1] == 0x4D and
-                    buf[2] == 0x0 and buf[3] == 0x2B))
-                and not (buf[8] == 0x43 and buf[9] == 0x52))
+        return (
+            len(buf) > 9
+            and (
+                (buf[0] == 0x49 and buf[1] == 0x49 and buf[2] == 0x2B and buf[3] == 0x0)
+                or (
+                    buf[0] == 0x4D
+                    and buf[1] == 0x4D
+                    and buf[2] == 0x0
+                    and buf[3] == 0x2B
+                )
+            )
+            and not (buf[8] == 0x43 and buf[9] == 0x52)
+        )
 
 
 class Dm3(filetype.Type):
@@ -582,7 +589,6 @@ def run(cfg: Configuration):
         raise UnsupportedFileType(cfg.src)
     else:
         SUPPORTED_MAP = {
-            BigTiff.MIME: run_tiff,
             Dcm.MIME: run_dcm,
             Dm3.MIME: run_dm,
             Dm4.MIME: run_dm,

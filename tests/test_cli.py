@@ -601,12 +601,10 @@ def random_multipage_tiff(
 
 @pytest.fixture
 def random_bigtiff(
-    random_16bit_multipage_image: npt.NDArray[np.uint16], tmp_path: Path
+    black_16bit_gray_image: npt.NDArray[np.uint16], tmp_path: Path
 ) -> Path:
     bigtiff_file = tmp_path.joinpath("image.tif")
-    tifffile.imwrite(
-        bigtiff_file, random_16bit_multipage_image, bigtiff=True, photometric="rgb"
-    )
+    tifffile.imwrite(bigtiff_file, black_16bit_gray_image, bigtiff=True)
     return bigtiff_file
 
 
@@ -2229,6 +2227,21 @@ def test_app_tiff_fails(black_16bit_gray_single_page_tiff: Path):
         ],
     )
     assert result.exit_code == 1
+
+
+def test_app_bigtiff(random_bigtiff: Path):
+    dst = random_bigtiff.with_suffix(JPEG_EXT)
+    result = runner.invoke(app, ["-S", str(random_bigtiff)])
+    assert result.exit_code == 0
+    assert dst.exists()
+    kind = filetype.guess(str(dst))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst), cv2.IMREAD_UNCHANGED)
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
 
 
 def test_app_with_supported_and_unsupported(
