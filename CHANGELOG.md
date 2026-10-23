@@ -1,5 +1,12 @@
 # Change Log
 
+## 1.3.0 (2026-10-23)
+
+### Bug fixes
+
+- Fixed BigTIFF files not supported ([#54](https://github.com/Theia-Scientific/tsio/pull/54))
+- Fixed badges not having links ([#52](https://github.com/Theia-Scientific/tsio/pull/52))
+
 ## 1.2.0 (2026-10-02)
 
 ### Features and enhancements
