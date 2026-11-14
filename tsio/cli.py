@@ -8,6 +8,7 @@ import numpy as np
 import numpy.typing as npt
 import os
 import platform
+import sys
 import typer
 
 from collections.abc import Sequence
@@ -610,7 +611,9 @@ PROGRESS_BAR_FORMAT: str = "{l_bar}{bar}| {n_fmt}/{total_fmt}"
 
 @app.command()
 def main(
-    paths: Annotated[list[Path], typer.Argument(help="The original source files.")],
+    paths: Annotated[
+        list[Path] | None, typer.Argument(help="The original source files.")
+    ] = None,
     delete_original: Annotated[
         bool,
         typer.Option(
@@ -672,17 +675,22 @@ def main(
 ):
     logging.basicConfig(level=map_verbosity(verbose))
     LOGGER.debug(f"{delete_original=}")
-    LOGGER.debug(f"{paths=}")
     LOGGER.debug(f"{num_cpus=}")
     LOGGER.debug(f"{output=}")
+    LOGGER.debug(f"{paths=}")
     LOGGER.debug(f"{silent=}")
     LOGGER.debug(f"{to_bit_depth=}")
     LOGGER.debug(f"{to_format=}")
     LOGGER.debug(f"{verbose=}")
     LOGGER.debug(f"{version=}")
+    if paths is None:
+        paths_list = [Path(line) for line in sys.stdin]
+    else:
+        paths_list = paths
+    LOGGER.debug(f"{paths_list=}")
     try:
         sources = expand_sources(
-            paths,
+            paths_list,
             Output(
                 bit_depth=BitDepths(to_bit_depth),
                 format=to_format,
