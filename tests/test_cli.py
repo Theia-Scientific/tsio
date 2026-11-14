@@ -1964,10 +1964,10 @@ def test_run_with_darwin(dm4: Path, mocker: MockerFixture, tmp_path: Path):
 
     _ = mocker.patch("platform.system", mock_platform_system)
 
-    def mock_run(cfg: Configuration):
+    def mock_run(cfg: Configuration) -> list[Path]:
         _ = cfg
 
-        print(tmp_path)
+        return [tmp_path]
 
     _ = mocker.patch("tsio.cli.run", mock_run)
 
@@ -1981,8 +1981,10 @@ def test_run_with_linux(dm4: Path, mocker: MockerFixture, tmp_path: Path):
 
     _ = mocker.patch("platform.system", mock_platform_system)
 
-    def mock_run(cfg: Configuration):
+    def mock_run(cfg: Configuration) -> list[Path]:
         _ = cfg
+
+        return [tmp_path]
 
     _ = mocker.patch("tsio.cli.run", mock_run)
 
