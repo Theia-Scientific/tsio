@@ -1994,19 +1994,22 @@ def test_run_with_linux(dm4: Path, mocker: MockerFixture, tmp_path: Path):
 def test_app_help():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
+    assert result.stdout.strip() != ""
 
 
 def test_app_version():
     version = importlib.metadata.version(__app_name__)
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
-    assert f"{__app_name__} {version}" in result.stdout
+    assert result.stdout.strip() == f"{__app_name__} {version}"
 
 
 def test_app_dcm(dcm: Path, tmp_path: Path):
     dst = tmp_path.joinpath(dcm.name).with_suffix(JPEG_EXT)
     result = runner.invoke(app, ["-o", str(tmp_path), str(dcm)])
     assert result.exit_code == 0
+    assert result.stdout.strip() == str(dst)
+
     assert result.stdout.strip() == str(dst)
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -2022,12 +2025,16 @@ def test_app_dcm(dcm: Path, tmp_path: Path):
 def test_app_dcm_fails(dcm: Path, tmp_path: Path):
     result = runner.invoke(app, ["-o", str(tmp_path), "-b", "16", str(dcm)])
     assert result.exit_code == 1
+    assert result.stdout.strip() == ""
+    assert "ERROR!" in result.stderr
 
 
 def test_app_dm4(dm4: Path, tmp_path: Path):
     dst = tmp_path.joinpath(dm4.name).with_suffix(JPEG_EXT)
     result = runner.invoke(app, ["-o", str(tmp_path), str(dm4)])
     assert result.exit_code == 0
+    assert result.stdout.strip() == str(dst)
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2042,6 +2049,8 @@ def test_app_dm4(dm4: Path, tmp_path: Path):
 def test_app_dm4_fails(dm4: Path, tmp_path: Path):
     result = runner.invoke(app, ["-o", str(tmp_path), "-b", "16", str(dm4)])
     assert result.exit_code == 1
+    assert result.stdout.strip() == ""
+    assert "ERROR!" in result.stderr
 
 
 def test_app_all_dm_as_files(dm3: Path, dm4: Path, tmp_path: Path):
@@ -2049,6 +2058,8 @@ def test_app_all_dm_as_files(dm3: Path, dm4: Path, tmp_path: Path):
     dst_dm4 = tmp_path.joinpath(dm4.name).with_suffix(JPEG_EXT)
     result = runner.invoke(app, ["-o", str(tmp_path), str(dm3), str(dm4)])
     assert result.exit_code == 0
+    assert result.stdout.strip() == "\n".join([str(dst_dm3), str(dst_dm4)])
+
     assert dst_dm3.exists()
     kind = filetype.guess(str(dst_dm3))
     assert kind is not None
@@ -2081,7 +2092,7 @@ def test_app_emd(mocker: MockerFixture, single_image_emd: Path):
 
     result = runner.invoke(app, [str(src)])
     assert result.exit_code == 0
-    assert result.stdout == ""
+    assert result.stdout.strip() == str(src.with_suffix(JPEG_EXT))
 
 
 def test_app_emd_fails(mocker: MockerFixture, single_image_emd: Path):
@@ -2095,13 +2106,16 @@ def test_app_emd_fails(mocker: MockerFixture, single_image_emd: Path):
 
     result = runner.invoke(app, ["-b", "16", str(src)])
     assert result.exit_code == 1
+    assert result.stdout.strip() == ""
+    assert "ERROR!" in result.stderr
 
 
 def test_app_npy_8bit_gray(black_8bit_gray_npy: Path):
     dst = black_8bit_gray_npy.with_suffix(JPEG_EXT)
     result = runner.invoke(app, [str(black_8bit_gray_npy)])
     assert result.exit_code == 0
-    assert result.stdout == ""
+    assert result.stdout.strip() == str(dst)
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2132,6 +2146,8 @@ def test_app_npy_white_8bit_rgba(white_8bit_rgba_npy: Path):
     dst = white_8bit_rgba_npy.with_suffix(JPEG_EXT)
     result = runner.invoke(app, [str(white_8bit_rgba_npy)])
     assert result.exit_code == 0
+    assert result.stdout.strip() == str(dst)
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2148,6 +2164,7 @@ def test_app_png_8bit_gray(black_8bit_gray_png: Path):
     result = runner.invoke(app, [str(black_8bit_gray_png)])
     assert result.exit_code == 0
     assert result.stdout.strip() == str(dst)
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2178,6 +2195,8 @@ def test_app_png_white_8bit_rgba(white_8bit_rgba_png: Path):
     dst = white_8bit_rgba_png.with_suffix(JPEG_EXT)
     result = runner.invoke(app, [str(white_8bit_rgba_png)])
     assert result.exit_code == 0
+    assert result.stdout.strip() == str(dst)
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2199,6 +2218,8 @@ def test_app_png_fails(black_8bit_gray_png: Path):
         ],
     )
     assert result.exit_code == 1
+    assert result.stdout.strip() == ""
+    assert "ERROR!" in result.stderr
 
 
 def test_app_tiff(black_16bit_gray_single_page_tiff: Path):
@@ -2210,6 +2231,8 @@ def test_app_tiff(black_16bit_gray_single_page_tiff: Path):
         ],
     )
     assert result.exit_code == 0
+    assert result.stdout.strip() == str(dst)
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2231,12 +2254,16 @@ def test_app_tiff_fails(black_16bit_gray_single_page_tiff: Path):
         ],
     )
     assert result.exit_code == 1
+    assert result.stdout.strip() == ""
+    assert "ERROR!" in result.stderr.strip()
 
 
 def test_app_bigtiff(random_bigtiff: Path):
     dst = random_bigtiff.with_suffix(JPEG_EXT)
     result = runner.invoke(app, [str(random_bigtiff)])
     assert result.exit_code == 0
+    assert result.stdout.strip() == str(dst)
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2264,6 +2291,7 @@ def test_app_with_supported_and_unsupported(
         ],
     )
     assert result.exit_code == 0
+
     assert len(os.listdir(out)) == 1
     assert dst.exists()
     kind = filetype.guess(str(dst))
