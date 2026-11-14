@@ -365,7 +365,7 @@ def write(
     output: Output,
     silent: bool,
     delete_original: bool = False,
-):
+) -> list[Path]:
     LOGGER.debug(f"{src=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{silent=}")
@@ -381,6 +381,7 @@ def write(
     if pages_count > 1:
         destination = destination.joinpath(src_file_stem)
     os.makedirs(destination, exist_ok=True)
+    output_paths = []
     for page_index, page in enumerate(
         tqdm(
             pages,
@@ -407,11 +408,13 @@ def write(
         image_file_writer(output_file, page)
         if delete_original:
             src_path.unlink(missing_ok=True)
+        output_paths.append(output_file)
+    return output_paths
 
 
-def run_dcm(cfg: Configuration):
+def run_dcm(cfg: Configuration) -> list[Path]:
     LOGGER.debug(f"{cfg=}")
-    write(
+    return write(
         [
             {
                 "data": img,
@@ -429,10 +432,10 @@ def run_dcm(cfg: Configuration):
     )
 
 
-def run_dm(cfg: Configuration):
+def run_dm(cfg: Configuration) -> list[Path]:
     LOGGER.debug(f"{cfg=}")
     try:
-        write(
+        return write(
             digitalmicrograph.file_reader(cfg.src),
             cfg.src,
             cfg.output,
@@ -443,9 +446,10 @@ def run_dm(cfg: Configuration):
         LOGGER.warning(f"Skipped '{cfg.src}' because: '{str(error)}'")
     except Exception as error:
         LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
+    return []
 
 
-def run_emd(cfg: Configuration):
+def run_emd(cfg: Configuration) -> list[Path]:
     LOGGER.debug(f"{cfg=}")
     if cfg.extras is None:
         detector = 0
@@ -474,7 +478,7 @@ def run_emd(cfg: Configuration):
                 {"data": data[i, ...], "axes": emd_data[detector]["axes"]}
                 for i in range(pages_count)
             ]
-        write(
+        return write(
             pages,
             cfg.src,
             cfg.output,
@@ -483,12 +487,13 @@ def run_emd(cfg: Configuration):
         )
     except Exception as error:
         LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
+    return []
 
 
-def run_mrc(cfg: Configuration):
+def run_mrc(cfg: Configuration) -> list[Path]:
     LOGGER.debug(f"{cfg=}")
     try:
-        write(
+        return write(
             mrc.file_reader(str(cfg.src), lazy=True),
             cfg.src,
             cfg.output,
@@ -497,11 +502,12 @@ def run_mrc(cfg: Configuration):
         )
     except Exception as error:
         LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
+    return []
 
 
-def run_npy(cfg: Configuration):
+def run_npy(cfg: Configuration) -> list[Path]:
     LOGGER.debug(f"{cfg=}")
-    write(
+    return write(
         [
             {
                 "data": np.load(cfg.src),
@@ -518,9 +524,9 @@ def run_npy(cfg: Configuration):
     )
 
 
-def run_png(cfg: Configuration):
+def run_png(cfg: Configuration) -> list[Path]:
     LOGGER.debug(f"{cfg=}")
-    write(
+    return write(
         image_file_reader(cfg.src),
         cfg.src,
         cfg.output,
@@ -529,9 +535,9 @@ def run_png(cfg: Configuration):
     )
 
 
-def run_tiff(cfg: Configuration):
+def run_tiff(cfg: Configuration) -> list[Path]:
     LOGGER.debug(f"{cfg=}")
-    write(
+    return write(
         tiff_file_reader(cfg.src, multipage_as_list=True),
         cfg.src,
         cfg.output,
@@ -622,6 +628,12 @@ def main(
             help="Deletes the original file after conversion.",
         ),
     ] = False,
+    disable_progress_bars: Annotated[
+        bool,
+        typer.Option(
+            "--no-progress-bars/--progress-bars", help="Disables the progress bars."
+        ),
+    ] = False,
     num_cpus: Annotated[
         int | None,
         typer.Option(
@@ -704,7 +716,7 @@ def main(
                 tqdm(
                     map(run, sources),
                     bar_format=PROGRESS_BAR_FORMAT,
-                    disable=silent,
+                    disable=disable_progress_bars,
                     total=len(sources),
                 )
             )
@@ -714,7 +726,7 @@ def main(
                     tqdm(
                         pool.imap(run, sources),
                         bar_format=PROGRESS_BAR_FORMAT,
-                        disable=silent,
+                        disable=disable_progress_bars,
                         total=len(sources),
                     )
                 )
