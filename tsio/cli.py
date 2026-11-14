@@ -713,7 +713,7 @@ def main(
         )
         LOGGER.debug(f"{sources=}")
         if platform.system().lower() == "darwin":
-            results = list(
+            run_results = list(
                 tqdm(
                     map(run, sources),
                     bar_format=PROGRESS_BAR_FORMAT,
@@ -723,7 +723,7 @@ def main(
             )
         else:
             with Pool(num_cpus) as pool:
-                pool_results = list(
+                run_results = list(
                     tqdm(
                         pool.imap(run, sources),
                         bar_format=PROGRESS_BAR_FORMAT,
@@ -731,10 +731,8 @@ def main(
                         total=len(sources),
                     )
                 )
-                LOGGER.debug(f"{pool_results=}")
-                results = [
-                    result for pool_result in pool_results for result in pool_result
-                ]
+        LOGGER.debug(f"{run_results=}")
+        results = [result for run_result in run_results for result in run_result]
         LOGGER.debug(f"{results=}")
         if not silent:
             for result in results:

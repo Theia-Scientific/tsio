@@ -1959,6 +1959,8 @@ def test_run_fails_with_unsupported(
 
 
 def test_run_with_darwin(dm4: Path, mocker: MockerFixture, tmp_path: Path):
+    dst = tmp_path.joinpath(dm4.name).with_suffix(JPEG_EXT)
+
     def mock_platform_system() -> str:
         return "Darwin"
 
@@ -1967,15 +1969,18 @@ def test_run_with_darwin(dm4: Path, mocker: MockerFixture, tmp_path: Path):
     def mock_run(cfg: Configuration) -> list[Path]:
         _ = cfg
 
-        return [tmp_path]
+        return [dst]
 
     _ = mocker.patch("tsio.cli.run", mock_run)
 
     result = runner.invoke(app, ["-o", str(tmp_path), "--no-progress-bars", str(dm4)])
     assert result.exit_code == 0
+    assert result.stdout.strip() == str(dst)
 
 
 def test_run_with_linux(dm4: Path, mocker: MockerFixture, tmp_path: Path):
+    dst = tmp_path.joinpath(dm4.name).with_suffix(JPEG_EXT)
+
     def mock_platform_system() -> str:
         return "Linux"
 
@@ -1984,12 +1989,13 @@ def test_run_with_linux(dm4: Path, mocker: MockerFixture, tmp_path: Path):
     def mock_run(cfg: Configuration) -> list[Path]:
         _ = cfg
 
-        return [tmp_path]
+        return [dst]
 
     _ = mocker.patch("tsio.cli.run", mock_run)
 
     result = runner.invoke(app, ["-o", str(tmp_path), "--no-progress-bars", str(dm4)])
     assert result.exit_code == 0
+    assert result.stdout.strip() == str(dst)
 
 
 def test_app_help():
