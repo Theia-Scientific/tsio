@@ -2272,3 +2272,30 @@ def test_app_with_supported_and_unsupported(
     assert jpeg_img.shape == (256, 256, 3)
     assert not np.any(jpeg_img)
     assert not skipped.exists()
+
+
+def test_app_stdin(black_8bit_gray_png: Path, black_16bit_gray_png: Path):
+    dst_1 = black_8bit_gray_png.with_suffix(JPEG_EXT)
+    dst_2 = black_16bit_gray_png.with_suffix(JPEG_EXT)
+    src = str("\n".join([str(black_8bit_gray_png), str(black_16bit_gray_png)]))
+    result = runner.invoke(app, ["-S"], input=src)
+    assert result.exit_code == 0
+    assert dst_1.exists()
+    kind = filetype.guess(str(dst_1))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst_1))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
+
+    assert dst_2.exists()
+    kind = filetype.guess(str(dst_2))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst_2))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)

@@ -684,7 +684,7 @@ def main(
     LOGGER.debug(f"{verbose=}")
     LOGGER.debug(f"{version=}")
     if paths is None:
-        paths_list = [Path(line) for line in sys.stdin]
+        paths_list = [Path(line.strip()) for line in sys.stdin]
     else:
         paths_list = paths
     LOGGER.debug(f"{paths_list=}")
