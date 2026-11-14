@@ -751,9 +751,8 @@ def output_cfg() -> Callable[[BitDepths, ToFormats, Path], Output]:
         bit_depth: BitDepths = BitDepths.EIGHT,
         format: ToFormats = ToFormats.JPEG,
         path: Path | None = None,
-        silent: bool = False,
     ) -> Output:
-        return Output(bit_depth=bit_depth, format=format, path=path, silent=silent)
+        return Output(bit_depth=bit_depth, format=format, path=path)
 
     return _make_output_cfg
 
