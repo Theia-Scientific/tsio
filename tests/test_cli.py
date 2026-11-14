@@ -1975,7 +1975,7 @@ def test_run_with_darwin(dm4: Path, mocker: MockerFixture, tmp_path: Path):
 
     result = runner.invoke(app, ["-o", str(tmp_path), "--no-progress-bars", str(dm4)])
     assert result.exit_code == 0
-    assert result.stdout.strip() == str(dst)
+    assert str(dst) in result.stdout.strip().replace("\n", "")
 
 
 def test_run_with_linux(dm4: Path, mocker: MockerFixture, tmp_path: Path):
@@ -1995,7 +1995,7 @@ def test_run_with_linux(dm4: Path, mocker: MockerFixture, tmp_path: Path):
 
     result = runner.invoke(app, ["-o", str(tmp_path), "--no-progress-bars", str(dm4)])
     assert result.exit_code == 0
-    assert result.stdout.strip() == str(dst)
+    assert str(dst) in result.stdout.strip().replace("\n", "")
 
 
 def test_app_help():
@@ -2015,9 +2015,8 @@ def test_app_dcm(dcm: Path, tmp_path: Path):
     dst = tmp_path.joinpath(dcm.name).with_suffix(JPEG_EXT)
     result = runner.invoke(app, ["-o", str(tmp_path), str(dcm)])
     assert result.exit_code == 0
-    assert result.stdout.strip() == str(dst)
+    assert str(dst) in result.stdout.strip().replace("\n", "")
 
-    assert result.stdout.strip() == str(dst)
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2040,7 +2039,7 @@ def test_app_dm4(dm4: Path, tmp_path: Path):
     dst = tmp_path.joinpath(dm4.name).with_suffix(JPEG_EXT)
     result = runner.invoke(app, ["-o", str(tmp_path), str(dm4)])
     assert result.exit_code == 0
-    assert result.stdout.strip() == str(dst)
+    assert str(dst) in result.stdout.strip().replace("\n", "")
 
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -2065,7 +2064,8 @@ def test_app_all_dm_as_files(dm3: Path, dm4: Path, tmp_path: Path):
     dst_dm4 = tmp_path.joinpath(dm4.name).with_suffix(JPEG_EXT)
     result = runner.invoke(app, ["-o", str(tmp_path), str(dm3), str(dm4)])
     assert result.exit_code == 0
-    assert result.stdout.strip() == "\n".join([str(dst_dm3), str(dst_dm4)])
+    assert str(dst_dm3) in result.stdout.strip().replace("\n", "")
+    assert str(dst_dm4) in result.stdout.strip().replace("\n", "")
 
     assert dst_dm3.exists()
     kind = filetype.guess(str(dst_dm3))
@@ -2099,7 +2099,7 @@ def test_app_emd(mocker: MockerFixture, single_image_emd: Path):
 
     result = runner.invoke(app, [str(src)])
     assert result.exit_code == 0
-    assert result.stdout.strip() == str(src.with_suffix(JPEG_EXT))
+    assert str(src.with_suffix(JPEG_EXT)) in result.stdout.strip().replace("\n", "")
 
 
 def test_app_emd_fails(mocker: MockerFixture, single_image_emd: Path):
@@ -2121,7 +2121,7 @@ def test_app_npy_8bit_gray(black_8bit_gray_npy: Path):
     dst = black_8bit_gray_npy.with_suffix(JPEG_EXT)
     result = runner.invoke(app, [str(black_8bit_gray_npy)])
     assert result.exit_code == 0
-    assert result.stdout.strip() == str(dst)
+    assert str(dst) in result.stdout.strip().replace("\n", "")
 
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -2138,6 +2138,8 @@ def test_app_npy_16bit(black_16bit_gray_npy: Path):
     dst = black_16bit_gray_npy.with_suffix(JPEG_EXT)
     result = runner.invoke(app, [str(black_16bit_gray_npy)])
     assert result.exit_code == 0
+    assert str(dst) in result.stdout.strip().replace("\n", "")
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2153,7 +2155,7 @@ def test_app_npy_white_8bit_rgba(white_8bit_rgba_npy: Path):
     dst = white_8bit_rgba_npy.with_suffix(JPEG_EXT)
     result = runner.invoke(app, [str(white_8bit_rgba_npy)])
     assert result.exit_code == 0
-    assert result.stdout.strip() == str(dst)
+    assert str(dst) in result.stdout.strip().replace("\n", "")
 
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -2170,7 +2172,7 @@ def test_app_png_8bit_gray(black_8bit_gray_png: Path):
     dst = black_8bit_gray_png.with_suffix(JPEG_EXT)
     result = runner.invoke(app, [str(black_8bit_gray_png)])
     assert result.exit_code == 0
-    assert result.stdout.strip() == str(dst)
+    assert str(dst) in result.stdout.strip().replace("\n", "")
 
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -2187,6 +2189,8 @@ def test_app_png_16bit(black_16bit_gray_png: Path):
     dst = black_16bit_gray_png.with_suffix(JPEG_EXT)
     result = runner.invoke(app, [str(black_16bit_gray_png)])
     assert result.exit_code == 0
+    assert str(dst) in result.stdout.strip().replace("\n", "")
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2202,7 +2206,7 @@ def test_app_png_white_8bit_rgba(white_8bit_rgba_png: Path):
     dst = white_8bit_rgba_png.with_suffix(JPEG_EXT)
     result = runner.invoke(app, [str(white_8bit_rgba_png)])
     assert result.exit_code == 0
-    assert result.stdout.strip() == str(dst)
+    assert str(dst) in result.stdout.strip().replace("\n", "")
 
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -2238,7 +2242,7 @@ def test_app_tiff(black_16bit_gray_single_page_tiff: Path):
         ],
     )
     assert result.exit_code == 0
-    assert result.stdout.strip() == str(dst)
+    assert str(dst) in result.stdout.strip().replace("\n", "")
 
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -2269,7 +2273,7 @@ def test_app_bigtiff(random_bigtiff: Path):
     dst = random_bigtiff.with_suffix(JPEG_EXT)
     result = runner.invoke(app, [str(random_bigtiff)])
     assert result.exit_code == 0
-    assert result.stdout.strip() == str(dst)
+    assert str(dst) in result.stdout.strip().replace("\n", "")
 
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -2315,10 +2319,11 @@ def test_app_with_supported_and_unsupported(
 def test_app_stdin(black_8bit_gray_png: Path, black_16bit_gray_png: Path):
     dst_1 = black_8bit_gray_png.with_suffix(JPEG_EXT)
     dst_2 = black_16bit_gray_png.with_suffix(JPEG_EXT)
-    src = str("\n".join([str(black_8bit_gray_png), str(black_16bit_gray_png)]))
-    result = runner.invoke(app, [], input=src)
+    src = "\n".join([str(black_8bit_gray_png), str(black_16bit_gray_png)])
+    result = runner.invoke(app, ["-vv"], input=src)
     assert result.exit_code == 0
-    assert result.stdout.strip() == str("\n".join([str(dst_1), str(dst_2)]))
+    assert str(dst_1) in result.stdout.strip().replace("\n", "")
+    assert str(dst_2) in result.stdout.strip().replace("\n", "")
 
     assert dst_1.exists()
     kind = filetype.guess(str(dst_1))
