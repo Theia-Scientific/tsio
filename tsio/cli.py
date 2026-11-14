@@ -252,8 +252,8 @@ class ToFormats(StrEnum):
 
 class Output(BaseModel):
     bit_depth: BitDepths
-    path: os.PathLike[str] | None
     format: ToFormats
+    path: os.PathLike[str] | None
 
     @staticmethod
     def is_gray(img: npt.NDArray[np.uint8 | np.uint16]) -> bool:
@@ -329,9 +329,9 @@ class Output(BaseModel):
 
 class Configuration(BaseModel):
     delete_original: bool
+    disable_progress_bar: bool
     extras: dict[str, Any] | None
     output: Output
-    silent: bool
     src: os.PathLike[str]
 
 
@@ -363,13 +363,13 @@ def write(
     pages: list[dict[str, Any]],
     src: os.PathLike[str],
     output: Output,
-    silent: bool,
     delete_original: bool = False,
+    disable_progress_bar: bool = False,
 ) -> list[Path]:
     LOGGER.debug(f"{src=}")
     LOGGER.debug(f"{output=}")
-    LOGGER.debug(f"{silent=}")
     LOGGER.debug(f"{delete_original=}")
+    LOGGER.debug(f"{disable_progress_bar=}")
     destination = output.destination(src)
     LOGGER.debug(f"{destination=}")
     pages_count = len(pages)
@@ -387,7 +387,7 @@ def write(
             pages,
             total=pages_count,
             desc=src_path.name,
-            disable=silent or pages_count == 1,
+            disable=disable_progress_bar or pages_count == 1,
             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
         )
     ):
@@ -427,8 +427,8 @@ def run_dcm(cfg: Configuration) -> list[Path]:
         ],
         cfg.src,
         cfg.output,
-        cfg.silent,
         delete_original=cfg.delete_original,
+        disable_progress_bar=cfg.disable_progress_bar,
     )
 
 
@@ -439,8 +439,8 @@ def run_dm(cfg: Configuration) -> list[Path]:
             digitalmicrograph.file_reader(cfg.src),
             cfg.src,
             cfg.output,
-            cfg.silent,
             delete_original=cfg.delete_original,
+            disable_progress_bar=cfg.disable_progress_bar,
         )
     except NotImplementedError as error:
         LOGGER.warning(f"Skipped '{cfg.src}' because: '{str(error)}'")
@@ -482,8 +482,8 @@ def run_emd(cfg: Configuration) -> list[Path]:
             pages,
             cfg.src,
             cfg.output,
-            cfg.silent,
             delete_original=cfg.delete_original,
+            disable_progress_bar=cfg.disable_progress_bar,
         )
     except Exception as error:
         LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
@@ -497,8 +497,8 @@ def run_mrc(cfg: Configuration) -> list[Path]:
             mrc.file_reader(str(cfg.src), lazy=True),
             cfg.src,
             cfg.output,
-            cfg.silent,
             delete_original=cfg.delete_original,
+            disable_progress_bar=cfg.disable_progress_bar,
         )
     except Exception as error:
         LOGGER.error(f"Skipped '{cfg.src}' because: '{str(error)}'")
@@ -519,8 +519,8 @@ def run_npy(cfg: Configuration) -> list[Path]:
         ],
         cfg.src,
         cfg.output,
-        cfg.silent,
         delete_original=cfg.delete_original,
+        disable_progress_bar=cfg.disable_progress_bar,
     )
 
 
@@ -530,8 +530,8 @@ def run_png(cfg: Configuration) -> list[Path]:
         image_file_reader(cfg.src),
         cfg.src,
         cfg.output,
-        cfg.silent,
         delete_original=cfg.delete_original,
+        disable_progress_bar=cfg.disable_progress_bar,
     )
 
 
@@ -541,22 +541,22 @@ def run_tiff(cfg: Configuration) -> list[Path]:
         tiff_file_reader(cfg.src, multipage_as_list=True),
         cfg.src,
         cfg.output,
-        cfg.silent,
         delete_original=cfg.delete_original,
+        disable_progress_bar=cfg.disable_progress_bar,
     )
 
 
 def expand_sources(
     paths: Sequence[os.PathLike[str]],
     output: Output,
-    silent: bool,
     delete_original: bool = False,
+    disable_progress_bar: bool = False,
     extras: dict[str, Any] | None = None,
 ) -> list[Configuration]:
     LOGGER.debug(f"{paths=}")
     LOGGER.debug(f"{output=}")
-    LOGGER.debug(f"{silent=}")
     LOGGER.debug(f"{delete_original=}")
+    LOGGER.debug(f"{disable_progress_bar=}")
     LOGGER.debug(f"{extras=}")
     sources = []
     for src in paths:
@@ -566,9 +566,9 @@ def expand_sources(
                 [
                     Configuration(
                         delete_original=delete_original,
+                        disable_progress_bar=disable_progress_bar,
                         extras=extras,
                         output=output,
-                        silent=silent,
                         src=src_path.joinpath(p),
                     )
                     for p in os.listdir(src_path)
@@ -579,16 +579,16 @@ def expand_sources(
             sources.append(
                 Configuration(
                     delete_original=delete_original,
+                    disable_progress_bar=disable_progress_bar,
                     extras=extras,
                     output=output,
-                    silent=silent,
                     src=src_path,
                 )
             )
     return sources
 
 
-def run(cfg: Configuration):
+def run(cfg: Configuration) -> list[Path]:
     LOGGER.debug(f"{cfg=}")
     kind = filetype.guess(cfg.src)
     LOGGER.debug(f"{kind=}")
@@ -609,7 +609,7 @@ def run(cfg: Configuration):
         if runner is None:
             raise UnsupportedFileType(cfg.src)
         else:
-            runner(cfg)
+            return runner(cfg)
 
 
 PROGRESS_BAR_FORMAT: str = "{l_bar}{bar}| {n_fmt}/{total_fmt}"
@@ -630,9 +630,7 @@ def main(
     ] = False,
     disable_progress_bars: Annotated[
         bool,
-        typer.Option(
-            "--no-progress-bars/--progress-bars", help="Disables the progress bars."
-        ),
+        typer.Option("--no-progress-bars", help="Disables the progress bars."),
     ] = False,
     num_cpus: Annotated[
         int | None,
@@ -647,7 +645,8 @@ def main(
         typer.Option("-o", "--output", help="Destination for output file(s)."),
     ] = None,
     silent: Annotated[
-        bool, typer.Option("-S", "--silent", help="Disables the progress bars.")
+        bool,
+        typer.Option("-S", "--silent", help="Do not print output paths to STDOUT."),
     ] = False,
     to_bit_depth: Annotated[
         BitDepths,
@@ -687,6 +686,7 @@ def main(
 ):
     logging.basicConfig(level=map_verbosity(verbose))
     LOGGER.debug(f"{delete_original=}")
+    LOGGER.debug(f"{disable_progress_bars=}")
     LOGGER.debug(f"{num_cpus=}")
     LOGGER.debug(f"{output=}")
     LOGGER.debug(f"{paths=}")
@@ -708,11 +708,12 @@ def main(
                 format=to_format,
                 path=output,
             ),
-            silent,
             delete_original=delete_original,
+            disable_progress_bar=disable_progress_bars,
         )
+        LOGGER.debug(f"{sources=}")
         if platform.system().lower() == "darwin":
-            _ = list(
+            results = list(
                 tqdm(
                     map(run, sources),
                     bar_format=PROGRESS_BAR_FORMAT,
@@ -722,7 +723,7 @@ def main(
             )
         else:
             with Pool(num_cpus) as pool:
-                _ = list(
+                pool_results = list(
                     tqdm(
                         pool.imap(run, sources),
                         bar_format=PROGRESS_BAR_FORMAT,
@@ -730,6 +731,15 @@ def main(
                         total=len(sources),
                     )
                 )
+                LOGGER.debug(f"{pool_results=}")
+                results = [
+                    result for pool_result in pool_results for result in pool_result
+                ]
+        LOGGER.debug(f"{results=}")
+        if not silent:
+            for result in results:
+                print(result)
+
     except UnsupportedFileType as err:
         LOGGER.warning(f"The {err.src} file is not supported. Skipping!")
     except ValidationError as err:
