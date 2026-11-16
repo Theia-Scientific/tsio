@@ -63,16 +63,16 @@ the system-provided Python version.
    sudo update
    ```
 
-3. Install Python v3.11 or newer.
+3. Install Python v3.12 or newer.
 
    ```sh
-   sudo apt install python3.11
+   sudo apt install python3.13
    ```
 
 4. Install the `venv` package.
 
    ```sh
-   sudo apt install python3.11-venv
+   sudo apt install python3.13-venv
    ```
 
 #### macOS
@@ -85,10 +85,10 @@ the system-provided Python version.
    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
    ```
 
-2. Install Python v3.11 or newer.
+2. Install Python v3.12 or newer.
 
    ```sh
-   brew install python@3.11
+   brew install python@3.13
    ```
 
 ### pipx
@@ -104,10 +104,10 @@ within an isolated environment. It is the recommended installation for the
 
 <a name="prerequisites-pipx-ubuntu"></a>
 
-1. Create a virtual environment for `pipx` and Python v3.11 or newer.
+1. Create a virtual environment for `pipx` and Python v3.12 or newer.
 
    ```sh
-   sudo python3.11 -m venv --upgrade-deps /opt/pipx
+   sudo python3.13 -m venv --upgrade-deps /opt/pipx
    ```
 
 2. Install `pipx` for all users.
@@ -190,7 +190,7 @@ The `tsio` code includes a Python application with a Command Line Interface
 3. Install `tsio` command globally for all users.
 
    ```sh
-   sudo pipx install --global --python python3.11 "tsio"
+   sudo pipx install --global --python python3.13 "tsio"
    ```
 
 4. Verify `tsio` command is available.
@@ -213,7 +213,7 @@ The `tsio` code includes a Python application with a Command Line Interface
 2. Create a virtual environment.
 
    ```sh
-   python3.11 -m venv .venv
+   python3.13 -m venv .venv
    ```
 
 3. Activate the virtual environment.
@@ -392,7 +392,7 @@ $ ls multiple-frames/
 2. Create a virtual environment.
 
    ```sh
-   python3.11 -m venv .venv
+   python3.13 -m venv .venv
    ```
 
 3. Activate the virtual environment.
