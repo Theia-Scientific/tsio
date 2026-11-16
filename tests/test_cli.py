@@ -724,21 +724,21 @@ def multiple_images_emd(tmp_assets: Path) -> Path:
 @pytest.fixture
 def run_cfg(
     output_cfg: Callable[..., Output],
-) -> Callable[[Path, bool, dict[str, Any], Output, bool], Configuration]:
+) -> Callable[[Path, bool, bool, dict[str, Any], Output], Configuration]:
     DEFAULT_OUTPUT = output_cfg()
 
     def _make_run_cfg(
         src: os.PathLike[str],
         delete_original: bool = False,
+        disable_progress_bar: bool = False,
         extras: dict[str, Any] | None = None,
         output: Output = DEFAULT_OUTPUT,
-        silent: bool = True,
     ) -> Configuration:
         return Configuration(
             delete_original=delete_original,
+            disable_progress_bar=disable_progress_bar,
             extras=extras,
             output=output,
-            silent=silent,
             src=src,
         )
 
@@ -1097,8 +1097,8 @@ def test_write_with_single_tiff_delete_original(
         tiff_file_reader(src, multipage_as_list=True),
         src,
         output_cfg(),
-        True,
         delete_original=True,
+        disable_progress_bar=False,
     )
     assert dst.exists()
     assert not src.exists()
@@ -1769,7 +1769,6 @@ def test_expand_sources(
     actual = expand_sources(
         paths,
         output_cfg(),
-        True,
     )
     assert len(actual) == 3
     assert actual[0] == run_cfg(paths[0])
@@ -1960,51 +1959,64 @@ def test_run_fails_with_unsupported(
 
 
 def test_run_with_darwin(dm4: Path, mocker: MockerFixture, tmp_path: Path):
+    dst = tmp_path.joinpath(dm4.name).with_suffix(JPEG_EXT)
+
     def mock_platform_system() -> str:
         return "Darwin"
 
     _ = mocker.patch("platform.system", mock_platform_system)
 
-    def mock_run(cfg: Configuration):
+    def mock_run(cfg: Configuration) -> list[Path]:
         _ = cfg
+
+        return [dst]
 
     _ = mocker.patch("tsio.cli.run", mock_run)
 
-    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm4)])
+    result = runner.invoke(app, ["-o", str(tmp_path), "--no-progress-bars", str(dm4)])
     assert result.exit_code == 0
+    assert str(dst) in result.stdout.strip().replace("\n", "")
 
 
 def test_run_with_linux(dm4: Path, mocker: MockerFixture, tmp_path: Path):
+    dst = tmp_path.joinpath(dm4.name).with_suffix(JPEG_EXT)
+
     def mock_platform_system() -> str:
         return "Linux"
 
     _ = mocker.patch("platform.system", mock_platform_system)
 
-    def mock_run(cfg: Configuration):
+    def mock_run(cfg: Configuration) -> list[Path]:
         _ = cfg
+
+        return [dst]
 
     _ = mocker.patch("tsio.cli.run", mock_run)
 
-    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm4)])
+    result = runner.invoke(app, ["-o", str(tmp_path), "--no-progress-bars", str(dm4)])
     assert result.exit_code == 0
+    assert str(dst) in result.stdout.strip().replace("\n", "")
 
 
 def test_app_help():
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
+    assert result.stdout.strip() != ""
 
 
 def test_app_version():
     version = importlib.metadata.version(__app_name__)
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
-    assert f"{__app_name__} {version}" in result.stdout
+    assert result.stdout.strip() == f"{__app_name__} {version}"
 
 
 def test_app_dcm(dcm: Path, tmp_path: Path):
     dst = tmp_path.joinpath(dcm.name).with_suffix(JPEG_EXT)
-    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dcm)])
+    result = runner.invoke(app, ["-o", str(tmp_path), str(dcm)])
     assert result.exit_code == 0
+    assert str(dst) in result.stdout.strip().replace("\n", "")
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2017,14 +2029,18 @@ def test_app_dcm(dcm: Path, tmp_path: Path):
 
 
 def test_app_dcm_fails(dcm: Path, tmp_path: Path):
-    result = runner.invoke(app, ["-o", str(tmp_path), "-S", "-b", "16", str(dcm)])
+    result = runner.invoke(app, ["-o", str(tmp_path), "-b", "16", str(dcm)])
     assert result.exit_code == 1
+    assert result.stdout.strip() == ""
+    assert "ERROR!" in result.stderr
 
 
 def test_app_dm4(dm4: Path, tmp_path: Path):
     dst = tmp_path.joinpath(dm4.name).with_suffix(JPEG_EXT)
-    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm4)])
+    result = runner.invoke(app, ["-o", str(tmp_path), str(dm4)])
     assert result.exit_code == 0
+    assert str(dst) in result.stdout.strip().replace("\n", "")
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2037,15 +2053,20 @@ def test_app_dm4(dm4: Path, tmp_path: Path):
 
 
 def test_app_dm4_fails(dm4: Path, tmp_path: Path):
-    result = runner.invoke(app, ["-o", str(tmp_path), "-S", "-b", "16", str(dm4)])
+    result = runner.invoke(app, ["-o", str(tmp_path), "-b", "16", str(dm4)])
     assert result.exit_code == 1
+    assert result.stdout.strip() == ""
+    assert "ERROR!" in result.stderr
 
 
 def test_app_all_dm_as_files(dm3: Path, dm4: Path, tmp_path: Path):
     dst_dm3 = tmp_path.joinpath(dm3.name).with_suffix(JPEG_EXT)
     dst_dm4 = tmp_path.joinpath(dm4.name).with_suffix(JPEG_EXT)
-    result = runner.invoke(app, ["-o", str(tmp_path), "-S", str(dm3), str(dm4)])
+    result = runner.invoke(app, ["-o", str(tmp_path), str(dm3), str(dm4)])
     assert result.exit_code == 0
+    assert str(dst_dm3) in result.stdout.strip().replace("\n", "")
+    assert str(dst_dm4) in result.stdout.strip().replace("\n", "")
+
     assert dst_dm3.exists()
     kind = filetype.guess(str(dst_dm3))
     assert kind is not None
@@ -2069,14 +2090,16 @@ def test_app_all_dm_as_files(dm3: Path, dm4: Path, tmp_path: Path):
 def test_app_emd(mocker: MockerFixture, single_image_emd: Path):
     src = single_image_emd
 
-    def mock_write_emd(*args: Any, **kwargs: Any):
-        _ = args
-        _ = kwargs
+    def mock_run_emd(cfg: Configuration) -> list[Path]:
+        _ = cfg
 
-    _ = mocker.patch("tsio.cli.run_emd", mock_write_emd)
+        return [src.with_suffix(JPEG_EXT)]
 
-    result = runner.invoke(app, ["-S", str(src)])
+    _ = mocker.patch("tsio.cli.run_emd", mock_run_emd)
+
+    result = runner.invoke(app, [str(src)])
     assert result.exit_code == 0
+    assert str(src.with_suffix(JPEG_EXT)) in result.stdout.strip().replace("\n", "")
 
 
 def test_app_emd_fails(mocker: MockerFixture, single_image_emd: Path):
@@ -2088,14 +2111,18 @@ def test_app_emd_fails(mocker: MockerFixture, single_image_emd: Path):
 
     _ = mocker.patch("tsio.cli.run_emd", mock_write_emd)
 
-    result = runner.invoke(app, ["-S", "-b", "16", str(src)])
+    result = runner.invoke(app, ["-b", "16", str(src)])
     assert result.exit_code == 1
+    assert result.stdout.strip() == ""
+    assert "ERROR!" in result.stderr
 
 
 def test_app_npy_8bit_gray(black_8bit_gray_npy: Path):
     dst = black_8bit_gray_npy.with_suffix(JPEG_EXT)
-    result = runner.invoke(app, ["-S", str(black_8bit_gray_npy)])
+    result = runner.invoke(app, [str(black_8bit_gray_npy)])
     assert result.exit_code == 0
+    assert str(dst) in result.stdout.strip().replace("\n", "")
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2109,8 +2136,10 @@ def test_app_npy_8bit_gray(black_8bit_gray_npy: Path):
 
 def test_app_npy_16bit(black_16bit_gray_npy: Path):
     dst = black_16bit_gray_npy.with_suffix(JPEG_EXT)
-    result = runner.invoke(app, ["-S", str(black_16bit_gray_npy)])
+    result = runner.invoke(app, [str(black_16bit_gray_npy)])
     assert result.exit_code == 0
+    assert str(dst) in result.stdout.strip().replace("\n", "")
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2124,8 +2153,10 @@ def test_app_npy_16bit(black_16bit_gray_npy: Path):
 
 def test_app_npy_white_8bit_rgba(white_8bit_rgba_npy: Path):
     dst = white_8bit_rgba_npy.with_suffix(JPEG_EXT)
-    result = runner.invoke(app, ["-S", str(white_8bit_rgba_npy)])
+    result = runner.invoke(app, [str(white_8bit_rgba_npy)])
     assert result.exit_code == 0
+    assert str(dst) in result.stdout.strip().replace("\n", "")
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2139,8 +2170,10 @@ def test_app_npy_white_8bit_rgba(white_8bit_rgba_npy: Path):
 
 def test_app_png_8bit_gray(black_8bit_gray_png: Path):
     dst = black_8bit_gray_png.with_suffix(JPEG_EXT)
-    result = runner.invoke(app, ["-S", str(black_8bit_gray_png)])
+    result = runner.invoke(app, [str(black_8bit_gray_png)])
     assert result.exit_code == 0
+    assert str(dst) in result.stdout.strip().replace("\n", "")
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2154,8 +2187,10 @@ def test_app_png_8bit_gray(black_8bit_gray_png: Path):
 
 def test_app_png_16bit(black_16bit_gray_png: Path):
     dst = black_16bit_gray_png.with_suffix(JPEG_EXT)
-    result = runner.invoke(app, ["-S", str(black_16bit_gray_png)])
+    result = runner.invoke(app, [str(black_16bit_gray_png)])
     assert result.exit_code == 0
+    assert str(dst) in result.stdout.strip().replace("\n", "")
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2169,8 +2204,10 @@ def test_app_png_16bit(black_16bit_gray_png: Path):
 
 def test_app_png_white_8bit_rgba(white_8bit_rgba_png: Path):
     dst = white_8bit_rgba_png.with_suffix(JPEG_EXT)
-    result = runner.invoke(app, ["-S", str(white_8bit_rgba_png)])
+    result = runner.invoke(app, [str(white_8bit_rgba_png)])
     assert result.exit_code == 0
+    assert str(dst) in result.stdout.strip().replace("\n", "")
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2186,13 +2223,14 @@ def test_app_png_fails(black_8bit_gray_png: Path):
     result = runner.invoke(
         app,
         [
-            "-S",
             "-b",
             "16",
             str(black_8bit_gray_png),
         ],
     )
     assert result.exit_code == 1
+    assert result.stdout.strip() == ""
+    assert "ERROR!" in result.stderr
 
 
 def test_app_tiff(black_16bit_gray_single_page_tiff: Path):
@@ -2200,11 +2238,12 @@ def test_app_tiff(black_16bit_gray_single_page_tiff: Path):
     result = runner.invoke(
         app,
         [
-            "-S",
             str(black_16bit_gray_single_page_tiff),
         ],
     )
     assert result.exit_code == 0
+    assert str(dst) in result.stdout.strip().replace("\n", "")
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2220,19 +2259,22 @@ def test_app_tiff_fails(black_16bit_gray_single_page_tiff: Path):
     result = runner.invoke(
         app,
         [
-            "-S",
             "-b",
             "16",
             str(black_16bit_gray_single_page_tiff),
         ],
     )
     assert result.exit_code == 1
+    assert result.stdout.strip() == ""
+    assert "ERROR!" in result.stderr.strip()
 
 
 def test_app_bigtiff(random_bigtiff: Path):
     dst = random_bigtiff.with_suffix(JPEG_EXT)
-    result = runner.invoke(app, ["-S", str(random_bigtiff)])
+    result = runner.invoke(app, [str(random_bigtiff)])
     assert result.exit_code == 0
+    assert str(dst) in result.stdout.strip().replace("\n", "")
+
     assert dst.exists()
     kind = filetype.guess(str(dst))
     assert kind is not None
@@ -2255,12 +2297,12 @@ def test_app_with_supported_and_unsupported(
         [
             "-o",
             str(out),
-            "-S",
             str(black_16bit_gray_single_page_tiff),
             str(sample_1_docx),
         ],
     )
     assert result.exit_code == 0
+
     assert len(os.listdir(out)) == 1
     assert dst.exists()
     kind = filetype.guess(str(dst))
@@ -2272,3 +2314,62 @@ def test_app_with_supported_and_unsupported(
     assert jpeg_img.shape == (256, 256, 3)
     assert not np.any(jpeg_img)
     assert not skipped.exists()
+
+
+def test_app_stdin(black_8bit_gray_png: Path, black_16bit_gray_png: Path):
+    dst_1 = black_8bit_gray_png.with_suffix(JPEG_EXT)
+    dst_2 = black_16bit_gray_png.with_suffix(JPEG_EXT)
+    src = "\n".join([str(black_8bit_gray_png), str(black_16bit_gray_png)])
+    result = runner.invoke(app, ["-vv"], input=src)
+    assert result.exit_code == 0
+    assert str(dst_1) in result.stdout.strip().replace("\n", "")
+    assert str(dst_2) in result.stdout.strip().replace("\n", "")
+
+    assert dst_1.exists()
+    kind = filetype.guess(str(dst_1))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst_1))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
+
+    assert dst_2.exists()
+    kind = filetype.guess(str(dst_2))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst_2))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
+
+
+def test_app_stdin_with_silent(black_8bit_gray_png: Path, black_16bit_gray_png: Path):
+    dst_1 = black_8bit_gray_png.with_suffix(JPEG_EXT)
+    dst_2 = black_16bit_gray_png.with_suffix(JPEG_EXT)
+    src = str("\n".join([str(black_8bit_gray_png), str(black_16bit_gray_png)]))
+    result = runner.invoke(app, ["--silent"], input=src)
+    assert result.exit_code == 0
+    assert result.stdout.strip() == ""
+
+    assert dst_1.exists()
+    kind = filetype.guess(str(dst_1))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst_1))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
+
+    assert dst_2.exists()
+    kind = filetype.guess(str(dst_2))
+    assert kind is not None
+    assert kind.mime == "image/jpeg"
+    jpeg_img = cv2.imread(str(dst_2))
+    assert jpeg_img is not None
+    assert jpeg_img.dtype.name == "uint8"
+    assert jpeg_img.shape == (256, 256, 3)
+    assert not np.any(jpeg_img)
