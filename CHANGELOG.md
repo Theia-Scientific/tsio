@@ -1,5 +1,12 @@
 # Change Log
 
+## 1.4.0 (2026-11-20)
+
+### Features and enhancements
+
+- Added support for STDIO ([#59](https://github.com/Theia-Scientific/tsio/pull/59))
+- Changed README to use newer Python version ([#58](https://github.com/Theia-Scientific/tsio/pull/58))
+
 ## 1.3.0 (2026-10-23)
 
 ### Bug fixes
